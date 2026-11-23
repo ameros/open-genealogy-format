@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Naked Genealogy Viewer v6</title>
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --border: #dce2ec;
+    --text: #1e293b;
+    --muted: #64748b;
+    --accent: #2563eb;
+    --accent-soft: #eff6ff;
+    --green-bg: #dcfce7;
+    --green-text: #166534;
+    --green-border: #86efac;
+    --danger: #dc2626;
+    --danger-soft: #fef2f2;
+    --editor-bg: #0f172a;
+    --editor-text: #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 16px;
+  }
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid #bfdbfe;
+  }
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  button, select {
+    font-family: inherit;
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  button:hover, select:hover { background: #f8fafc; border-color: #cbd5e1; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.primary:hover { background: #1d4ed8; }
+  button.danger { color: var(--danger); border-color: #fecaca; background: var(--danger-soft); }
+
+  main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* Left Pane: Collapsible YAML Editor */
+  #editorPane {
+    width: 38%;
+    min-width: 320px;
+    max-width: 600px;
+    background: var(--editor-bg);
+    color: var(--editor-text);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+  }
+  #editorPane.hidden { display: none; }
+  .pane-header {
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #yamlInput {
+    flex: 1;
+    width: 100%;
+    border: none;
+    outline: none;
+    resize: none;
+    padding: 14px;
+    background: var(--editor-bg);
+    color: var(--editor-text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  /* Middle Pane: Directory List */
+  #listPane {
+    width: 360px;
+    min-width: 280px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: #f8fafc;
+  }
+  .tab {
+    flex: 1;
+    padding: 10px 8px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: transparent;
+  }
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: var(--surface);
+  }
+  .list-controls {
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .search-row {
+    display: flex;
+    gap: 6px;
+  }
+  #searchInput {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .sort-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .sort-row select { flex: 1; font-size: 12px; padding: 5px 8px; }
+  #recordList {
+    flex: 1;
+    overflow-y: auto;
+  }
+  .list-item {
+    padding: 11px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .list-item:hover { background: #f8fafc; }
+  .list-item.selected { background: var(--accent-soft); border-left: 3px solid var(--accent); }
+  .item-title {
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+  }
+  .item-id {
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .item-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 3px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  /* Right Pane: Naked Object Inspector */
+  #inspectorPane {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+  }
+  .card {
+    max-width: 780px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    background: #fafbfc;
+  }
+  .card-title { margin: 0; font-size: 20px; }
+  .card-meta { margin-top: 4px; font-size: 12px; color: var(--muted); font-family: monospace; }
+  .card-body { padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; }
+
+  .field-group {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: #fcfdff;
+  }
+  .field-row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 12px;
+    padding: 7px 0;
+    border-bottom: 1px dashed #eef2f6;
+    align-items: center;
+  }
+  .field-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .field-row:first-child { padding-top: 0; }
+
+  .field-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .has-tip {
+    border-bottom: 1px dotted #94a3b8;
+    cursor: help;
+  }
+  .tip-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    font-size: 10px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: #475569;
+  }
+
+  .field-value {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Green Date Explanation Pill */
+  .date-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 9px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 999px;
+    background: var(--green-bg);
+    color: var(--green-text);
+    border: 1px solid var(--green-border);
+  }
+  .date-badge-sm {
+    padding: 1px 6px;
+    font-size: 11px;
+  }
+
+  /* Link Pills */
+  .link-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid #bfdbfe;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .link-pill:hover { background: #dbeafe; }
+  .link-broken {
+    background: var(--danger-soft);
+    color: var(--danger);
+    border-color: #fecaca;
+  }
+
+  /* Backlinks Footer */
+  .backlinks {
+    padding: 14px 22px;
+    background: #f8fafc;
+    border-top: 1px solid var(--border);
+  }
+  .backlinks-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  /* Edit Mode Inputs */
+  .edit-row {
+    display: grid;
+    grid-template-columns: 180px 1fr 32px;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: center;
+  }
+  .edit-row input {
+    width: 100%;
+    padding: 6px 9px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .edit-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Floating Instant Tooltip */
+  #tooltip {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 8px 11px;
+    border-radius: 7px;
+    font-size: 12px;
+    line-height: 1.4;
+    max-width: 290px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    display: none;
+  }
+  #tooltip code {
+    display: block;
+    color: #93c5fd;
+    font-size: 11px;
+    margin-bottom: 3px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span>🌳 Naked Genealogy</span>
+    <span class="badge" id="langBadge">LANG: EN</span>
+  </div>
+  <div class="toolbar">
+    <button id="toggleYamlBtn">Show YAML Editor</button>
+    <select id="sampleSelect" title="Load built-in sample">
+      <option value="en">Sample: English (en)</option>
+      <option value="pl">Sample: Polski (pl)</option>
+    </select>
+    <button id="newIndBtn">+ Individual</button>
+    <button id="newFamBtn">+ Family</button>
+    <button id="openFileBtn">Open .yaml</button>
+    <button id="downloadBtn" class="primary">Download .yaml</button>
+    <input type="file" id="fileInput" accept=".yaml,.yml,.txt" style="display:none" />
+  </div>
+</header>
+
+<main>
+  <!-- Collapsible YAML Editor (hidden by default) -->
+  <section id="editorPane" class="hidden">
+    <div class="pane-header">
+      <span>Raw YAML Stream</span>
+      <span id="parseStatus" style="color:#86efac;">Valid</span>
+    </div>
+    <textarea id="yamlInput" spellcheck="false"></textarea>
+  </section>
+
+  <!-- Directory List -->
+  <section id="listPane">
+    <div class="tabs">
+      <button class="tab active" data-tab="Individual">Individuals (<span id="countInd">0</span>)</button>
+      <button class="tab" data-tab="Family">Families (<span id="countFam">0</span>)</button>
+      <button class="tab" data-tab="All">All (<span id="countAll">0</span>)</button>
+    </div>
+    <div class="list-controls">
+      <div class="search-row">
+        <input type="text" id="searchInput" placeholder="Filter by name, date, place, @id@..." />
+      </div>
+      <div class="sort-row">
+        <select id="sortSelect">
+          <option value="file">Sort: File Order</option>
+          <option value="name_asc">Sort: Name (A → Z)</option>
+          <option value="name_desc">Sort: Name (Z → A)</option>
+          <option value="date_asc">Sort: Date (Oldest first)</option>
+          <option value="date_desc">Sort: Date (Newest first)</option>
+        </select>
+      </div>
+    </div>
+    <div id="recordList"></div>
+  </section>
+
+  <!-- Single Card Inspector -->
+  <section id="inspectorPane">
+    <div id="inspectorContent"></div>
+  </section>
+</main>
+
+<div id="tooltip"></div>
+<datalist id="dictKeysList"></datalist>
+
+<script>
+const SAMPLES = {
+  en: `---
+id: "@meta@"
+type: Meta
+language: en
+encoding: UTF-8
+date_approx: "About {date}"
+date_uncertain: "Uncertain {date}"
+date_range: "Between {start} and {end}"
+date_before: "On or before {date}"
+date_after: "On or after {date}"
+---
+id: "@dictionary@"
+type: Dictionary
+
+name_first: First Name — Primary given name at birth or baptism
+name_middle: Middle Name — Secondary given name(s)
+name_maiden: Maiden Name — Surname at birth prior to marriage
+name_last: Last Name — Current or primary family surname
+name_alias: Alias / Variants — Nicknames or spelling variations in records
+
+birth_date: Birth Date — Date of birth (EDTF format)
+birth_place: Birth Place — Town, parish, or region of birth
+
+death_date: Death Date — Date of death (EDTF format)
+death_place: Death Place — Location of death or burial
+
+marriage_date: Marriage Date — Date of wedding or union
+marriage_place: Marriage Place — Parish or civil registry location
+
+husband_id: Husband — Link to partner 1 in a family unit
+wife_id: Wife — Link to partner 2 in a family unit
+child_ids: Children — List of links to children in this family
+---
+id: "@ind_a8f3k@"
+type: Individual
+
+name_first: John
+name_last: Smith
+name_alias:
+  - Jack Smith
+  - Joannes Faber
+
+birth_date: 1890-05-12
+birth_place: Bristol
+
+occupation: Watchmaker
+---
+id: "@ind_c2p7q@"
+type: Individual
+
+name_first: Anna
+name_maiden: Taylor
+name_last: Smith
+
+birth_date: 1895-11~
+birth_place: Bath
+---
+id: "@ind_d9w1z@"
+type: Individual
+
+name_first: Peter
+name_last: Smith
+
+birth_date: 1920..1921
+birth_place: Bristol
+---
+id: "@fam_9x2p1@"
+type: Family
+
+marriage_date: 1918-06-20
+marriage_place: Bristol
+
+husband_id: "@ind_a8f3k@"
+wife_id: "@ind_c2p7q@"
+child_ids:
+  - "@ind_d9w1z@"
+`,
+  pl: `---
+id: "@meta@"
+type: Meta
+language: pl
+encoding: UTF-8
+date_approx: "Około {date}"
+date_uncertain: "Niepewna data: {date}"
+date_range: "Między {start} a {end}"
+date_before: "Nie później niż {date}"
+date_after: "Nie wcześniej niż {date}"
+---
+id: "@dictionary@"
+type: Dictionary
+
+imie: Imię — Pierwsze imię nadane przy urodzeniu lub chrzcie
+drugie_imie: Drugie imię — Kolejne imię nadane przy urodzeniu lub chrzcie
+nazwisko_rodowe: Nazwisko rodowe — Nazwisko noszone przed zawarciem małżeństwa
+nazwisko: Nazwisko — Obecne lub główne nazwisko
+pseudonim: Pseudonim / Warianty — Zdrobnienia lub warianty pisowni w aktach
+
+urodzenie_data: Data urodzenia — Data urodzenia w formacie EDTF
+urodzenie_miejsce: Miejsce urodzenia — Miejscowość lub parafia urodzenia
+
+zgon_data: Data zgonu — Data śmierci w formacie EDTF
+zgon_miejsce: Miejsce zgonu — Miejscowość zgonu lub pochówku
+
+slub_data: Data ślubu — Data zawarcia małżeństwa
+slub_miejsce: Miejsce ślubu — Parafia lub urząd stanu cywilnego
+
+maz_id: Mąż — Odnośnik do męża lub partnera w rodzinie
+zona_id: Żona — Odnośnik do żony lub partnerki w rodzinie
+dzieci_ids: Dzieci — Lista odnośników do dzieci w rodzinie
+---
+id: "@ind_a8f3k@"
+type: Individual
+
+imie: Jan
+nazwisko: Kowalski
+pseudonim:
+  - Jasiek
+  - Joannes Kowalsky
+
+urodzenie_data: 1890-05-12
+urodzenie_miejsce: Kraków
+
+zawod: Zegarmistrz
+---
+id: "@ind_c2p7q@"
+type: Individual
+
+imie: Anna
+nazwisko_rodowe: Zielińska
+nazwisko: Kowalska
+
+urodzenie_data: 1895-11~
+urodzenie_miejsce: Wieliczka
+---
+id: "@ind_d9w1z@"
+type: Individual
+
+imie: Piotr
+nazwisko: Kowalski
+
+urodzenie_data: 1920..1921
+urodzenie_miejsce: Kraków
+---
+id: "@fam_9x2p1@"
+type: Family
+
+slub_data: 1918-06-20
+slub_miejsce: Kraków
+
+maz_id: "@ind_a8f3k@"
+zona_id: "@ind_c2p7q@"
+dzieci_ids:
+  - "@ind_d9w1z@"
+`
+};
+
+let state = {
+  docs: [],
+  registry: {},
+  meta: {},
+  dict: {},
+  dictGroups: [],
+  activeTab: "Individual",
+  selectedId: null,
+  editMode: false
+};
+
+function unquote(val) {
+  val = val.trim();
+  if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+    return val.slice(1, -1);
+  }
+  return val;
+}
+
+function parseYamlStream(text) {
+  const rawBlocks = text.split(/^---\s*$/m);
+  const docs = [];
+
+  for (const block of rawBlocks) {
+    const lines = block.split(/\r?\n/);
+    const entries = [];
+    let currentKey = null;
+    let groupIndex = 0;
+    let sawField = false;
+
+    for (let rawLine of lines) {
+      const trimmed = rawLine.trim();
+      if (!trimmed) {
+        if (sawField) groupIndex++;
+        continue;
+      }
+      if (trimmed.startsWith("#")) continue;
+
+      if (rawLine.match(/^\s*-\s+/)) {
+        const itemVal = unquote(rawLine.replace(/^\s*-\s+/, ""));
+        if (currentKey && entries.length > 0) {
+          const last = entries[entries.length - 1];
+          if (!Array.isArray(last.value)) last.value = [];
+          last.value.push(itemVal);
+        }
+        continue;
+      }
+
+      const colonIdx = rawLine.indexOf(":");
+      if (colonIdx > 0) {
+        const key = rawLine.slice(0, colonIdx).trim();
+        const rest = rawLine.slice(colonIdx + 1).trim();
+        currentKey = key;
+        sawField = true;
+        entries.push({
+          key,
+          value: rest === "" ? [] : unquote(rest),
+          group: groupIndex
+        });
+      }
+    }
+
+    if (entries.length > 0) {
+      const map = {};
+      entries.forEach(e => { map[e.key] = e.value; });
+      docs.push({ entries, map });
+    }
+  }
+  return docs;
+}
+
+function serializeYamlStream(docs) {
+  return docs.map(doc => {
+    const lines = ["---"];
+    let prevGroup = null;
+    for (const e of doc.entries) {
+      if (prevGroup !== null && e.group !== prevGroup && e.key !== "id" && e.key !== "type") {
+        lines.push("");
+      }
+      prevGroup = e.group;
+      if (Array.isArray(e.value)) {
+        lines.push(`${e.key}:`);
+        e.value.forEach(v => lines.push(`  - ${formatYamlScalar(v)}`));
+      } else {
+        lines.push(`${e.key}: ${formatYamlScalar(e.value)}`);
+      }
+    }
+    return lines.join("\n");
+  }).join("\n") + "\n";
+}
+
+function formatYamlScalar(val) {
+  const s = String(val ?? "");
+  if (s.startsWith("@") || s.startsWith("..") || s.includes(": ") || s.includes("{")) {
+    return `"${s.replace(/"/g, '\\"')}"`;
+  }
+  return s;
+}
+
+function rebuildModel() {
+  const text = document.getElementById("yamlInput").value;
+  const docs = parseYamlStream(text);
+  const registry = {};
+  let meta = {};
+  const dict = {};
+  const dictGroups = [];
+
+  docs.forEach(doc => {
+    if (doc.map.id) registry[doc.map.id] = doc;
+    if (doc.map.id === "@meta@" || doc.map.type === "Meta") meta = doc.map;
+    if (doc.map.id === "@dictionary@" || doc.map.type === "Dictionary") {
+      doc.entries.forEach(e => {
+        if (e.key === "id" || e.key === "type") return;
+        const raw = String(e.value || "");
+        const parts = raw.split(/\s+(?:—|-)\s+/);
+        dict[e.key] = {
+          label: parts[0] || prettifyKey(e.key),
+          tip: parts.slice(1).join(" - ") || "",
+          group: e.group
+        };
+      });
+    }
+  });
+
+  state.docs = docs;
+  state.registry = registry;
+  state.meta = meta;
+  state.dict = dict;
+
+  const lang = (meta.language || "en").toUpperCase();
+  document.getElementById("langBadge").textContent = `LANG: ${lang}`;
+
+  const dl = document.getElementById("dictKeysList");
+  dl.innerHTML = Object.keys(dict).map(k => `<option value="${k}">${dict[k].label}</option>`).join("");
+
+  const visibleDocs = docs.filter(d => d.map.type !== "Meta" && d.map.type !== "Dictionary");
+  if (!state.selectedId || !registry[state.selectedId]) {
+    state.selectedId = visibleDocs.length ? visibleDocs[0].map.id : null;
+  }
+
+  renderList();
+  renderInspector();
+}
+
+function prettifyKey(key) {
+  return key.replace(/_ids?$/, "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function getFieldMeta(key) {
+  if (state.dict[key]) return state.dict[key];
+  return { label: prettifyKey(key), tip: "", group: null };
+}
+
+function getDateTemplates() {
+  const isPl = (state.meta.language || "").toLowerCase() === "pl";
+  return {
+    approx: state.meta.date_approx || (isPl ? "Około {date}" : "About {date}"),
+    uncertain: state.meta.date_uncertain || (isPl ? "Niepewna data: {date}" : "Uncertain {date}"),
+    range: state.meta.date_range || (isPl ? "Między {start} a {end}" : "Between {start} and {end}"),
+    before: state.meta.date_before || (isPl ? "Nie później niż {date}" : "On or before {date}"),
+    after: state.meta.date_after || (isPl ? "Nie wcześniej niż {date}" : "On or after {date}")
+  };
+}
+
+function explainDate(val) {
+  if (typeof val !== "string") return null;
+  const v = val.trim();
+  const tpl = getDateTemplates();
+
+  if (/^\d{4}(-\d{2}(-\d{2})?)?~$/.test(v)) {
+    return tpl.approx.replace("{date}", v.slice(0, -1));
+  }
+  if (/^\d{4}(-\d{2}(-\d{2})?)?\?$/.test(v)) {
+    return tpl.uncertain.replace("{date}", v.slice(0, -1));
+  }
+  if (/^\d{4}(-\d{2}(-\d{2})?)?\.\.\d{4}(-\d{2}(-\d{2})?)?$/.test(v)) {
+    const [start, end] = v.split("..");
+    return tpl.range.replace("{start}", start).replace("{end}", end);
+  }
+  if (/^\.\.\d{4}(-\d{2}(-\d{2})?)?$/.test(v)) {
+    return tpl.before.replace("{date}", v.slice(2));
+  }
+  if (/^\d{4}(-\d{2}(-\d{2})?)?\.\.$/.test(v)) {
+    return tpl.after.replace("{date}", v.slice(0, -2));
+  }
+  return null;
+}
+
+function isLink(val) {
+  return typeof val === "string" && /^@.+\@$/.test(val.trim());
+}
+
+function getDisplayTitle(doc) {
+  if (!doc) return "Unknown";
+  const m = doc.map;
+  if (m.type === "Individual") {
+    const first = m.name_first || m.imie || m.given_name || "";
+    const last = m.name_last || m.nazwisko || m.surname || m.name_maiden || m.nazwisko_rodowe || "";
+    const full = `${first} ${last}`.trim() || m.full_name;
+    return full || m.id;
+  }
+  if (m.type === "Family") {
+    const h = m.husband_id || m.maz_id;
+    const w = m.wife_id || m.zona_id;
+    const hName = h && state.registry[h] ? getDisplayTitle(state.registry[h]) : (h || "?");
+    const wName = w && state.registry[w] ? getDisplayTitle(state.registry[w]) : (w || "?");
+    return `${hName} & ${wName}`;
+  }
+  return m.title || m.name || m.id;
+}
+
+function getPrimaryDate(doc) {
+  const m = doc.map;
+  return m.birth_date || m.urodzenie_data || m.born || m.marriage_date || m.slub_data || m.date || "";
+}
+
+function getSortName(doc) {
+  const m = doc.map;
+  if (m.type === "Individual") {
+    const last = m.name_last || m.nazwisko || m.name_maiden || m.nazwisko_rodowe || "";
+    const first = m.name_first || m.imie || "";
+    return `${last} ${first}`.trim().toLowerCase();
+  }
+  return getDisplayTitle(doc).toLowerCase();
+}
+
+function renderList() {
+  const query = document.getElementById("searchInput").value.trim().toLowerCase();
+  const sortMode = document.getElementById("sortSelect").value;
+
+  const contentDocs = state.docs.filter(d => d.map.type !== "Meta" && d.map.type !== "Dictionary");
+  const indDocs = contentDocs.filter(d => d.map.type === "Individual");
+  const famDocs = contentDocs.filter(d => d.map.type === "Family");
+
+  document.getElementById("countInd").textContent = indDocs.length;
+  document.getElementById("countFam").textContent = famDocs.length;
+  document.getElementById("countAll").textContent = contentDocs.length;
+
+  let filtered = contentDocs;
+  if (state.activeTab === "Individual") filtered = indDocs;
+  else if (state.activeTab === "Family") filtered = famDocs;
+
+  if (query) {
+    filtered = filtered.filter(doc => {
+      const title = getDisplayTitle(doc).toLowerCase();
+      const raw = JSON.stringify(doc.map).toLowerCase();
+      return title.includes(query) || raw.includes(query);
+    });
+  }
+
+  filtered = [...filtered];
+  if (sortMode === "name_asc") filtered.sort((a, b) => getSortName(a).localeCompare(getSortName(b)));
+  if (sortMode === "name_desc") filtered.sort((a, b) => getSortName(b).localeCompare(getSortName(a)));
+  if (sortMode === "date_asc") filtered.sort((a, b) => getPrimaryDate(a).localeCompare(getPrimaryDate(b)));
+  if (sortMode === "date_desc") filtered.sort((a, b) => getPrimaryDate(b).localeCompare(getPrimaryDate(a)));
+
+  const listEl = document.getElementById("recordList");
+  listEl.innerHTML = filtered.map(doc => {
+    const id = doc.map.id;
+    const title = escapeHtml(getDisplayTitle(doc));
+    const dateVal = getPrimaryDate(doc);
+    const dateExp = explainDate(dateVal);
+    const place = doc.map.birth_place || doc.map.urodzenie_miejsce || doc.map.marriage_place || doc.map.slub_miejsce || "";
+    const selected = id === state.selectedId ? "selected" : "";
+
+    let subHtml = "";
+    if (dateVal) {
+      subHtml += `<span>${escapeHtml(dateVal)}</span>`;
+      if (dateExp) subHtml += `<span class="date-badge date-badge-sm">${escapeHtml(dateExp)}</span>`;
+    }
+    if (place) subHtml += `<span>• ${escapeHtml(place)}</span>`;
+
+    return `
+      <div class="list-item ${selected}" data-id="${escapeHtml(id)}">
+        <div class="item-title">
+          <span>${title}</span>
+          <span class="item-id">${escapeHtml(id)}</span>
+        </div>
+        <div class="item-sub">${subHtml || escapeHtml(doc.map.type || "")}</div>
+      </div>
+    `;
+  }).join("");
+
+  listEl.querySelectorAll(".list-item").forEach(el => {
+    el.addEventListener("click", () => {
+      state.selectedId = el.dataset.id;
+      state.editMode = false;
+      renderList();
+      renderInspector();
+    });
+  });
+}
+
+function getBacklinks(targetId) {
+  const results = [];
+  for (const doc of state.docs) {
+    if (doc.map.id === targetId || doc.map.type === "Meta" || doc.map.type === "Dictionary") continue;
+    for (const e of doc.entries) {
+      const vals = Array.isArray(e.value) ? e.value : [e.value];
+      if (vals.includes(targetId)) {
+        results.push({
+          fromId: doc.map.id,
+          fromTitle: getDisplayTitle(doc),
+          viaLabel: getFieldMeta(e.key).label
+        });
+      }
+    }
+  }
+  return results;
+}
+
+function renderInspector() {
+  const container = document.getElementById("inspectorContent");
+  const doc = state.registry[state.selectedId];
+  if (!doc) {
+    container.innerHTML = `<div class="card"><div class="card-body">No record selected.</div></div>`;
+    return;
+  }
+
+  if (state.editMode) {
+    renderEditorCard(doc, container);
+    return;
+  }
+
+  const title = escapeHtml(getDisplayTitle(doc));
+  const fieldEntries = doc.entries.filter(e => e.key !== "id" && e.key !== "type");
+
+  // Group entries using dictionary group if available, else YAML group
+  const groups = [];
+  let currentGroup = [];
+  let lastGroupKey = null;
+
+  fieldEntries.forEach(e => {
+    const meta = getFieldMeta(e.key);
+    const gKey = meta.group !== null ? `dict_${meta.group}` : `yaml_${e.group}`;
+    if (lastGroupKey !== null && gKey !== lastGroupKey && currentGroup.length > 0) {
+      groups.push(currentGroup);
+      currentGroup = [];
+    }
+    currentGroup.push(e);
+    lastGroupKey = gKey;
+  });
+  if (currentGroup.length > 0) groups.push(currentGroup);
+
+  const groupsHtml = groups.map(grp => {
+    const rowsHtml = grp.map(e => {
+      const meta = getFieldMeta(e.key);
+      const tipAttr = meta.tip ? `data-key="${escapeHtml(e.key)}" data-tip="${escapeHtml(meta.tip)}"` : `data-key="${escapeHtml(e.key)}"`;
+      const labelHtml = `
+        <div class="field-label">
+          <span class="${meta.tip ? 'has-tip' : ''}" ${tipAttr}>${escapeHtml(meta.label)}</span>
+          ${meta.tip ? `<span class="tip-icon" ${tipAttr}>?</span>` : ""}
+        </div>
+      `;
+      const valHtml = renderValue(e.value);
+      return `<div class="field-row">${labelHtml}<div class="field-value">${valHtml}</div></div>`;
+    }).join("");
+    return `<div class="field-group">${rowsHtml}</div>`;
+  }).join("");
+
+  const backlinks = getBacklinks(doc.map.id);
+  const backlinksHtml = backlinks.length ? `
+    <div class="backlinks">
+      <div class="backlinks-title">Referenced In</div>
+      <div class="field-value">
+        ${backlinks.map(b => `
+          <span class="link-pill" data-nav="${escapeHtml(b.fromId)}">
+            ${escapeHtml(b.fromTitle)} <small>(${escapeHtml(b.viaLabel)})</small>
+          </span>
+        `).join("")}
+      </div>
+    </div>
+  ` : "";
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">${title}</h2>
+          <div class="card-meta">${escapeHtml(doc.map.type || "Object")} • ${escapeHtml(doc.map.id)}</div>
+        </div>
+        <div>
+          <button id="editCardBtn">Edit Card</button>
+        </div>
+      </div>
+      <div class="card-body">
+        ${groupsHtml || "<p style='color:var(--muted)'>No properties defined yet.</p>"}
+      </div>
+      ${backlinksHtml}
+    </div>
+  `;
+
+  document.getElementById("editCardBtn").addEventListener("click", () => {
+    state.editMode = true;
+    renderInspector();
+  });
+
+  container.querySelectorAll("[data-nav]").forEach(el => {
+    el.addEventListener("click", () => navigateTo(el.dataset.nav));
+  });
+
+  bindTooltips(container);
+}
+
+function renderValue(val) {
+  if (Array.isArray(val)) {
+    return val.map(item => renderSingleScalar(item)).join("");
+  }
+  return renderSingleScalar(val);
+}
+
+function renderSingleScalar(val) {
+  const str = String(val ?? "");
+  if (isLink(str)) {
+    const target = state.registry[str];
+    if (target) {
+      return `<span class="link-pill" data-nav="${escapeHtml(str)}">🔗 ${escapeHtml(getDisplayTitle(target))}</span>`;
+    }
+    return `<span class="link-pill link-broken">⚠️ Missing: ${escapeHtml(str)}</span>`;
+  }
+  const dateExp = explainDate(str);
+  if (dateExp) {
+    return `<span>${escapeHtml(str)}</span> <span class="date-badge">${escapeHtml(dateExp)}</span>`;
+  }
+  return `<span>${escapeHtml(str)}</span>`;
+}
+
+function renderEditorCard(doc, container) {
+  const editableEntries = doc.entries.filter(e => e.key !== "id" && e.key !== "type");
+
+  const rowsHtml = editableEntries.map((e, idx) => {
+    const valStr = Array.isArray(e.value) ? e.value.join(", ") : String(e.value ?? "");
+    return `
+      <div class="edit-row" data-idx="${idx}">
+        <input type="text" class="edit-key" list="dictKeysList" value="${escapeHtml(e.key)}" placeholder="key_name" />
+        <input type="text" class="edit-val" value="${escapeHtml(valStr)}" placeholder="value (comma-separated for list)" />
+        <button type="button" class="danger remove-row-btn" title="Remove field">✕</button>
+      </div>
+    `;
+  }).join("");
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">Editing: ${escapeHtml(getDisplayTitle(doc))}</h2>
+          <div class="card-meta">${escapeHtml(doc.map.type)} • ${escapeHtml(doc.map.id)}</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="editRowsContainer">${rowsHtml}</div>
+        <div>
+          <button type="button" id="addFieldBtn">+ Add Field</button>
+        </div>
+        <div class="edit-actions">
+          <button type="button" class="danger" id="deleteCardBtn">Delete Record</button>
+          <div style="display:flex;gap:8px;">
+            <button type="button" id="cancelEditBtn">Cancel</button>
+            <button type="button" class="primary" id="saveEditBtn">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const rowsContainer = document.getElementById("editRowsContainer");
+  rowsContainer.querySelectorAll(".remove-row-btn").forEach(btn => {
+    btn.addEventListener("click", () => btn.closest(".edit-row").remove());
+  });
+
+  document.getElementById("addFieldBtn").addEventListener("click", () => {
+    const row = document.createElement("div");
+    row.className = "edit-row";
+    row.innerHTML = `
+      <input type="text" class="edit-key" list="dictKeysList" placeholder="new_field_key" />
+      <input type="text" class="edit-val" placeholder="value" />
+      <button type="button" class="danger remove-row-btn">✕</button>
+    `;
+    row.querySelector(".remove-row-btn").addEventListener("click", () => row.remove());
+    rowsContainer.appendChild(row);
+  });
+
+  document.getElementById("cancelEditBtn").addEventListener("click", () => {
+    state.editMode = false;
+    renderInspector();
+  });
+
+  document.getElementById("deleteCardBtn").addEventListener("click", () => {
+    state.docs = state.docs.filter(d => d.map.id !== doc.map.id);
+    state.selectedId = null;
+    state.editMode = false;
+    syncDocsToYaml();
+  });
+
+  document.getElementById("saveEditBtn").addEventListener("click", () => {
+    const newEntries = [
+      { key: "id", value: doc.map.id, group: 0 },
+      { key: "type", value: doc.map.type, group: 0 }
+    ];
+    rowsContainer.querySelectorAll(".edit-row").forEach((row, i) => {
+      const k = row.querySelector(".edit-key").value.trim();
+      const rawV = row.querySelector(".edit-val").value.trim();
+      if (!k) return;
+      const isListKey = k.endsWith("_ids") || k === "name_alias" || k === "pseudonim";
+      const val = (isListKey && rawV.includes(","))
+        ? rawV.split(",").map(s => s.trim()).filter(Boolean)
+        : (isListKey && rawV ? [rawV] : rawV);
+      const dictMeta = state.dict[k];
+      newEntries.push({
+        key: k,
+        value: val,
+        group: dictMeta ? dictMeta.group : i + 1
+      });
+    });
+    doc.entries = newEntries;
+    state.editMode = false;
+    syncDocsToYaml();
+  });
+}
+
+function syncDocsToYaml() {
+  document.getElementById("yamlInput").value = serializeYamlStream(state.docs);
+  rebuildModel();
+}
+
+function navigateTo(targetId) {
+  const target = state.registry[targetId];
+  if (!target) return;
+  state.selectedId = targetId;
+  state.editMode = false;
+  if (target.map.type === "Individual" || target.map.type === "Family") {
+    state.activeTab = target.map.type;
+    document.querySelectorAll(".tab").forEach(t => {
+      t.classList.toggle("active", t.dataset.tab === state.activeTab);
+    });
+  }
+  renderList();
+  renderInspector();
+}
+
+function createNewRecord(type) {
+  const prefix = type === "Individual" ? "ind" : "fam";
+  const rand = Math.random().toString(36).substring(2, 7);
+  const newId = `@${prefix}_${rand}@`;
+  const isPl = (state.meta.language || "").toLowerCase() === "pl";
+
+  const entries = [
+    { key: "id", value: newId, group: 0 },
+    { key: "type", value: type, group: 0 }
+  ];
+
+  if (type === "Individual") {
+    entries.push({ key: isPl ? "imie" : "name_first", value: "", group: 1 });
+    entries.push({ key: isPl ? "nazwisko" : "name_last", value: "", group: 1 });
+    entries.push({ key: isPl ? "urodzenie_data" : "birth_date", value: "", group: 2 });
+  } else {
+    entries.push({ key: isPl ? "slub_data" : "marriage_date", value: "", group: 1 });
+    entries.push({ key: isPl ? "maz_id" : "husband_id", value: "", group: 2 });
+    entries.push({ key: isPl ? "zona_id" : "wife_id", value: "", group: 2 });
+  }
+
+  const map = {};
+  entries.forEach(e => { map[e.key] = e.value; });
+  state.docs.push({ entries, map });
+  state.selectedId = newId;
+  state.activeTab = type;
+  state.editMode = true;
+
+  document.querySelectorAll(".tab").forEach(t => {
+    t.classList.toggle("active", t.dataset.tab === type);
+  });
+  syncDocsToYaml();
+}
+
+function bindTooltips(root) {
+  const tipEl = document.getElementById("tooltip");
+  root.querySelectorAll("[data-key]").forEach(el => {
+    el.addEventListener("mouseenter", e => {
+      const k = el.dataset.key;
+      const t = el.dataset.tip;
+      tipEl.innerHTML = `<code>${escapeHtml(k)}</code>${t ? escapeHtml(t) : ""}`;
+      tipEl.style.display = "block";
+      positionTooltip(e, tipEl);
+    });
+    el.addEventListener("mousemove", e => positionTooltip(e, tipEl));
+    el.addEventListener("mouseleave", () => { tipEl.style.display = "none"; });
+  });
+}
+
+function positionTooltip(e, tipEl) {
+  const pad = 12;
+  let x = e.clientX + pad;
+  let y = e.clientY + pad;
+  if (x + 300 > window.innerWidth) x = e.clientX - 300;
+  if (y + 80 > window.innerHeight) y = e.clientY - 70;
+  tipEl.style.left = `${Math.max(8, x)}px`;
+  tipEl.style.top = `${Math.max(8, y)}px`;
+}
+
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+// Event Wiring
+document.getElementById("toggleYamlBtn").addEventListener("click", () => {
+  const pane = document.getElementById("editorPane");
+  pane.classList.toggle("hidden");
+  document.getElementById("toggleYamlBtn").textContent =
+    pane.classList.contains("hidden") ? "Show YAML Editor" : "Hide YAML Editor";
+});
+
+document.getElementById("sampleSelect").addEventListener("change", e => {
+  state.selectedId = null;
+  state.editMode = false;
+  document.getElementById("yamlInput").value = SAMPLES[e.target.value];
+  rebuildModel();
+});
+
+document.getElementById("yamlInput").addEventListener("input", () => {
+  rebuildModel();
+});
+
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    state.activeTab = tab.dataset.tab;
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    renderList();
+  });
+});
+
+document.getElementById("searchInput").addEventListener("input", renderList);
+document.getElementById("sortSelect").addEventListener("change", renderList);
+
+document.getElementById("newIndBtn").addEventListener("click", () => createNewRecord("Individual"));
+document.getElementById("newFamBtn").addEventListener("click", () => createNewRecord("Family"));
+
+document.getElementById("openFileBtn").addEventListener("click", () => {
+  document.getElementById("fileInput").click();
+});
+document.getElementById("fileInput").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    state.selectedId = null;
+    state.editMode = false;
+    document.getElementById("yamlInput").value = ev.target.result;
+    rebuildModel();
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById("downloadBtn").addEventListener("click", () => {
+  const blob = new Blob([document.getElementById("yamlInput").value], { type: "text/yaml;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "family-tree.yaml";
+  a.click();
+});
+
+// Init
+document.getElementById("yamlInput").value = SAMPLES.en;
+rebuildModel();
+</script>
+</body>
+</html>
