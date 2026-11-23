@@ -581,38 +581,48 @@ function renderInspector() {
   `;
 
   const fieldsEl = card.querySelector("#card-fields");
-  const originalFieldsBody = fieldsEl.parentElement;
   const contentLayout = document.createElement("div");
   contentLayout.className = "card-content-layout";
-  const portraitUrl = getImageCandidates(doc)[0];
-  if (portraitUrl) {
-    const portraitColumn = document.createElement("div");
-    portraitColumn.className = "card-portrait-column";
-    const portrait = document.createElement("img");
-    portrait.className = "record-portrait";
-    portrait.setAttribute("src", portraitUrl);
-    portrait.setAttribute("alt", title);
-    portrait.loading = "eager";
-    portrait.addEventListener("error", () => {
-      portrait.remove();
-      portraitColumn.remove();
-      // Keep a useful hint when a GEDCOM path cannot be resolved by the browser.
-      if (!card.querySelector(".media-load-hint")) {
-        const hint = document.createElement("div");
-        hint.className = "media-load-hint";
-        hint.textContent = "Image path found in OBJE.FILE. Use ‘Load media folder’ to grant access to local media files.";
-        contentLayout.insertBefore(hint, contentLayout.firstChild);
-      }
-    }, { once: true });
-    portraitColumn.appendChild(portrait);
-    contentLayout.appendChild(portraitColumn);
-  }
-  // Replace only the fields container with the two-column content layout.
-  // Keep the card itself (and its title/header) intact, then move the fields
-  // container inside the layout. Replacing fieldsEl.parentElement here would
-  // detach the entire card and leave only its header visible.
+  // Replace only the fields container and keep the card attached to the page
+  // before attempting any optional media lookup. A missing/unreadable image
+  // must never prevent the record card or its ordinary fields from rendering.
   fieldsEl.replaceWith(contentLayout);
   contentLayout.appendChild(fieldsEl);
+  container.innerHTML = "";
+  container.appendChild(card);
+
+  let portraitUrl = null;
+  try {
+    portraitUrl = getImageCandidates(doc)[0] || null;
+  } catch (mediaError) {
+    console.warn("Could not resolve record media; rendering the record without a portrait.", mediaError);
+  }
+  if (portraitUrl) {
+    try {
+      const portraitColumn = document.createElement("div");
+      portraitColumn.className = "card-portrait-column";
+      const portrait = document.createElement("img");
+      portrait.className = "record-portrait";
+      portrait.setAttribute("src", portraitUrl);
+      portrait.setAttribute("alt", title);
+      portrait.loading = "eager";
+      portrait.addEventListener("error", () => {
+        // A missing media folder affects only the optional portrait. Leave the
+        // card and its OBJE.FILE path visible and do not replace the content.
+        portraitColumn.remove();
+        if (!card.querySelector(".media-load-hint")) {
+          const hint = document.createElement("div");
+          hint.className = "media-load-hint";
+          hint.textContent = "Image unavailable. The record data is still displayed; use ‘Load media folder’ only if you want to view local images.";
+          contentLayout.insertBefore(hint, fieldsEl);
+        }
+      }, { once: true });
+      portraitColumn.appendChild(portrait);
+      contentLayout.insertBefore(portraitColumn, fieldsEl);
+    } catch (mediaError) {
+      console.warn("Could not display record portrait; rendering the record without it.", mediaError);
+    }
+  }
   const coordinatePairs = findCoordinatePairs(doc);
   const mapLinksByLongKey = new Map();
   for (const coordinates of coordinatePairs) {
@@ -773,9 +783,6 @@ function renderInspector() {
     }
     card.appendChild(blDiv);
   }
-
-  container.innerHTML = "";
-  container.appendChild(card);
 
   card.querySelector("#edit-card-btn").addEventListener("click", () => {
     state.editMode = true;
