@@ -77,7 +77,7 @@ husband_id: "@ind_a8f3k@"
 wife_id: "@ind_c2p7q@"
 ```
 
-*(Supports any language natively—see `SPECIFICATION-v5.md` for a full Polish (`language: pl`) example.)*
+*(Supports any language natively—see `SPECIFICATION.md` for a full Polish (`language: pl`) example.)*
 
 ---
 
@@ -93,13 +93,13 @@ wife_id: "@ind_c2p7q@"
 ## Repository Contents
 
 * **`SPECIFICATION-v5.md`** — Full formal specification of the Open Genealogy Format (structure, `@meta@`, `@dictionary@`, ID conventions, EDTF dates, and English/Polish examples).
-* **`open-genealogy-viewer.html`** *(formerly `naked-genealogy-viewer-v6.html`)* — Standalone single-file browser viewer and inline editor. Open directly in any modern browser—no server or build tools required.
+* **`open-genealogy-viewer.html`** *(formerly `open-genealogy-viewer.html`)* — Standalone single-file browser viewer and inline editor. Open directly in any modern browser—no server or build tools required.
 
 ---
 
 ## Getting Started
 
-1. **Explore the Format:** Read `SPECIFICATION-v5.md` to see all rules and examples.
+1. **Explore the Format:** Read `SPECIFICATION.md` to see all rules and examples.
 2. **Launch the Viewer:** Download `open-genealogy-viewer.html` and double-click it to open it locally in Chrome, Firefox, Edge, or Safari.
 3. **Load or Edit Your Tree:** Switch between the built-in English and Polish sample trees, edit cards inline, or open your own `.yaml` file.
 
