@@ -699,6 +699,7 @@ function serializeYamlStream(docs) {
 
 function formatScalar(val) {
   const s = String(val ?? "");
+  if (s === "") return '""';
   if (
     s.startsWith("@") ||
     s.startsWith("~") ||
@@ -745,14 +746,18 @@ function explainDate(val) {
 function getRecordTitle(doc, docMap) {
   const m = doc.map;
   if (doc.type === "Individual") {
+    // GEDCOM NAME is retained verbatim by the structural importer.
+    if (m.name !== undefined && m.name !== null) return String(m.name);
     const first = m.name_first || m.imie || m.given_name || "";
     const last = m.name_last || m.nazwisko || m.surname || m.name_maiden || m.nazwisko_rodowe || "";
     const full = (first + " " + last).trim() || m.full_name || m.name_alias || m.pseudonim;
     if (full) return full;
   }
   if (doc.type === "Family") {
-    const hId = m.husband_id || m.maz_id;
-    const wId = m.wife_id || m.zona_id;
+    // GEDCOM family records use HUSB/WIFE; the structural importer stores
+    // these tags as lowercase keys (husb/wife). Keep legacy OGF keys too.
+    const hId = m.husb || m.husband_id || m.maz_id;
+    const wId = m.wife || m.wife_id || m.zona_id;
     const hName = hId && docMap[hId] ? getRecordTitle(docMap[hId], docMap) : "";
     const wName = wId && docMap[wId] ? getRecordTitle(docMap[wId], docMap) : "";
     if (hName || wName) return [hName || "?", wName || "?"].join(" + ");
@@ -1182,21 +1187,22 @@ function updateTabUI() {
   });
 }
 
-// GEDCOM 1:1 Universal Converter
+// GEDCOM structural converter
+// Preserve tag names, values, and complete tag paths without semantic mapping.
 function convertGedcomToOgf(gedText) {
   const lines = gedText.split(/\r?\n/);
   const records = [];
   let currentRec = null;
 
   for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (!line) continue;
-    const match = line.match(/^(\d+)\s+(?:(@[^@]+@)\s+)?([A-Za-z0-9_]+)(?:\s+(.*))?$/);
+    if (!rawLine.trim()) continue;
+    const match = rawLine.replace(/\r$/, "").match(/^(\d+)\s+(?:(@[^@]+@)\s+)?([A-Za-z0-9_]+)(?:\s+(.*))?$/);
     if (!match) continue;
+
     const level = parseInt(match[1], 10);
     const xref = match[2] || null;
     const tag = match[3];
-    const val = match[4] || "";
+    const val = match[4] ?? "";
 
     if (level === 0) {
       if (currentRec) records.push(currentRec);
@@ -1204,7 +1210,10 @@ function convertGedcomToOgf(gedText) {
     } else if (currentRec) {
       const node = { level, tag, val, children: [] };
       let parent = currentRec;
-      while (parent.children.length > 0 && parent.children[parent.children.length - 1].level < level) {
+      while (
+        parent.children.length > 0 &&
+        parent.children[parent.children.length - 1].level < level
+      ) {
         parent = parent.children[parent.children.length - 1];
       }
       parent.children.push(node);
@@ -1212,49 +1221,13 @@ function convertGedcomToOgf(gedText) {
   }
   if (currentRec) records.push(currentRec);
 
-  function normId(xref, prefix) {
-    const clean = xref.replace(/@/g, "").toLowerCase().replace(/[^a-z0-9_]/g, "_");
-    return `@${prefix}_${clean}@`;
-  }
-
-  function gedDateToEdtf(raw) {
-    if (!raw) return "";
-    const months = { JAN:"01", FEB:"02", MAR:"03", APR:"04", MAY:"05", JUN:"06", JUL:"07", AUG:"08", SEP:"09", OCT:"10", NOV:"11", DEC:"12" };
-    function parseSingle(s) {
-      const t = s.trim().toUpperCase();
-      let m = t.match(/^(\d{1,2})\s+([A-Z]{3})\s+(\d{4})$/);
-      if (m && months[m[2]]) return `${m[3]}-${months[m[2]]}-${m[1].padStart(2, "0")}`;
-      m = t.match(/^([A-Z]{3})\s+(\d{4})$/);
-      if (m && months[m[1]]) return `${m[2]}-${months[m[1]]}`;
-      m = t.match(/^(\d{4})$/);
-      if (m) return m[1];
-      return s.trim();
-    }
-    const u = raw.trim().toUpperCase();
-    let m = u.match(/^BET\s+(.+?)\s+AND\s+(.+)$/);
-    if (m) return `${parseSingle(m[1])}..${parseSingle(m[2])}`;
-    m = u.match(/^(ABT|CAL)\s+(.+)$/);
-    if (m) return `${parseSingle(m[2])}~`;
-    m = u.match(/^EST\s+(.+)$/);
-    if (m) return `${parseSingle(m[1])}?`;
-    m = u.match(/^BEF\s+(.+)$/);
-    if (m) return `..${parseSingle(m[1])}`;
-    m = u.match(/^AFT\s+(.+)$/);
-    if (m) return `${parseSingle(m[1])}..`;
-    return parseSingle(raw);
-  }
+  // Keep GEDCOM xrefs as record IDs. GEDCOM relationship values such as
+  // FAMC @F1@ and HUSB @I1@ must resolve to these exact IDs in the viewer.
+  // Rewriting record IDs without rewriting every reference breaks the links.
 
   function cleanTag(tag) {
-    return tag.replace(/^_+/, "").toLowerCase();
-  }
-
-  function collectFullText(node) {
-    let text = node.val || "";
-    for (const c of node.children) {
-      if (c.tag === "CONT") text += "\n" + c.val;
-      else if (c.tag === "CONC") text += c.val;
-    }
-    return text.trim();
+    // Lowercase only. In particular, preserve leading underscores in extension tags.
+    return tag.toLowerCase();
   }
 
   const outDocs = [
@@ -1277,94 +1250,63 @@ function convertGedcomToOgf(gedText) {
 
   for (const rec of records) {
     if (!rec.xref || (rec.tag !== "INDI" && rec.tag !== "FAM")) continue;
+
     const isInd = rec.tag === "INDI";
-    const id = normId(rec.xref, isInd ? "ind" : "fam");
+    const id = rec.xref;
     const type = isInd ? "Individual" : "Family";
     const entries = [
       { key: "id", value: id, group: 0 },
       { key: "type", value: type, group: 0 }
     ];
     const keyCounts = {};
-    const listMap = {};
-    let grp = 1;
+    let group = 0;
 
-    function addEntry(baseKey, val) {
-      if (val === "" || val === null || val === undefined) return;
+    function addEntry(baseKey, value) {
+      // Empty GEDCOM values are meaningful and must not be discarded.
+      if (value === null || value === undefined) return;
       keyCounts[baseKey] = (keyCounts[baseKey] || 0) + 1;
-      const finalKey = keyCounts[baseKey] === 1 ? baseKey : `${baseKey}_${keyCounts[baseKey]}`;
-      entries.push({ key: finalKey, value: val, group: grp });
+      const finalKey = keyCounts[baseKey] === 1
+        ? baseKey
+        : `${baseKey}_${keyCounts[baseKey]}`;
+      entries.push({ key: finalKey, value, group });
+    }
+
+    function emitGedcomNode(node, parentPath) {
+      const key = parentPath
+        ? `${parentPath}_${cleanTag(node.tag)}`
+        : cleanTag(node.tag);
+
+      // GEDCOM uses slashes to delimit the surname in NAME values.
+      // They are syntax markers, not part of the person's display name.
+      // Remove them only from the top-level NAME value on INDI records;
+      // keep all other GEDCOM values and NAME subfields unchanged.
+      let value = node.val;
+      if (rec.tag === "INDI" && parentPath === "" && node.tag === "NAME") {
+        value = value.replace(/\//g, "").trim();
+      }
+
+      // A valueless structural parent (e.g. BIRT) is only a path component;
+      // do not create an extra empty OGF field for it. Keep values on parents
+      // when present (e.g. NAME), and preserve empty leaf values.
+      if (value !== "" || node.children.length === 0) {
+        addEntry(key, value);
+      }
+      for (const child of node.children) {
+        emitGedcomNode(child, key);
+      }
     }
 
     for (const node of rec.children) {
-      grp++;
-      if (node.tag === "NAME" && isInd) {
-        const rawName = node.val || "";
-        const surMatch = rawName.match(/\/([^/]*)\//);
-        const surname = surMatch ? surMatch[1].trim() : "";
-        const given = rawName.replace(/\/[^/]*\//, "").trim();
-        if (given) addEntry("name_first", given);
-        if (surname) addEntry("name_last", surname);
-        for (const sub of node.children) {
-          if (sub.tag === "GIVN" && !given) addEntry("name_first", sub.val);
-          else if (sub.tag === "SURN" && !surname) addEntry("name_last", sub.val);
-          else if (sub.tag === "_MARNM") addEntry("name_married", sub.val);
-          else if (sub.tag === "NICK") addEntry("name_nickname", sub.val);
-          else addEntry("name_" + cleanTag(sub.tag), collectFullText(sub));
-        }
-        continue;
-      }
-
-      if (node.tag === "HUSB" && /^@.+\@$/.test(node.val)) {
-        addEntry("husband_id", normId(node.val, "ind"));
-        continue;
-      }
-      if (node.tag === "WIFE" && /^@.+\@$/.test(node.val)) {
-        addEntry("wife_id", normId(node.val, "ind"));
-        continue;
-      }
-      if (node.tag === "CHIL" && /^@.+\@$/.test(node.val)) {
-        if (!listMap.child_ids) listMap.child_ids = [];
-        listMap.child_ids.push(normId(node.val, "ind"));
-        continue;
-      }
-      if (node.tag === "FAMC" && /^@.+\@$/.test(node.val)) {
-        addEntry("family_child_id", normId(node.val, "fam"));
-        continue;
-      }
-      if (node.tag === "FAMS" && /^@.+\@$/.test(node.val)) {
-        if (!listMap.family_spouse_ids) listMap.family_spouse_ids = [];
-        listMap.family_spouse_ids.push(normId(node.val, "fam"));
-        continue;
-      }
-
-      // Generic 1:1 flattening for any event, fact, or custom tag
-      const prefix = cleanTag(node.tag);
-      const topVal = collectFullText(node);
-      const meaningfulSubs = node.children.filter(c => c.tag !== "CONT" && c.tag !== "CONC");
-
-      if (topVal && topVal !== "Y") {
-        addEntry(prefix, topVal);
-      }
-      if (meaningfulSubs.length === 0 && topVal === "Y") {
-        addEntry(prefix, "yes");
-      }
-
-      for (const sub of meaningfulSubs) {
-        const subTag = cleanTag(sub.tag);
-        let subVal = collectFullText(sub);
-        if (sub.tag === "DATE") subVal = gedDateToEdtf(subVal);
-        if (/^@.+\@$/.test(subVal)) {
-          subVal = normId(subVal, sub.tag === "SOUR" ? "src" : "ref");
-        }
-        addEntry(`${prefix}_${subTag}`, subVal);
-      }
+      group++;
+      emitGedcomNode(node, "");
     }
 
-    for (const [lk, lv] of Object.entries(listMap)) {
-      entries.push({ key: lk, value: lv, group: ++grp });
-    }
-
-    outDocs.push({ id, type, entries, map: Object.fromEntries(entries.map(e => [e.key, e.value])) });
+    outDocs.push({
+      id,
+      type,
+      entries,
+      map: Object.fromEntries(entries.map(entry => [entry.key, entry.value]))
+    });
   }
 
   return serializeYamlStream(outDocs);
