@@ -1,156 +1,7 @@
-const SAMPLE_EN = `---
-id: "@meta@"
-type: Meta
-language: en
-encoding: UTF-8
-date_approx: "About {date}"
-date_uncertain: "Possibly {date}"
-date_range: "Between {start} and {end}"
-date_before: "On or before {date}"
-date_after: "On or after {date}"
----
-id: "@dictionary@"
-type: Dictionary
-
-name_first: First Name — Primary given name
-name_middle: Middle Name — Secondary or baptismal name
-name_last: Last Name — Primary family surname
-name_maiden: Maiden Name — Surname at birth before marriage
-
-birth_date: Birth Date — Date of birth (YYYY-MM-DD or EDTF)
-birth_place: Birth Place — City, parish, or country of birth
-
-death_date: Death Date — Date of death
-death_place: Death Place — Place of death
-
-marriage_date: Marriage Date — Date of wedding or union
-marriage_place: Marriage Place — Location of marriage
-
-husband_id: Husband — Link to partner 1
-wife_id: Wife — Link to partner 2
-child_ids: Children — List of links to children
----
-id: "@ind_a8f3k@"
-type: Individual
-
-name_first: John
-name_last: Smith
-
-birth_date: 1890-05-12
-birth_place: London
-
-occupation: Watchmaker
-
-death_date: 1964-09-02
-death_place: Oxford
----
-id: "@ind_c2p7q@"
-type: Individual
-
-name_first: Anna
-name_maiden: Taylor
-name_last: Smith
-
-birth_date: 1895-11~
-birth_place: Bristol
----
-id: "@ind_d9w1z@"
-type: Individual
-
-name_first: Peter
-name_last: Smith
-
-birth_date: 1920..1921
-birth_place: London
----
-id: "@fam_9x2p1@"
-type: Family
-
-marriage_date: 1918-06-20
-marriage_place: London
-
-husband_id: "@ind_a8f3k@"
-wife_id: "@ind_c2p7q@"
-
-child_ids:
-  - "@ind_d9w1z@"
-`;
-
-const SAMPLE_PL = `---
-id: "@meta@"
-type: Meta
-language: pl
-encoding: UTF-8
-date_approx: "Około {date}"
-date_uncertain: "Prawdopodobnie {date}"
-date_range: "Między {start} a {end}"
-date_before: "Przed lub w {date}"
-date_after: "Po lub w {date}"
----
-id: "@dictionary@"
-type: Dictionary
-
-imie: Imię — Pierwsze imię nadane przy urodzeniu lub chrzcie
-drugie_imie: Drugie imię — Kolejne imię nadane przy urodzeniu
-nazwisko: Nazwisko — Obecne lub główne nazwisko
-nazwisko_rodowe: Nazwisko rodowe — Nazwisko noszone przed małżeństwem
-
-urodzenie_data: Data urodzenia — Data narodzin (YYYY-MM-DD lub EDTF)
-urodzenie_miejsce: Miejsce urodzenia — Miejscowość lub parafia urodzenia
-
-zgon_data: Data zgonu — Data śmierci
-zgon_miejsce: Miejsce zgonu — Miejscowość śmierci
-
-slub_data: Data ślubu — Data zawarcia małżeństwa
-slub_miejsce: Miejsce ślubu — Miejsce ceremonii
-maz_id: Mąż — Odnośnik do męża lub partnera
-zona_id: Żona — Odnośnik do żony lub partnerki
-dzieci_ids: Dzieci — Lista odnośników do dzieci w rodzinie
----
-id: "@ind_a8f3k@"
-type: Individual
-
-imie: Jan
-nazwisko: Kowalski
-
-urodzenie_data: 1890-05-12
-urodzenie_miejsce: Kraków
-
-zawod: Zegarmistrz
-
-zgon_data: 1964-09-02
-zgon_miejsce: Warszawa
----
-id: "@ind_c2p7q@"
-type: Individual
-
-imie: Anna
-nazwisko_rodowe: Zielińska
-nazwisko: Kowalska
-
-urodzenie_data: 1895-11~
-urodzenie_miejsce: Wieliczka
----
-id: "@ind_d9w1z@"
-type: Individual
-
-imie: Piotr
-nazwisko: Kowalski
-
-urodzenie_data: 1920..1921
-urodzenie_miejsce: Kraków
----
-id: "@fam_9x2p1@"
-type: Family
-
-slub_data: 1918-06-20
-slub_miejsce: Kraków
-
-maz_id: "@ind_a8f3k@"
-zona_id: "@ind_c2p7q@"
-dzieci_ids:
-  - "@ind_d9w1z@"
-`;
+const SAMPLE_FILES = {
+  en: "samples/sample-en.ogf.yaml",
+  pl: "sample-pl.ogf.yaml"
+};
 
 const LINK_RE = /^@.+@$/;
 const REF_TOKEN_RE = /@[^@\s]+@/g;
@@ -1457,19 +1308,60 @@ document.getElementById("toggle-yaml-btn").addEventListener("click", e => {
   e.target.textContent = pane.classList.contains("hidden") ? "Show YAML Editor" : "Hide YAML Editor";
 });
 
-document.getElementById("sample-en-btn").addEventListener("click", () => {
-  state.selectedId = null;
-  state.editMode = false;
-  document.getElementById("yaml-editor").value = SAMPLE_EN;
-  rebuildFromEditor();
-});
+async function loadSample(language) {
+  const filename = SAMPLE_FILES[language];
+  const status = document.getElementById("yaml-status");
+  const editor = document.getElementById("yaml-editor");
+  const buttons = [
+    document.getElementById("sample-en-btn"),
+    document.getElementById("sample-pl-btn")
+  ];
 
-document.getElementById("sample-pl-btn").addEventListener("click", () => {
-  state.selectedId = null;
-  state.editMode = false;
-  document.getElementById("yaml-editor").value = SAMPLE_PL;
-  rebuildFromEditor();
-});
+  if (!filename) {
+    status.textContent = `Unknown sample language: ${language}`;
+    status.style.color = "#f87171";
+    return;
+  }
+
+  buttons.forEach(button => { button.disabled = true; });
+  status.textContent = `Loading ${filename}…`;
+  status.style.color = "#fbbf24";
+
+  try {
+    const response = await fetch(new URL(filename, document.baseURI), { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} ${response.statusText}`);
+    }
+
+    const yaml = await response.text();
+    if (!yaml.trim()) throw new Error("The sample file is empty");
+
+    // Validate the stream before replacing the currently loaded data.
+    const docs = parseYamlStream(yaml);
+    if (!docs.length) throw new Error("The file contains no YAML documents");
+
+    editor.value = yaml;
+    state.selectedId = null;
+    state.editMode = false;
+    state.activeTab = "Individual";
+    updateTabUI();
+    rebuildFromEditor();
+
+    status.textContent = `Loaded ${filename} (${docs.length} docs)`;
+    status.style.color = "#4ade80";
+  } catch (error) {
+    status.textContent = `Could not load ${filename}: ${error.message}`;
+    status.style.color = "#f87171";
+    const pane = document.getElementById("yaml-pane");
+    pane.classList.remove("hidden");
+    document.getElementById("toggle-yaml-btn").textContent = "Hide YAML Editor";
+  } finally {
+    buttons.forEach(button => { button.disabled = false; });
+  }
+}
+
+document.getElementById("sample-en-btn").addEventListener("click", () => loadSample("en"));
+document.getElementById("sample-pl-btn").addEventListener("click", () => loadSample("pl"));
 
 document.getElementById("yaml-editor").addEventListener("input", rebuildFromEditor);
 
@@ -1614,3 +1506,6 @@ document.getElementById("download-yaml-btn").addEventListener("click", () => {
   a.download = "family-tree.ogf.yaml";
   a.click();
 });
+
+// Samples are stored next to index.html and loaded on startup.
+loadSample("en");
