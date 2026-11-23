@@ -92,7 +92,7 @@ wife_id: "@ind_c2p7q@"
 
 ## Repository Contents
 
-* **`SPECIFICATION-v5.md`** — Full formal specification of the Open Genealogy Format (structure, `@meta@`, `@dictionary@`, ID conventions, EDTF dates, and English/Polish examples).
+* **`SPECIFICATION.md`** — Full formal specification of the Open Genealogy Format (structure, `@meta@`, `@dictionary@`, ID conventions, EDTF dates, and English/Polish examples).
 * **`open-genealogy-viewer.html`** *(formerly `open-genealogy-viewer.html`)* — Standalone single-file browser viewer and inline editor. Open directly in any modern browser—no server or build tools required.
 
 ---
