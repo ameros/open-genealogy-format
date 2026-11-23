@@ -101,11 +101,11 @@ function resolveImageReference(value, allowUnknownExtension = false) {
   const nameMatches = mediaFilesByName.get(basename) || [];
   if (nameMatches.length === 1) return nameMatches[0];
 
-  // Relative paths can be resolved beside the viewer when it is hosted on a
-  // web server. Keep path separators, but encode spaces and other URL chars.
+  // A relative OBJE.FILE value is a local media-folder reference, not a URL
+  // relative to the viewer page. Never request it until the user has selected
+  // the media directory; the selected files are resolved through object URLs.
   if (!/^(?:[a-z]:[\\/]|\/|\\\\)/i.test(raw) && !/^file:/i.test(raw)) {
-    const relativePath = raw.replace(/\\/g, "/").replace(/^\.\//, "");
-    return relativePath.split("/").map(encodeURIComponent).join("/");
+    return null;
   }
 
   // Preserve an absolute path as an explicit file URL as a last resort. Most
@@ -505,7 +505,7 @@ function renderDirectory() {
   }
 }
 
-function renderInspector() {
+function renderInspectorDetailed() {
   const container = document.getElementById("card-container");
   const docMap = Object.fromEntries(state.docs.map(d => [d.id, d]));
   const doc = docMap[state.selectedId];
@@ -607,15 +607,9 @@ function renderInspector() {
       portrait.setAttribute("alt", title);
       portrait.loading = "eager";
       portrait.addEventListener("error", () => {
-        // A missing media folder affects only the optional portrait. Leave the
-        // card and its OBJE.FILE path visible and do not replace the content.
+        // A missing optional image must not add an error message to the card
+        // or interfere with the record fields.
         portraitColumn.remove();
-        if (!card.querySelector(".media-load-hint")) {
-          const hint = document.createElement("div");
-          hint.className = "media-load-hint";
-          hint.textContent = "Image unavailable. The record data is still displayed; use ‘Load media folder’ only if you want to view local images.";
-          contentLayout.insertBefore(hint, fieldsEl);
-        }
       }, { once: true });
       portraitColumn.appendChild(portrait);
       contentLayout.insertBefore(portraitColumn, fieldsEl);
@@ -794,6 +788,92 @@ function renderInspector() {
     state.selectedId = null;
     syncDocsToEditor();
   });
+}
+
+
+// Keep the record readable even if an optional enhancement (media, map,
+// links, or a malformed field value) throws while building the rich card.
+function renderInspector() {
+  const container = document.getElementById("card-container");
+  try {
+    return renderInspectorDetailed();
+  } catch (error) {
+    console.error("Detailed card rendering failed; using plain-field fallback.", error);
+
+    const doc = state.docs.find(item => item.id === state.selectedId);
+    container.innerHTML = "";
+
+    if (!doc) {
+      container.textContent = "Select a record from the list to inspect its details.";
+      return;
+    }
+
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const header = document.createElement("div");
+    header.className = "card-header";
+
+    const heading = document.createElement("div");
+    const title = document.createElement("div");
+    title.className = "card-title";
+    try {
+      title.textContent = getRecordTitle(doc, Object.fromEntries(state.docs.map(item => [item.id, item])));
+    } catch (_) {
+      title.textContent = doc.id || "Untitled";
+    }
+
+    const meta = document.createElement("div");
+    meta.className = "card-meta";
+    meta.textContent = `${doc.type || "Record"} • ${doc.id || ""}`;
+    heading.append(title, meta);
+
+    const warning = document.createElement("div");
+    warning.className = "media-load-hint";
+    warning.textContent = "Some enhanced card formatting failed. The original record fields are shown below.";
+    heading.appendChild(warning);
+    header.appendChild(heading);
+    card.appendChild(header);
+
+    const body = document.createElement("div");
+    body.className = "card-body";
+
+    for (const entry of (doc.entries || [])) {
+      if (!entry || entry.key === "id" || entry.key === "type") continue;
+
+      const row = document.createElement("div");
+      row.className = "field-row";
+
+      const label = document.createElement("div");
+      label.className = "field-label";
+      try {
+        label.textContent = formatKeyLabel(entry.key);
+      } catch (_) {
+        label.textContent = String(entry.key || "");
+      }
+
+      const value = document.createElement("div");
+      value.className = "field-val";
+      const values = Array.isArray(entry.value) ? entry.value : [entry.value];
+      for (const item of values) {
+        const span = document.createElement("span");
+        span.textContent = String(item ?? "");
+        value.appendChild(span);
+      }
+
+      row.append(label, value);
+      body.appendChild(row);
+    }
+
+    card.appendChild(body);
+    container.appendChild(card);
+
+    const status = document.getElementById("yaml-status");
+    if (status) {
+      status.textContent = "Data loaded; this card is displayed in compatibility mode.";
+      status.style.color = "#fbbf24";
+    }
+  }
 }
 
 function renderEditorCard(container, doc) {
