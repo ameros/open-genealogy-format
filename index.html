@@ -4,7 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Open Genealogy Viewer (OGF)</title>
-<link rel="stylesheet" href="styles.css">
+<!-- Reuse the branding assets from gedcom-svg-tree. -->
+<link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16x16.png">
+<meta name="theme-color" content="#ffffff">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link rel="stylesheet" href="css/styles.css">
 <style>
 .card-content-layout { display:flex; align-items:flex-start; gap:22px; padding:16px; }
 .card-portrait-column { flex:0 0 260px; width:260px; }
@@ -69,31 +78,62 @@
 
 /* The card groups are intentionally unlabeled; suppress legacy stylesheet labels. */
 .field-group::before, .field-group::after, .field-group-toolbar::before, .field-group-toolbar::after { content: none !important; display: none !important; }
+.brand {
+  color:inherit;
+  text-decoration:none;
+}
+.brand:hover {
+  color:inherit;
+  text-decoration:none;
+}
+.brand-logo {
+  display:block;
+  width:34px;
+  height:34px;
+  flex:0 0 34px;
+  object-fit:contain;
+  border-radius:8px;
+}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="brand">
-    <span>🌳 Open Genealogy Viewer</span>
+  <a class="brand" href="https://github.com/ameros/open-genealogy-format" target="_blank" rel="noopener noreferrer" aria-label="Open Genealogy Format project on GitHub">
+    <img class="brand-logo" src="https://ameros.github.io/gedcom-svg-tree/apple-touch-icon.png" alt="" width="34" height="34">
+    <span>Open Genealogy Viewer</span>
     <span class="badge" id="lang-badge">LANG: EN</span>
-  </div>
-  <button id="toggle-yaml-btn">Show YAML Editor</button>
-  <button id="sample-en-btn">Sample: English (en)</button>
-  <button id="sample-pl-btn">Sample: Polski (pl)</button>
-  <button id="replace-keys-btn">Replace Keys</button>
-  <button id="edit-dictionary-btn">Edit Dictionary</button>
+  </a>
+  <button id="toggle-yaml-btn" class="toolbar-icon" type="button" title="Show YAML editor" aria-label="Show YAML editor"><i class="fa-solid fa-code" aria-hidden="true"></i></button>
+  <label class="toolbar-select-wrap" aria-label="Load a sample">
+    <span class="sr-only">Samples</span>
+    <select id="sample-select" class="toolbar-select">
+      <option value="">Samples…</option>
+      <option value="en">English sample</option>
+    </select>
+  </label>
+  <label class="toolbar-select-wrap" aria-label="Configuration">
+    <span class="sr-only">Configuration</span>
+    <select id="config-select" class="toolbar-select">
+      <option value="">Configuration…</option>
+      <option value="replace-keys">Replace keys</option>
+      <option value="dictionary">Edit dictionary</option>
+      <option value="metadata">Edit metadata</option>
+    </select>
+  </label>
+  <button id="replace-keys-btn" type="button" hidden></button>
+  <button id="edit-dictionary-btn" type="button" hidden></button>
   <div class="spacer"></div>
-  <button id="add-ind-btn">+ Individual</button>
-  <button id="add-fam-btn">+ Family</button>
-  <button id="add-source-btn">+ Source</button>
-  <button id="import-ged-btn">Import .ged</button>
+  <button id="add-ind-btn" class="toolbar-icon" type="button" title="Add Individual" aria-label="Add Individual"><i class="fa-solid fa-user-plus" aria-hidden="true"></i></button>
+  <button id="add-fam-btn" class="toolbar-icon" type="button" title="Add Family" aria-label="Add Family"><i class="fa-solid fa-users" aria-hidden="true"></i></button>
+  <button id="add-source-btn" class="toolbar-icon" type="button" title="Add Source" aria-label="Add Source"><i class="fa-solid fa-book-open" aria-hidden="true"></i></button>
+  <button id="import-ged-btn" class="toolbar-icon" type="button" title="Import GEDCOM file" aria-label="Import GEDCOM file"><i class="fa-solid fa-file-import" aria-hidden="true"></i></button>
   <input type="file" id="ged-input" accept=".ged,.gedcom" style="display:none">
-  <button id="load-media-btn" type="button" title="Select the folder containing images referenced by GEDCOM OBJE.FILE">Load media folder</button>
+  <button id="load-media-btn" class="toolbar-icon" type="button" title="Load media folder" aria-label="Load media folder"><i class="fa-solid fa-folder-open" aria-hidden="true"></i></button>
   <input type="file" id="media-folder-input" webkitdirectory directory multiple style="display:none">
-  <button id="open-yaml-btn">Open .yaml</button>
+  <button id="open-yaml-btn" class="toolbar-icon" type="button" title="Open YAML file" aria-label="Open YAML file"><i class="fa-solid fa-file-lines" aria-hidden="true"></i></button>
   <input type="file" id="yaml-input" accept=".yaml,.yml,.txt" style="display:none">
-  <button class="primary" id="download-yaml-btn">Download .yaml</button>
+  <button class="primary toolbar-icon" id="download-yaml-btn" type="button" title="Download YAML" aria-label="Download YAML"><i class="fa-solid fa-download" aria-hidden="true"></i></button>
 </header>
 
 <main>
@@ -141,7 +181,7 @@
   <div class="modal">
     <div class="modal-header">
       <span>Batch Rename / Replace YAML Keys</span>
-      <button id="close-replacer-btn">&times;</button>
+      <button id="close-replacer-btn" class="icon-button" type="button" title="Close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     </div>
     <div class="modal-body">
       <p style="font-size:13px; color:var(--muted)">
@@ -167,7 +207,7 @@
   <div class="modal">
     <div class="modal-header">
       <span>Edit Field Dictionary</span>
-      <button id="close-dictionary-btn">&times;</button>
+      <button id="close-dictionary-btn" class="icon-button" type="button" title="Close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     </div>
     <div class="modal-body">
       <p style="font-size:13px; color:var(--muted)">
@@ -177,12 +217,27 @@
         <span>Key</span><span>Label</span><span>Description</span><span>Group</span><span></span>
       </div>
       <div id="dictionary-rows" style="display:flex; flex-direction:column; gap:8px;"></div>
-      <button id="add-dictionary-row-btn" type="button">+ Add Dictionary Entry</button>
+      <button id="add-dictionary-row-btn" type="button" class="secondary"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add Dictionary Entry</button>
     </div>
     <div class="modal-footer">
       <button id="cancel-dictionary-btn">Cancel</button>
       <button class="primary" id="save-dictionary-btn">Save Dictionary</button>
     </div>
+  </div>
+</div>
+
+
+<!-- Metadata Editor Modal -->
+<div class="modal-backdrop" id="metadata-modal">
+  <div class="modal">
+    <div class="modal-header"><span>Edit Metadata (@meta@)</span><button id="close-metadata-btn" class="icon-button" type="button" title="Close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
+    <div class="modal-body">
+      <p class="modal-help">Edit viewer-level metadata and display conventions. Values are stored in the <code>@meta@</code> YAML document.</p>
+      <div class="metadata-grid metadata-head"><span>Key</span><span>Value</span><span></span></div>
+      <div id="metadata-rows"></div>
+      <button id="add-metadata-row-btn" type="button" class="secondary"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add metadata field</button>
+    </div>
+    <div class="modal-footer"><button id="cancel-metadata-btn" type="button">Cancel</button><button class="primary" id="save-metadata-btn" type="button">Save Metadata</button></div>
   </div>
 </div>
 

@@ -148,13 +148,20 @@ function isImageFileReference(value) {
 function createEmbeddedImage(value, altText = "", allowUnknownExtension = false) {
   const src = resolveImageReference(value, allowUnknownExtension);
   if (!src) return null;
+  const link = document.createElement("a");
+  link.className = "image-open-link";
+  link.href = src;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.setAttribute("aria-label", `Open image: ${altText || "Attached image"}`);
   const img = document.createElement("img");
   img.className = "field-image-preview";
   img.setAttribute("src", src);
   img.setAttribute("alt", altText || "Attached image");
   img.loading = "lazy";
-  img.addEventListener("error", () => img.remove(), { once: true });
-  return img;
+  img.addEventListener("error", () => link.remove(), { once: true });
+  link.appendChild(img);
+  return link;
 }
 
 function parseGedcomCoordinate(value, axis) {
@@ -541,13 +548,31 @@ function renderInspectorDetailed() {
   }
   if (currentGroup.length > 0) groups.push({ key: lastGroupKey, entries: currentGroup });
 
-  function saveGroupLayout(nextGroups) {
-    const identity = doc.entries.filter(e => e.key === "id" || e.key === "type");
-    const ordered = nextGroups.flatMap((group, index) => {
-      group.entries.forEach(entry => { entry.group = index + 1; });
-      return group.entries;
-    });
-    doc.entries = [...identity, ...ordered];
+  // Reordering is a data operation: change doc.entries itself, then serialize
+  // the updated record back into the YAML editor. The blank-line group boundary
+  // is preserved when a field crosses it by exchanging the two fields' groups.
+  const visibleEntries = doc.entries.filter(e => e.key !== "id" && e.key !== "type");
+  function moveFieldInYaml(fromVisibleIndex, direction) {
+    const toVisibleIndex = fromVisibleIndex + direction;
+    if (toVisibleIndex < 0 || toVisibleIndex >= visibleEntries.length) return;
+
+    const movingEntry = visibleEntries[fromVisibleIndex];
+    const adjacentEntry = visibleEntries[toVisibleIndex];
+    const movingDocIndex = doc.entries.indexOf(movingEntry);
+    const adjacentDocIndex = doc.entries.indexOf(adjacentEntry);
+    if (movingDocIndex < 0 || adjacentDocIndex < 0) return;
+
+    // Swap both the YAML sequence position and, when crossing a blank-line
+    // boundary, the group membership so the existing section break stays put.
+    [doc.entries[movingDocIndex], doc.entries[adjacentDocIndex]] =
+      [doc.entries[adjacentDocIndex], doc.entries[movingDocIndex]];
+
+    if (movingEntry.group !== adjacentEntry.group) {
+      const oldGroup = movingEntry.group;
+      movingEntry.group = adjacentEntry.group;
+      adjacentEntry.group = oldGroup;
+    }
+
     state.editMode = false;
     syncDocsToEditor();
   }
@@ -573,8 +598,8 @@ function renderInspectorDetailed() {
         <div class="card-meta">${escapeHtml(doc.type)} &bull; ${escapeHtml(doc.id)}</div>
       </div>
       <div style="display:flex; gap:6px;">
-        <button id="edit-card-btn">Edit Card</button>
-        <button id="delete-card-btn" style="color:var(--red-text)">Delete</button>
+        <button id="edit-card-btn" title="Edit card"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Edit</button>
+        <button id="delete-card-btn" class="icon-button delete-entry-btn" title="Delete record" aria-label="Delete record"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
       </div>
     </div>
     <div class="card-body" id="card-fields"></div>
@@ -601,6 +626,12 @@ function renderInspectorDetailed() {
     try {
       const portraitColumn = document.createElement("div");
       portraitColumn.className = "card-portrait-column";
+      const portraitLink = document.createElement("a");
+      portraitLink.className = "image-open-link portrait-open-link";
+      portraitLink.href = portraitUrl;
+      portraitLink.target = "_blank";
+      portraitLink.rel = "noopener noreferrer";
+      portraitLink.setAttribute("aria-label", `Open image: ${title}`);
       const portrait = document.createElement("img");
       portrait.className = "record-portrait";
       portrait.setAttribute("src", portraitUrl);
@@ -611,7 +642,8 @@ function renderInspectorDetailed() {
         // or interfere with the record fields.
         portraitColumn.remove();
       }, { once: true });
-      portraitColumn.appendChild(portrait);
+      portraitLink.appendChild(portrait);
+      portraitColumn.appendChild(portraitLink);
       contentLayout.insertBefore(portraitColumn, fieldsEl);
     } catch (mediaError) {
       console.warn("Could not display record portrait; rendering the record without it.", mediaError);
@@ -635,41 +667,10 @@ function renderInspectorDetailed() {
     const grpDiv = document.createElement("div");
     grpDiv.className = "field-group";
 
-    const groupToolbar = document.createElement("div");
-    groupToolbar.className = "field-group-toolbar";
-    const upBtn = document.createElement("button");
-    upBtn.type = "button";
-    upBtn.textContent = "↑";
-    upBtn.title = "Move section up";
-    upBtn.disabled = groupIndex === 0;
-    upBtn.addEventListener("click", () => {
-      const next = groups.map(g => ({ ...g, entries: [...g.entries] }));
-      [next[groupIndex - 1], next[groupIndex]] = [next[groupIndex], next[groupIndex - 1]];
-      saveGroupLayout(next);
-    });
-    const downBtn = document.createElement("button");
-    downBtn.type = "button";
-    downBtn.textContent = "↓";
-    downBtn.title = "Move section down";
-    downBtn.disabled = groupIndex === groups.length - 1;
-    downBtn.addEventListener("click", () => {
-      const next = groups.map(g => ({ ...g, entries: [...g.entries] }));
-      [next[groupIndex], next[groupIndex + 1]] = [next[groupIndex + 1], next[groupIndex]];
-      saveGroupLayout(next);
-    });
-    const mergeBtn = document.createElement("button");
-    mergeBtn.type = "button";
-    mergeBtn.textContent = "Merge with previous";
-    mergeBtn.title = "Merge this section into the previous section";
-    mergeBtn.disabled = groupIndex === 0;
-    mergeBtn.addEventListener("click", () => {
-      const next = groups.map(g => ({ ...g, entries: [...g.entries] }));
-      next[groupIndex - 1].entries.push(...next[groupIndex].entries);
-      next.splice(groupIndex, 1);
-      saveGroupLayout(next);
-    });
-    groupToolbar.append(upBtn, downBtn, mergeBtn);
-    grpDiv.appendChild(groupToolbar);
+    let visibleFieldIndex = 0;
+    for (let priorGroupIndex = 0; priorGroupIndex < groupIndex; priorGroupIndex++) {
+      visibleFieldIndex += groups[priorGroupIndex].entries.length;
+    }
 
     for (let fieldIndex = 0; fieldIndex < grp.entries.length; fieldIndex++) {
       const entry = grp.entries[fieldIndex];
@@ -685,7 +686,7 @@ function renderInspectorDetailed() {
         ? dictInfo.desc.trim()
         : "";
       if (fieldDescription) {
-        labelDiv.innerHTML = `<span class="field-label-text">${escapeHtml(labelText)}</span><button type="button" class="tip-icon" aria-label="Show description for ${escapeHtml(labelText)}" title="Show field description">?</button>`;
+        labelDiv.innerHTML = `<span class="field-label-text">${escapeHtml(labelText)}</span><button type="button" class="tip-icon" aria-label="Show description for ${escapeHtml(labelText)}" title="Show field description"><i class="fa-solid fa-circle-question" aria-hidden="true"></i></button>`;
         const tipIcon = labelDiv.querySelector(".tip-icon");
         tipIcon.addEventListener("mouseenter", e => showTooltip(e, entry.key, fieldDescription));
         tipIcon.addEventListener("mousemove", moveTooltip);
@@ -735,24 +736,30 @@ function renderInspectorDetailed() {
       }
       row.appendChild(labelDiv);
       row.appendChild(valDiv);
-      if (fieldIndex < grp.entries.length - 1) {
-        const splitBtn = document.createElement("button");
-        splitBtn.type = "button";
-        splitBtn.className = "split-field-btn";
-        splitBtn.textContent = "✂";
-        splitBtn.setAttribute("aria-label", "Split section after this field");
-        splitBtn.title = "Split section after this field";
-        splitBtn.addEventListener("click", () => {
-          const next = groups.map(g => ({ ...g, entries: [...g.entries] }));
-          const current = next[groupIndex];
-          const before = current.entries.slice(0, fieldIndex + 1);
-          const after = current.entries.slice(fieldIndex + 1);
-          current.entries = before;
-          next.splice(groupIndex + 1, 0, { key: "split_" + Date.now(), entries: after });
-          saveGroupLayout(next);
-        });
-        row.appendChild(splitBtn);
-      }
+      const fieldActions = document.createElement("div");
+      fieldActions.className = "field-actions";
+
+      const moveUpBtn = document.createElement("button");
+      moveUpBtn.type = "button";
+      moveUpBtn.className = "icon-button field-move-btn";
+      moveUpBtn.innerHTML = '<i class="fa-solid fa-chevron-up" aria-hidden="true"></i>';
+      moveUpBtn.setAttribute("aria-label", "Move field up in YAML");
+      moveUpBtn.title = "Move field up";
+      moveUpBtn.disabled = visibleFieldIndex === 0;
+      moveUpBtn.addEventListener("click", () => moveFieldInYaml(visibleFieldIndex, -1));
+
+      const moveDownBtn = document.createElement("button");
+      moveDownBtn.type = "button";
+      moveDownBtn.className = "icon-button field-move-btn";
+      moveDownBtn.innerHTML = '<i class="fa-solid fa-chevron-down" aria-hidden="true"></i>';
+      moveDownBtn.setAttribute("aria-label", "Move field down in YAML");
+      moveDownBtn.title = "Move field down";
+      moveDownBtn.disabled = visibleFieldIndex === visibleEntries.length - 1;
+      moveDownBtn.addEventListener("click", () => moveFieldInYaml(visibleFieldIndex, 1));
+
+      fieldActions.append(moveUpBtn, moveDownBtn);
+      row.appendChild(fieldActions);
+      visibleFieldIndex += 1;
       grpDiv.appendChild(row);
     }
     fieldsEl.appendChild(grpDiv);
@@ -766,7 +773,7 @@ function renderInspectorDetailed() {
 
     for (const bl of backlinks) {
       const pill = document.createElement("span");
-      pill.className = "link-pill";
+      pill.className = "link-pill backlink-pill";
       pill.textContent = `${formatKeyLabel(bl.key)} in ${getRecordTitle(bl.from, docMap)}`;
       pill.addEventListener("click", () => {
         state.selectedId = bl.from.id;
@@ -886,15 +893,15 @@ function renderEditorCard(container, doc) {
         <div class="card-meta">${escapeHtml(doc.type)}</div>
       </div>
       <div style="display:flex; gap:6px;">
-        <button id="cancel-edit-btn">Cancel</button>
-        <button class="primary" id="save-edit-btn">Save Changes</button>
+        <button id="cancel-edit-btn"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Cancel</button>
+        <button class="primary" id="save-edit-btn"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save</button>
       </div>
     </div>
     <div class="card-body">
       <p class="editor-hint">Fields available here come from <code>@dictionary@</code>. Add custom keys in Edit Dictionary first.</p>
       <div id="edit-rows"></div>
       <div>
-        <button id="add-field-btn">+ Add Field</button>
+        <button id="add-field-btn" class="secondary"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add Field</button>
       </div>
     </div>
   `;
@@ -930,7 +937,9 @@ function renderEditorCard(container, doc) {
     const removeButton = document.createElement("button");
     removeButton.type = "button";
     removeButton.title = "Remove field";
-    removeButton.textContent = "×";
+    removeButton.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
+    removeButton.className = "icon-button delete-entry-btn";
+    removeButton.setAttribute("aria-label", "Remove field");
     removeButton.style.cssText = "padding:4px 8px; color:var(--red-text)";
     removeButton.addEventListener("click", () => row.remove());
 
@@ -1322,9 +1331,9 @@ function addDictionaryEditorRow(key = "", label = "", desc = "", group = 1) {
     <input class="dict-label" type="text" value="${escapeHtml(label)}" placeholder="Field label">
     <input class="dict-desc" type="text" value="${escapeHtml(desc)}" placeholder="Optional description">
     <input class="dict-group" type="number" min="1" step="1" value="${Number(group) || 1}" title="Display group">
-    <button type="button" title="Remove dictionary entry">×</button>
+    <button type="button" class="icon-button delete-entry-btn" title="Remove dictionary entry" aria-label="Remove dictionary entry"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
   `;
-  row.querySelector("button").addEventListener("click", () => row.remove());
+  row.querySelector(".delete-entry-btn").addEventListener("click", () => row.remove());
   dictionaryRowsEl.appendChild(row);
 }
 
@@ -1388,21 +1397,90 @@ document.getElementById("save-dictionary-btn").addEventListener("click", () => {
   syncDocsToEditor();
 });
 
+// Metadata editor: preserve and edit the complete @meta@ document.
+const metadataModal = document.getElementById("metadata-modal");
+const metadataRowsEl = document.getElementById("metadata-rows");
+function addMetadataEditorRow(key = "", value = "") {
+  const row = document.createElement("div");
+  row.className = "metadata-row";
+  const keyInput = document.createElement("input");
+  keyInput.className = "meta-key"; keyInput.type = "text"; keyInput.value = key; keyInput.placeholder = "metadata_key";
+  const valueInput = document.createElement("input");
+  valueInput.className = "meta-value"; valueInput.type = "text";
+  valueInput.value = Array.isArray(value) ? value.join(", ") : String(value ?? ""); valueInput.placeholder = "Value";
+  const remove = document.createElement("button");
+  remove.type = "button"; remove.className = "icon-button delete-entry-btn"; remove.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>'; remove.title = "Remove metadata field"; remove.setAttribute("aria-label", "Remove metadata field");
+  remove.addEventListener("click", () => row.remove());
+  row.append(keyInput, valueInput, remove); metadataRowsEl.appendChild(row);
+}
+function openMetadataEditor() {
+  metadataRowsEl.innerHTML = "";
+  const metaDoc = state.docs.find(d => d.id === "@meta@" || d.type === "Meta");
+  const entries = metaDoc ? metaDoc.entries : [
+    { key: "language", value: "en" }, { key: "encoding", value: "UTF-8" }
+  ];
+  for (const entry of entries) if (entry.key !== "id" && entry.key !== "type") addMetadataEditorRow(entry.key, entry.value);
+  metadataModal.classList.add("open");
+}
+function closeMetadataEditor() { metadataModal.classList.remove("open"); }
+document.getElementById("close-metadata-btn").addEventListener("click", closeMetadataEditor);
+document.getElementById("cancel-metadata-btn").addEventListener("click", closeMetadataEditor);
+document.getElementById("add-metadata-row-btn").addEventListener("click", () => addMetadataEditorRow());
+document.getElementById("save-metadata-btn").addEventListener("click", () => {
+  const entries = [
+    { key: "id", value: "@meta@", group: 0 }, { key: "type", value: "Meta", group: 0 }
+  ];
+  const keys = new Set(["id", "type"]); let error = "";
+  metadataRowsEl.querySelectorAll(".metadata-row").forEach((row, index) => {
+    const key = row.querySelector(".meta-key").value.trim();
+    const value = row.querySelector(".meta-value").value;
+    if (!key) return;
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key) || key === "id" || key === "type") { error = `Invalid metadata key: ${key}`; return; }
+    if (keys.has(key)) { error = `Duplicate metadata key: ${key}`; return; }
+    keys.add(key); entries.push({ key, value, group: index + 1 });
+  });
+  if (error) { alert(error); return; }
+  let metaDoc = state.docs.find(d => d.id === "@meta@" || d.type === "Meta");
+  if (!metaDoc) { metaDoc = { id: "@meta@", type: "Meta", entries: [], map: {} }; state.docs.unshift(metaDoc); }
+  metaDoc.entries = entries; metaDoc.map = Object.fromEntries(entries.map(entry => [entry.key, entry.value]));
+  closeMetadataEditor(); syncDocsToEditor();
+});
+
+document.getElementById("config-select").addEventListener("change", event => {
+  const action = event.target.value; event.target.value = "";
+  if (action === "replace-keys") document.getElementById("replace-keys-btn").click();
+  if (action === "dictionary") openDictionaryEditor();
+  if (action === "metadata") openMetadataEditor();
+});
+
+// Keep exactly one icon inside the YAML toggle. Clicks may originate on the
+// nested <i>, so always update the button itself rather than event.target.
+function updateYamlToggleButton() {
+  const button = document.getElementById("toggle-yaml-btn");
+  const pane = document.getElementById("yaml-pane");
+  if (!button || !pane) return;
+
+  const isHidden = pane.classList.contains("hidden");
+  const icon = document.createElement("i");
+  icon.className = isHidden ? "fa-solid fa-code" : "fa-solid fa-code-branch";
+  icon.setAttribute("aria-hidden", "true");
+  button.replaceChildren(icon);
+  button.title = isHidden ? "Show YAML editor" : "Hide YAML editor";
+  button.setAttribute("aria-label", button.title);
+}
+
 // UI Wiring
-document.getElementById("toggle-yaml-btn").addEventListener("click", e => {
+document.getElementById("toggle-yaml-btn").addEventListener("click", () => {
   const pane = document.getElementById("yaml-pane");
   pane.classList.toggle("hidden");
-  e.target.textContent = pane.classList.contains("hidden") ? "Show YAML Editor" : "Hide YAML Editor";
+  updateYamlToggleButton();
 });
 
 async function loadSample(language) {
   const filename = SAMPLE_FILES[language];
   const status = document.getElementById("yaml-status");
   const editor = document.getElementById("yaml-editor");
-  const buttons = [
-    document.getElementById("sample-en-btn"),
-    document.getElementById("sample-pl-btn")
-  ];
+  const sampleSelect = document.getElementById("sample-select");
 
   if (!filename) {
     status.textContent = `Unknown sample language: ${language}`;
@@ -1410,7 +1488,7 @@ async function loadSample(language) {
     return;
   }
 
-  buttons.forEach(button => { button.disabled = true; });
+  sampleSelect.disabled = true;
   status.textContent = `Loading ${filename}…`;
   status.style.color = "#fbbf24";
 
@@ -1441,14 +1519,17 @@ async function loadSample(language) {
     status.style.color = "#f87171";
     const pane = document.getElementById("yaml-pane");
     pane.classList.remove("hidden");
-    document.getElementById("toggle-yaml-btn").textContent = "Hide YAML Editor";
+    updateYamlToggleButton();
   } finally {
-    buttons.forEach(button => { button.disabled = false; });
+    sampleSelect.disabled = false;
+    sampleSelect.value = "";
   }
 }
 
-document.getElementById("sample-en-btn").addEventListener("click", () => loadSample("en"));
-document.getElementById("sample-pl-btn").addEventListener("click", () => loadSample("pl"));
+document.getElementById("sample-select").addEventListener("change", event => {
+  const language = event.target.value;
+  if (language) loadSample(language);
+});
 
 document.getElementById("yaml-editor").addEventListener("input", rebuildFromEditor);
 

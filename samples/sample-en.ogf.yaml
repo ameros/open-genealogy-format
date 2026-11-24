@@ -98,18 +98,20 @@ www: Www
 id: "@I1@"
 type: Individual
 
-titl: 42nd President of the United States
-
 name: William Clinton
 name_type: adopted
 name_nick: Bill
 name_givn: William Jefferson
 name_surn: Blythe
 
+titl: 42nd President of the United States
+
 sex: M
 
 birt_date: 19 AUG 1946
 birt_plac: Hope, Hempstead Co., AR
+
+refn: Clinton-1
 
 note: Bill Clinton won the 1992 election over then president George Bush.
 note_cont: He was inaugurated as the 42nd President of the United States on 20 January 1993.
@@ -124,8 +126,6 @@ obje_file: https://upload.wikimedia.org/wikipedia/commons/d/d3/Bill_Clinton.jpg
 obje_titl: Bill CLinton / Bob McNeely, The White House / Public domain
 
 www: https://en.wikipedia.org/wiki/Bill_Clinton
-
-refn: Clinton-1
 ---
 id: "@I2@"
 type: Individual
@@ -758,7 +758,7 @@ buri_plac: Chewalla Baptist, Marshall Co., MS
 refn: Clinton-34
 
 note: The earliest record of Moses Baum is in Rutherford
-note_cont: "County, Tennessee in 1827: indictments for \\\\\\\"riot\\\\\\\" were"
+note_cont: "County, Tennessee in 1827: indictments for \\"riot\\" were"
 note_cont_2: found against Samuel Green, Samuel Wilson, Moses Baum
 note_cont_3: and Thomas Baum who were fined $10 apiece.
 ---
