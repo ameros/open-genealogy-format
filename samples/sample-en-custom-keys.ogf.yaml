@@ -1,0 +1,96 @@
+---
+id: "@meta@"
+type: Meta
+language: en
+encoding: UTF-8
+individual_display_field: full_name
+family_display_field: "{$wife_id.full_name} & {$husband_id.full_name}"
+
+date_approx: "About {date}"
+date_uncertain: "Possibly {date}"
+date_range: "Between {start} and {end}"
+date_before: "On or before {date}"
+date_after: "On or after {date}"
+---
+id: "@dictionary@"
+type: Dictionary
+
+full_name: Full Name
+given_name: Given Name
+middle_name: Middle Name
+family_name: Family Name
+gender: Gender
+
+birth_date: Birth Date
+birth_place: Birth Place
+death_date: Death Date
+death_place: Death Place
+occupation: Occupation
+
+husband_id: Husband
+wife_id: Wife
+child_id: Child
+marriage_date: Marriage Date
+marriage_place: Marriage Place
+
+source_id: Source
+note: Note
+title: Title
+author: Author
+publication: Publication
+text: Text
+website: Website
+reference_code: Reference Code
+---
+id: "@I1@"
+type: Individual
+
+full_name: Alex Morgan
+given_name: Alex
+middle_name: Taylor
+family_name: Morgan
+gender: nonbinary
+birth_date: 1980-03-12
+birth_place: Bristol, England
+occupation: Cartographer
+source_id: "@S1@"
+note: Example person using descriptive English field names.
+---
+id: "@I2@"
+type: Individual
+
+full_name: Jamie Morgan
+given_name: Jamie
+family_name: Morgan
+gender: female
+birth_date: 1982-09
+birth_place: Cardiff, Wales
+---
+id: "@I3@"
+type: Individual
+
+full_name: Robin Morgan
+given_name: Robin
+family_name: Morgan
+gender: male
+birth_date: 1952
+---
+id: "@F1@"
+type: Family
+
+title: Morgan family
+husband_id: "@I3@"
+wife_id: "@I2@"
+child_id: "@I1@"
+marriage_date: 1978-06-24
+marriage_place: Cardiff, Wales
+reference_code: MOR-001
+---
+id: "@S1@"
+type: Source
+
+title: Example birth registration
+author: Example Civil Registry
+publication: Demonstration register
+text: A fictional source record for the sample dataset.
+website: https://example.org/birth-registration

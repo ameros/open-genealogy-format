@@ -1,6 +1,7 @@
 const SAMPLE_FILES = {
-  en: "samples/sample-en.ogf.yaml",
-  pl: "sample-pl.ogf.yaml"
+  "en-gedcom": "samples/sample-en-from-gedcom.ogf.yaml",
+  pl: "samples/sample-pl.ogf.yaml",
+  "en-custom": "samples/sample-en-custom-keys.ogf.yaml"
 };
 
 const LINK_RE = /^@.+@$/;
@@ -346,10 +347,58 @@ function explainDate(val) {
   return null;
 }
 
+function displayFieldValue(value) {
+  if (Array.isArray(value)) return value.map(v => String(v ?? "").trim()).filter(Boolean).join(", ");
+  return value === undefined || value === null ? "" : String(value).trim();
+}
+
+function resolveDisplayTemplate(doc, template, docMap) {
+  const source = String(template ?? "").trim();
+  if (!source) return "";
+
+  // A bare key is shorthand for the current record's field, e.g. "name".
+  if (!/[{}]/.test(source)) {
+    return displayFieldValue(doc.map[source]);
+  }
+
+  // {field_key} reads from the current record.
+  // {$reference_key.field_key} follows an @id@ reference and reads that
+  // field from the referenced record. Literal text between placeholders
+  // (for example " & ") is preserved.
+  let result = source.replace(/\{(\$?[^{}]+)\}/g, (token, expression) => {
+    const expr = String(expression).trim();
+    if (expr.startsWith("$")) {
+      const path = expr.slice(1).split(".");
+      if (path.length < 2) return "";
+      const refKey = path.shift();
+      const targetId = displayFieldValue(doc.map[refKey]);
+      const target = targetId ? docMap[targetId] : null;
+      if (!target) return "";
+      return displayFieldValue(path.reduce((value, key) => {
+        if (value && typeof value === "object" && !Array.isArray(value)) return value[key];
+        return undefined;
+      }, target.map));
+    }
+    return displayFieldValue(doc.map[expr]);
+  });
+
+  // Avoid dangling separators if one side of a relationship is absent.
+  return result
+    .replace(/\s*&\s*&\s*/g, " & ")
+    .replace(/^\s*&\s*|\s*&\s*$/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 function getRecordTitle(doc, docMap) {
   const m = doc.map;
   if (doc.type === "Individual") {
-    // GEDCOM NAME is retained verbatim by the structural importer.
+    const configured = state.meta.individual_display_field;
+    if (configured) {
+      const display = resolveDisplayTemplate(doc, configured, docMap);
+      if (display) return display;
+    }
+    // Backward-compatible fallback for datasets without display metadata.
     if (m.name !== undefined && m.name !== null) return String(m.name);
     const first = m.name_first || m.imie || m.given_name || "";
     const last = m.name_last || m.nazwisko || m.surname || m.name_maiden || m.nazwisko_rodowe || "";
@@ -357,12 +406,16 @@ function getRecordTitle(doc, docMap) {
     if (full) return full;
   }
   if (doc.type === "Source") {
-    const sourceTitle = m.titl || m.title || m.abbr || m.auth;
+    const sourceTitle = m.titl || m.tytul || m.title || m.abbr || m.auth;
     if (sourceTitle) return String(sourceTitle);
   }
   if (doc.type === "Family") {
-    // GEDCOM family records use HUSB/WIFE; the structural importer stores
-    // these tags as lowercase keys (husb/wife). Keep legacy OGF keys too.
+    const configured = state.meta.family_display_field;
+    if (configured) {
+      const display = resolveDisplayTemplate(doc, configured, docMap);
+      if (display) return display;
+    }
+    // Backward-compatible fallback for datasets without display metadata.
     const hId = m.husb || m.husband_id || m.maz_id;
     const wId = m.wife || m.wife_id || m.zona_id;
     const hName = hId && docMap[hId] ? getRecordTitle(docMap[hId], docMap) : "";

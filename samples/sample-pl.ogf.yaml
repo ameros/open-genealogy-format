@@ -1,0 +1,91 @@
+---
+id: "@meta@"
+type: Meta
+language: pl
+encoding: UTF-8
+individual_display_field: "{imie} {drugie_imie} {nazwisko}"
+family_display_field: "{$zona_id.imie} {$zona_id.nazwisko} & {$maz_id.imie} {$maz_id.nazwisko}"
+
+date_approx: "Około {date}"
+date_uncertain: "Prawdopodobnie {date}"
+date_range: "Między {start} a {end}"
+date_before: "Nie później niż {date}"
+date_after: "Nie wcześniej niż {date}"
+---
+id: "@dictionary@"
+type: Dictionary
+
+imie: Imię
+drugie_imie: Drugie imię
+nazwisko: Nazwisko
+plec: Płeć
+
+urodzenie_data: Data urodzenia
+urodzenie_miejsce: Miejsce urodzenia
+zgon_data: Data śmierci
+zgon_miejsce: Miejsce śmierci
+zawod: Zawód
+
+maz_id: Mąż
+zona_id: Żona
+dziecko_id: Dziecko
+slub_data: Data ślubu
+slub_miejsce: Miejsce ślubu
+
+zrodlo_id: Źródło
+notatka: Notatka
+tytul: Tytuł
+autor: Autor
+publikacja: Publikacja
+tekst: Treść
+strona_www: Strona WWW
+---
+id: "@I1@"
+type: Individual
+
+imie: Jan
+drugie_imie: Adam
+nazwisko: Kowalski
+plec: M
+urodzenie_data: 1980-03-12
+urodzenie_miejsce: Kraków, Polska
+zawod: Architekt
+zrodlo_id: "@S1@"
+notatka: Przykładowy rekord osoby z polskimi nazwami pól.
+---
+id: "@I2@"
+type: Individual
+
+imie: Anna
+nazwisko: Nowak
+plec: F
+urodzenie_data: 1982~
+urodzenie_miejsce: Gdańsk, Polska
+zawod: Nauczycielka
+---
+id: "@I3@"
+type: Individual
+
+imie: Piotr
+nazwisko: Kowalski
+plec: M
+urodzenie_data: 1952-07
+---
+id: "@F1@"
+type: Family
+
+tytul: Rodzina Kowalskich
+maz_id: "@I3@"
+zona_id: "@I2@"
+dziecko_id: "@I1@"
+slub_data: 1978-06-24
+slub_miejsce: Gdańsk, Polska
+---
+id: "@S1@"
+type: Source
+
+tytul: Przykładowy akt urodzenia
+autor: Urząd Stanu Cywilnego
+publikacja: Rejestr przykładowy
+tekst: Wpis dotyczący przykładowej osoby.
+strona_www: https://example.org/akt-urodzenia
