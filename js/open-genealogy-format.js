@@ -71,7 +71,7 @@ const mediaFilesByName = new Map();
 const REMOTE_MEDIA_CACHE_PATH = new URL("__ogf_media_cache__", document.baseURI).pathname;
 let remoteMediaCacheControllerReady = !!navigator.serviceWorker?.controller;
 if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-  navigator.serviceWorker.register(new URL("js/media-cache-sw.js", document.baseURI), { scope: "./" })
+  navigator.serviceWorker.register(new URL("media-cache-sw.js", document.baseURI), { scope: "./" })
     .then(() => navigator.serviceWorker.ready)
     .then(() => {
       remoteMediaCacheControllerReady = !!navigator.serviceWorker.controller;
