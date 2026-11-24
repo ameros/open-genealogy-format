@@ -303,8 +303,17 @@
     if(birthDate||birthPlace)detailLines.push({icon:'\uf004',kind:'birth',text:[birthDate,birthPlace].filter(Boolean).join(', ')});
     if(deathDate||deathPlace)detailLines.push({icon:'\uf4ba',kind:'death',text:[deathDate,deathPlace].filter(Boolean).join(', ')});
     if(burialPlace)detailLines.push({icon:'\uf720',kind:'burial',text:burialPlace});
-    const sex=String(firstField(map,['sex','gender'])).trim().toUpperCase();
-    const genderClass=sex==='M'||sex==='MALE'?'male':sex==='F'||sex==='FEMALE'?'female':'unknown';
+    const meta=app.getMeta()||{};
+    const genderField=String(meta.tree_gender_field||'').trim();
+    const rawGender=genderField ? firstField(map,[genderField]) : '';
+    const genderDictionary=genderField && app.getDictionary ? app.getDictionary() : {};
+    const genderValues=genderDictionary[genderField]?.values || {};
+    const genderLabel=rawGender
+      ? String(genderValues[rawGender] || rawGender).trim().toUpperCase()
+      : '';
+    const genderClass=genderLabel==='M'||genderLabel==='MALE'?'male'
+      : genderLabel==='F'||genderLabel==='FEMALE'?'female'
+      : 'unknown';
     const genderIcon=genderClass==='male'?'♂':genderClass==='female'?'♀':'';
     return {family:false,titleLines:wrapSvgLabel(title,27).slice(0,3),detailLines,genderClass,genderIcon,imageUrl:app.getImageUrl?app.getImageUrl(record):null};
   }

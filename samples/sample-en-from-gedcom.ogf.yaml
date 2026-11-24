@@ -9,6 +9,7 @@ type: Meta
 language: en
 encoding: UTF-8
 individual_display_field: name
+tree_gender_field: sex
 family_display_field: "{$wife.name_givn} & {$husb.name}"
 date_approx: "About {date}"
 date_uncertain: "Possibly {date}"

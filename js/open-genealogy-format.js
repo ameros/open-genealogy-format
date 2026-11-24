@@ -1929,6 +1929,7 @@ document.getElementById("download-yaml-btn").addEventListener("click", () => {
 window.OGFApp = {
   getDocs: () => state.docs,
   getMeta: () => state.meta,
+  getDictionary: () => state.dict,
   getSelectedId: () => state.selectedId,
   getRecordTitle: doc => getRecordTitle(doc, Object.fromEntries(state.docs.map(item => [item.id, item]))),
   getImageUrl: doc => getImageCandidates(doc)[0] || null,

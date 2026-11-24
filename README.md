@@ -262,3 +262,19 @@ See [LICENSE](LICENSE) and [COMMERCIAL-LICENSING.md](COMMERCIAL-LICENSING.md).
 Third-party dependencies remain subject to their respective licenses. See [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
 
 User-provided genealogical data is not relicensed by either of the above notices. Its ownership and applicable terms remain with the relevant data owners.
+
+### Tree gender field
+
+The optional `@meta@` property `tree_gender_field` identifies the Individual
+record field used to classify gender for tree-node styling. For example:
+
+```yaml
+tree_gender_field: sex
+```
+
+The configured field's dictionary companion (for example, `sex_values:
+M=Male | F=Female | U=Unknown`) is used to interpret stored codes. Values
+labelled Male/Female, or the standard `M`/`F` codes, select the corresponding
+node style. If the property is absent, the field is missing, or its value
+cannot be classified, the node uses the neutral unknown style. The tree does
+not guess between `sex`, `gender`, or other field names.

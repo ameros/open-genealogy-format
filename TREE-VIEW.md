@@ -32,6 +32,28 @@ tree_relationships:
 - Unresolved references are reported in the tree status; they are not guessed.
 - Without this configuration, the tree does not infer relationships.
 
+## Gender field configuration
+
+The optional `tree_gender_field` property in `@meta@` identifies the
+Individual record field used to determine the gender styling of tree nodes.
+For example:
+
+```yaml
+tree_gender_field: sex
+```
+
+If the data uses a different key, configure that exact key instead:
+
+```yaml
+tree_gender_field: gender
+```
+
+The renderer reads only the configured field. It uses the corresponding
+`<field>_values` dictionary entry, when present, to interpret stored codes.
+If `tree_gender_field` is absent, or the value is missing or unrecognized,
+the node receives the neutral gender style. The renderer does not fall back
+to guessed field names such as `sex` or `gender`.
+
 The renderer uses the same core mechanism as `gedcom-svg-tree`:
 
 - ordered `NodeFamily.Tree`-style traversal from the selected record;
@@ -44,11 +66,18 @@ The renderer uses the same core mechanism as `gedcom-svg-tree`:
 - Individual and Family titles reuse the existing `individual_display_field`
   and `family_display_field` metadata; the tree does not define a parallel
   title configuration;
-- Individual cards show birth and death dates and places when those values
-  exist, and use the first resolved `obje_file` image as a portrait;
-- a neutral silhouette is shown when an Individual has no usable portrait;
-- known `sex` values (`M`/`Male` and `F`/`Female`) apply blue and rose node
-  tints respectively; missing or unrecognized values use a neutral tint;
+- Individual nodes show birth and death dates and places, plus burial place,
+  when those values exist; the first resolved `obje_file` image is used as a
+  portrait, and no empty portrait placeholder is shown when an image is absent;
+- the optional `tree_gender_field` property in `@meta@` selects the Individual
+  field used for gender classification (for example, `tree_gender_field: sex`
+  or `tree_gender_field: gender`); the renderer does not guess a field when the
+  property is absent;
+- the configured field's dictionary companion (for example, `sex_values:
+  M=Male | F=Female | U=Unknown`) is used to interpret stored codes; Male/M
+  and Female/F values select the corresponding blue and rose node borders,
+  while missing, unrecognized, or unconfigured values use the neutral
+  pink-to-blue gradient border;
 - Family nodes show the configured Family title and marriage date/place when
   present;
 - hover highlighting based on graph predecessors (ancestors) and successors

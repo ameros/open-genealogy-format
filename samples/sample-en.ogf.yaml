@@ -8,6 +8,7 @@ id: "@meta@"
 type: Meta
 language: en
 encoding: UTF-8
+tree_gender_field: sex
 
 date_approx: "About {date}"
 date_uncertain: "Possibly {date}"

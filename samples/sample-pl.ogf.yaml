@@ -9,6 +9,7 @@ type: Meta
 language: pl
 encoding: UTF-8
 individual_display_field: "{imie} {drugie_imie} {nazwisko}"
+tree_gender_field: sex
 family_display_field: "{$zona_id.imie} {$zona_id.nazwisko} & {$maz_id.imie} {$maz_id.nazwisko}"
 date_approx: "Około {date}"
 date_uncertain: "Prawdopodobnie {date}"
