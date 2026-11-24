@@ -40,7 +40,17 @@ The renderer uses the same core mechanism as `gedcom-svg-tree`:
 - a directed graph laid out by Dagre/Dagre-D3 (rather than sorting records
   into breadth-first rows);
 - Family records rendered as circular nodes and Individuals as rectangular
-  nodes;
+  person cards;
+- Individual and Family titles reuse the existing `individual_display_field`
+  and `family_display_field` metadata; the tree does not define a parallel
+  title configuration;
+- Individual cards show birth and death dates and places when those values
+  exist, and use the first resolved `obje_file` image as a portrait;
+- a neutral silhouette is shown when an Individual has no usable portrait;
+- known `sex` values (`M`/`Male` and `F`/`Female`) apply blue and rose node
+  tints respectively; missing or unrecognized values use a neutral tint;
+- Family nodes show the configured Family title and marriage date/place when
+  present;
 - hover highlighting based on graph predecessors (ancestors) and successors
   (descendants), dimming unrelated branches;
 - D3 zoom/pan, fit-to-tree, and re-centering when another node is selected.

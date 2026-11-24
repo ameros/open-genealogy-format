@@ -1931,6 +1931,9 @@ window.OGFApp = {
   getMeta: () => state.meta,
   getSelectedId: () => state.selectedId,
   getRecordTitle: doc => getRecordTitle(doc, Object.fromEntries(state.docs.map(item => [item.id, item]))),
+  getImageUrl: doc => getImageCandidates(doc)[0] || null,
+  getImageDisplayUrl: url => getRemoteMediaDisplayUrl(url),
+  configureImageRequest: (img,url) => configureRemoteImageRequest(img,url),
   selectRecord: id => {
     const doc = state.docs.find(item => item.id === id);
     if (!doc) return;
