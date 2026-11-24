@@ -7,7 +7,6 @@ Open Genealogy Format (OGF) is designed to store family-history data in a transp
 The format separates the data itself from its presentation. Records contain genealogical facts and references; `@meta@` and `@dictionary@` provide language, labels, descriptions and presentation grouping.
 
 ## Design principles
-
 - **Flat records:** Each record is a separate YAML document, separated by `---`.
 - **Open vocabulary:** Applications must not require a fixed list of genealogical fields.
 - **Preservation:** Imported values should not be silently rewritten, inferred or discarded.
@@ -53,7 +52,6 @@ wife: Wife — Reference to an Individual
 ---
 id: "@I1@"
 type: Individual
-
 name: John Smith
 birt_date: "25 NOV 1976"
 birt_plac: London
@@ -102,7 +100,6 @@ birt_plac: Birth Place — Place of birth
 Blank lines in the dictionary separate groups of fields.
 
 The dictionary is the source of available fields in the viewer's Add Field workflow:
-
 1. Define a field in the editable dictionary.
 2. Save the dictionary.
 3. Select the field from Add Field.
@@ -144,7 +141,6 @@ For example:
 - `BIRT.PLAC.MAP.LATI` becomes `birt_plac_map_lati`.
 
 Original identifiers, relationship references and source values are preserved.
-
 The importer does not infer missing facts or create genealogical relationships that are not present in the source data.
 
 See `gedcom-import-rules.md`.
@@ -178,13 +174,45 @@ A person may have multiple historically valid names, including birth, adopted an
 
 OGF should preserve these values without assuming that a surname changed because of a marriage.
 
-The intended display model allows different name variants to be selected in different contexts, such as:
+The `@meta@` document can select which stored fields an application uses when presenting Individuals and Families. These settings affect presentation only; they do not change record values or relationship references.
 
-- An Individual card.
-- A general reference to an Individual.
-- A particular Family card.
+### Display metadata
 
-The exact metadata schema for contextual display profiles is not yet finalized.
+Two optional `@meta@` properties are defined:
+
+| Property | Purpose |
+|---|---|
+| `individual_display_field` | Selects the title displayed on Individual cards and the text used for links to Individual records. |
+| `family_display_field` | Selects the title displayed on Family cards and the text used for links to Family records. |
+
+Each property accepts either a field key or a quoted display template.
+
+**A single field key** is the shortest form:
+
+```yaml
+individual_display_field: name
+```
+
+**A template** can combine fields from the current record:
+
+```yaml
+individual_display_field: "{given_name} {family_name}"
+```
+
+Use `{field_key}` for a field on the record whose title is being generated.
+Use `{$reference_key.field_key}` to follow a reference stored on that record and read a field from the referenced record. Literal text between placeholders is preserved:
+
+```yaml
+family_display_field: "{$wife_id.name_given} & {$husband_id.name}"
+```
+
+The reference field must contain a record identifier, and the referenced record must contain the requested field. Quote template values in YAML.
+
+If a placeholder cannot be resolved, it contributes no text. If the complete template produces no usable title, the viewer falls back to its normal title logic. The settings do not require corresponding entries in `@dictionary@`: the dictionary supplies labels and descriptions, while display metadata selects stored values.
+
+Applications must keep the underlying fields and references unchanged. They must not infer a name variant from marriage, adoption or another relationship. The selected display text is derived presentation data only.
+
+The current viewer uses the Individual setting for links whose target record is an Individual, and the Family setting for links whose target record is a Family. This includes ordinary record links and incoming “Referenced In” links.
 
 ## Documentation
 

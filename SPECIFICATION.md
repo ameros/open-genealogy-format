@@ -18,7 +18,6 @@ OGF separates:
 An application must not silently change stored data when presenting or interpreting it.
 
 ## 2. Core principles
-
 ### 2.1 Flat records
 
 Every record is a top-level YAML document separated by `---`.
@@ -147,7 +146,6 @@ publ: London
 Source identifiers and references must be preserved.
 
 ## 5. Identifiers and references
-
 ### 5.1 Identifiers
 
 Every record must have a unique identifier.
@@ -201,7 +199,6 @@ Examples:
 | `_MARNM` | `_marnm` |
 
 GEDCOM tag names must not be semantically translated.
-
 A tag such as `BIRT` becomes `birt`, not `birth`.
 
 Leading underscores in extension tags must be preserved.
@@ -227,6 +224,63 @@ The `language` field identifies the primary language used for presentation.
 Additional metadata may define localized date descriptions or display settings.
 
 Metadata must not be used to rewrite record values.
+
+### 7.1 Contextual display metadata
+
+The `@meta@` document may define the following optional properties:
+
+| Property | Applies to | Purpose |
+|---|---|---|
+| `individual_display_field` | `Individual` | Selects the title shown on an Individual card and the text used when a link targets an Individual record. |
+| `family_display_field` | `Family` | Selects the title shown on a Family card and the text used when a link targets a Family record. |
+
+These properties configure presentation. They do not create, modify or replace genealogical facts, record identifiers or relationship references.
+
+#### 7.1.1 Field-key form
+
+A property may contain a bare field key. The application reads that field from the record whose display title is being generated:
+
+```yaml
+individual_display_field: name
+```
+
+This is shorthand for selecting one field; it is not a new record field.
+
+#### 7.1.2 Template form
+
+A property may instead contain a string template with one or more placeholders. Template values should be quoted in YAML.
+
+`{field_key}` reads a field from the current record:
+
+```yaml
+individual_display_field: "{given_name} {family_name}"
+```
+
+`{$reference_key.field_key}` follows a reference field on the current record, then reads the named field from the referenced record:
+
+```yaml
+family_display_field: "{$wife_id.name_given} & {$husband_id.name}"
+```
+
+The reference field must contain a single record identifier. The referenced record must exist and contain the requested field. Literal text between placeholders, such as the ampersand and spaces in the example, is retained.
+
+This syntax addresses one reference hop and one field on the target record; it does not define arbitrary nested object traversal or chained references.
+
+#### 7.1.3 Resolution and fallback
+
+An unresolved placeholder contributes an empty string. If the complete expression produces no usable display text, the current viewer falls back to its normal title-generation behavior for that record type.
+
+Applications should provide a readable fallback when a configured key, reference or target field is missing. A missing display value must not cause the record itself or its original reference to be removed.
+
+#### 7.1.4 Use in links
+
+When a viewer renders a link to an `Individual`, it should use the resolved `individual_display_field` value as the link text. For a link to a `Family`, it should use `family_display_field`. The same target-type rule applies to reverse-reference labels. A viewer may use its normal title-generation behavior when the corresponding property is absent or cannot produce text.
+
+The `@dictionary@` is not required to contain entries for these metadata properties or for the fields they select. The dictionary describes field labels, descriptions and grouping; display metadata selects values for presentation.
+
+#### 7.1.5 Preservation
+
+Display metadata must never replace stored names with derived strings, rewrite relationship identifiers, or infer a name from a spouse or family context. Changing a display property changes presentation only.
 
 ## 8. Dictionary: `@dictionary@`
 
@@ -350,7 +404,6 @@ GEDCOM qualifiers such as `ABT`, `CAL`, `EST`, `BEF` and `AFT` must not be treat
 Any interpretation mapping must be explicit and must not alter the original stored expression.
 
 ## 10. Presentation and grouping
-
 ### 10.1 Field order
 
 The order of fields in a record determines their order in the viewer.
@@ -390,7 +443,6 @@ The viewer may display dictionary descriptions as contextual help next to field 
 Help indicators and editing controls are presentation elements only.
 
 ## 11. Links, URLs and places
-
 ### 11.1 Internal references
 
 A viewer may detect record identifiers wherever they occur in a field value, including mixed text and list values.
@@ -440,15 +492,11 @@ OGF must preserve all stored name values.
 
 The format does not assume that a person's surname changes as a result of marriage.
 
-Different display contexts may require different name variants, for example:
-
-- Individual card.
-- General reference link.
-- A particular Family card.
-
-The concept of contextual display profiles is accepted, but the exact `@meta@` schema has not yet been finalized.
+Applications may use the optional `individual_display_field` and `family_display_field` properties in `@meta@` to select display values for Individual and Family records. These properties are defined in section 7.1.
 
 Applications must not infer a name variant from a spouse or family relationship.
+
+The selected display value is a presentation result. It must not overwrite the original name fields or any other stored data. Relationship references must remain identifiers, even when a viewer displays a person's selected name as the link text.
 
 ## 14. Import and interoperability
 
