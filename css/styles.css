@@ -464,3 +464,50 @@ main.tree-mode #inspector-pane .card-header { padding-left:58px; }
   main.tree-mode #inspector-pane { max-height:none; }
 }
 body.ogf-tree-open { overflow:hidden; }
+
+
+/* Link palette: links follow the green action colour in every browser state.
+   Keep the rose accent for headings/information, not navigation or references. */
+:root {
+  --link-hover-bg: #eff7e9;
+}
+a:link,
+a:visited,
+a:active,
+a:hover,
+a:focus,
+a:focus-visible,
+.clickable,
+.link-pill,
+.field-val a,
+.field-val a:link,
+.field-val a:visited,
+.map-link,
+.map-link:link,
+.map-link:visited,
+.backlinks .backlink-pill,
+.backlinks .backlink-pill:link,
+.backlinks .backlink-pill:visited {
+  color: var(--action) !important;
+}
+a:hover,
+a:active,
+a:focus-visible,
+.field-val a:hover,
+.map-link:hover,
+.backlinks .backlink-pill:hover {
+  color: #245c18 !important;
+}
+a:hover,
+.field-val a:hover {
+  text-decoration: underline;
+}
+.map-link:hover,
+.backlinks .backlink-pill:hover {
+  background: var(--link-hover-bg) !important;
+  border-color: var(--action) !important;
+  text-decoration: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --link-hover-bg: #303b30; }
+}
