@@ -233,25 +233,32 @@ The current viewer uses the Individual setting for links whose target record is 
 
 **The data is authoritative. The viewer may interpret and present it, but must not silently change its meaning or stored representation.**
 
-# Licensing notice for README.md
+## Licensing
 
-Merge this section into the existing README.md. Preserve the existing project
-documentation and features.
+OGF distinguishes between the format specification and the software that implements it. They are licensed separately.
 
-## License and permitted use
+### OGF format specification and documentation
 
-This project is publicly available under the **PolyForm Noncommercial License 1.0.0**.
+The Open Genealogy Format (OGF) specification and its accompanying documentation are licensed under the **Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)** license.
 
-You may use, study, modify, and share this project for permitted non-commercial
-purposes, subject to the license terms. **Use for commercial purposes is not
-permitted without prior written permission from the copyright holder.** This
-includes use by a commercial company for its internal business operations,
-even when the software is not distributed, sold, or provided to customers.
+You may share and adapt the specification and documentation for non-commercial purposes, provided you give appropriate attribution and comply with the license terms.
 
-For commercial licensing, contact the copyright holder. See
-[COMMERCIAL-LICENSING.md](COMMERCIAL-LICENSING.md).
+See [FORMAT-LICENSE.md](FORMAT-LICENSE.md) and the [full CC BY-NC 4.0 license](https://creativecommons.org/licenses/by-nc/4.0/).
 
-The project is source-available and free for permitted non-commercial use.
-It is **not OSI-approved open-source software**.
+Suggested attribution:
 
-The full license is in [LICENSE](LICENSE).
+"Open Genealogy Format (OGF) specification by Michał Amerek, licensed under CC BY-NC 4.0."
+
+### OGF software and source code
+
+The OGF application and source code are licensed under the **PolyForm Noncommercial License 1.0.0**.
+
+Use, modification and distribution are permitted only for purposes allowed by that license. Commercial use requires separate written permission from the copyright holder. This includes internal business use by commercial companies.
+
+See [LICENSE](LICENSE) and [COMMERCIAL-LICENSING.md](COMMERCIAL-LICENSING.md).
+
+### Third-party components and genealogical data
+
+Third-party dependencies remain subject to their respective licenses. See [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
+
+User-provided genealogical data is not relicensed by either of the above notices. Its ownership and applicable terms remain with the relevant data owners.
