@@ -243,3 +243,224 @@ header { gap: 6px; padding: 9px 14px; }
   display:block;
   width:100%;
 }
+
+/* OGF-native tree workspace. Kept separate from the existing directory/card UI. */
+#tree-pane { min-width:0; min-height:520px; overflow:hidden; border:1px solid var(--accentOutline); border-radius:14px; background:var(--auraData); }
+#tree-pane[hidden], #directory-pane[hidden] { display:none !important; }
+main.tree-mode { grid-template-columns:minmax(300px, .85fr) minmax(0, 1.35fr); align-items:stretch; }
+/* Match gedcom-svg-tree: the selected record card stays to the left of the tree. */
+main.tree-mode #inspector-pane { grid-column:1; grid-row:1; min-width:0; min-height:min(72vh,760px); max-height:min(78vh,820px); overflow:auto; }
+main.tree-mode #tree-pane { grid-column:2; grid-row:1; min-width:0; }
+.tree-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:10px 12px; border-bottom:1px solid var(--accentOutline); }
+.tree-toolbar-title { margin-right:auto; font-size:13px; font-weight:600; }
+.tree-toolbar label { display:flex; align-items:center; gap:5px; color:var(--muted); font-size:11px; }
+.tree-toolbar select { width:auto; min-width:64px; padding:5px 7px; font-size:11px; }
+.tree-toolbar button { min-width:30px; min-height:30px; }
+.tree-canvas { height:min(72vh,760px); min-height:420px; overflow:hidden; touch-action:none; cursor:grab; background-color:var(--auraData); background-image:radial-gradient(var(--accentOutline) .7px, transparent .7px); background-size:18px 18px; }
+.tree-canvas:active { cursor:grabbing; }
+#ogf-tree-svg { display:block; width:100%; height:100%; user-select:none; }
+#ogf-tree-svg .edgePath path { fill:none; stroke:var(--muted); stroke-width:1.7px; opacity:.72; }
+#ogf-tree-svg .edgePath.ogf-dimmed path { opacity:.08; }
+#ogf-tree-svg .node { cursor:pointer; transition:opacity .12s ease; }
+#ogf-tree-svg .node.ogf-dimmed { opacity:.14 !important; }
+#ogf-tree-svg .node.ogf-related { opacity:1 !important; }
+#ogf-tree-svg .node rect { fill:var(--auraData); stroke:var(--action); stroke-width:1.5px; rx:9px; ry:9px; filter:drop-shadow(0 2px 3px rgba(0,0,0,.10)); }
+#ogf-tree-svg .node.ogf-dagre-family circle { fill:var(--actionHover); stroke:var(--accent); stroke-width:2px; filter:drop-shadow(0 2px 3px rgba(0,0,0,.10)); }
+#ogf-tree-svg .node.ogf-selected rect, #ogf-tree-svg .node.ogf-selected circle,
+#ogf-tree-svg .node:focus rect, #ogf-tree-svg .node:focus circle { stroke:var(--accent); stroke-width:3px; }
+/* Node labels are native SVG text, centred in node-local coordinates. */
+#ogf-tree-svg .ogf-svg-node-label { pointer-events:none; }
+#ogf-tree-svg .ogf-svg-person-name { fill:var(--on-auraData); font-family:Poppins,sans-serif; font-size:12px; font-weight:600; }
+#ogf-tree-svg .ogf-svg-person-detail { fill:var(--muted); font-family:Poppins,sans-serif; font-size:9px; font-weight:400; }
+#ogf-tree-svg .ogf-svg-family-name { fill:#171717; font-family:Poppins,sans-serif; font-size:10px; font-weight:600; }
+.tree-status { min-height:34px; padding:8px 12px; color:var(--muted); font-size:11px; border-top:1px solid var(--accentOutline); }
+#tree-view-btn.active { background:var(--actionHover); outline:1px solid var(--action); }
+@media(max-width:1050px) {
+  main.tree-mode { grid-template-columns:minmax(0,1fr); }
+  /* On narrow screens, put the selected card first, followed by the tree. */
+  main.tree-mode #inspector-pane { grid-column:1; grid-row:1; min-height:0; max-height:none; overflow:visible; }
+  main.tree-mode #tree-pane { grid-column:1; grid-row:2; }
+}
+@media(max-width:760px) {
+  #tree-pane { min-height:420px; }
+  .tree-canvas { height:55vh; min-height:360px; }
+  .tree-toolbar { gap:6px; }
+  .tree-toolbar-title { width:100%; }
+  .tree-toolbar label { flex:1 1 28%; }
+  .tree-toolbar select { max-width:100%; min-width:0; }
+  main.tree-mode #inspector-pane { max-height:none; }
+}
+
+/* Full-window OGF tree workspace with independently closable record card. */
+#tree-pane {
+  --ogf-tree-family-fill: hsl(52, 100%, 49%);
+  --ogf-tree-family-stroke: hsl(52, 82%, 34%);
+  --ogf-tree-current-fill: hsl(64, 100%, 42%);
+  --ogf-tree-current-text: hsl(213, 13%, 14%);
+  display:flex;
+  flex-direction:column;
+  height:100%;
+  min-height:0;
+  border-radius:12px;
+}
+#tree-pane[hidden] { display:none !important; }
+main.tree-mode {
+  position:fixed;
+  inset:0;
+  z-index:40;
+  width:100%;
+  max-width:none;
+  height:100vh;
+  height:100dvh;
+  min-height:0;
+  margin:0;
+  padding:12px;
+  overflow:hidden;
+  display:grid;
+  grid-template-columns:minmax(300px, .85fr) minmax(0, 1.35fr);
+  grid-template-rows:minmax(0, 1fr);
+  gap:12px;
+  align-items:stretch;
+  background:var(--auraTree);
+}
+main.tree-mode #inspector-pane {
+  position:relative;
+  grid-column:1;
+  grid-row:1;
+  min-width:0;
+  min-height:0;
+  height:100%;
+  max-height:none;
+  overflow:auto;
+  border-radius:12px;
+  padding:0;
+}
+main.tree-mode #tree-pane {
+  grid-column:2;
+  grid-row:1;
+  min-width:0;
+  min-height:0;
+  height:100%;
+  max-height:none;
+  overflow:hidden;
+}
+main.tree-mode #tree-pane .tree-canvas {
+  flex:1 1 auto;
+  min-height:0;
+  height:auto;
+}
+main.tree-mode #tree-pane .tree-status { flex:0 0 auto; }
+main.tree-mode.tree-card-hidden { grid-template-columns:minmax(0, 1fr); }
+main.tree-mode.tree-card-hidden #inspector-pane { display:none; }
+main.tree-mode.tree-card-hidden #tree-pane { grid-column:1; }
+.tree-panel-close {
+  position:absolute;
+  top:10px;
+  left:10px;
+  z-index:12;
+  display:none;
+  width:34px;
+  min-width:34px;
+  height:34px;
+  padding:0;
+  align-items:center;
+  justify-content:center;
+  border:1px solid var(--accentOutline);
+  border-radius:50%;
+  background:var(--auraData);
+  color:var(--muted);
+  font-size:16px;
+  box-shadow:0 2px 8px rgba(0,0,0,.10);
+}
+main.tree-mode .tree-panel-close { display:inline-flex; }
+main.tree-mode #inspector-pane .card-header { padding-left:58px; }
+.tree-close-btn {
+  width:34px;
+  min-width:34px !important;
+  height:34px;
+  padding:0 !important;
+  margin-left:4px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+  background:var(--auraData) !important;
+  border:1px solid var(--accentOutline) !important;
+  color:var(--muted) !important;
+  font-size:17px !important;
+}
+.tree-close-btn:hover { background:var(--actionHover) !important; color:var(--action) !important; }
+
+/* Match gedcom-svg-tree's yellow Family nodes and green current/hover node. */
+#ogf-tree-svg .node rect {
+  fill:var(--auraData);
+  stroke:var(--accentOutline);
+  stroke-width:1.5px;
+}
+#ogf-tree-svg .node.ogf-dagre-family circle {
+  fill:var(--ogf-tree-family-fill);
+  stroke:var(--ogf-tree-family-stroke);
+  stroke-width:1.8px;
+}
+#ogf-tree-svg .node:hover rect,
+#ogf-tree-svg .node.ogf-selected rect,
+#ogf-tree-svg .node:focus rect,
+#ogf-tree-svg .node:hover circle,
+#ogf-tree-svg .node.ogf-selected circle,
+#ogf-tree-svg .node:focus circle {
+  fill:var(--ogf-tree-current-fill);
+  stroke:var(--action);
+  stroke-width:2.6px;
+}
+#ogf-tree-svg .node:hover .ogf-svg-person-name,
+#ogf-tree-svg .node.ogf-selected .ogf-svg-person-name,
+#ogf-tree-svg .node:focus .ogf-svg-person-name,
+#ogf-tree-svg .node:hover .ogf-svg-person-detail,
+#ogf-tree-svg .node.ogf-selected .ogf-svg-person-detail,
+#ogf-tree-svg .node:focus .ogf-svg-person-detail { fill:var(--ogf-tree-current-text); }
+#ogf-tree-svg .node:hover .ogf-svg-family-name,
+#ogf-tree-svg .node.ogf-selected .ogf-svg-family-name,
+#ogf-tree-svg .node:focus .ogf-svg-family-name { fill:var(--ogf-tree-current-text); }
+@media(prefers-color-scheme:dark) {
+  #tree-pane {
+    --ogf-tree-family-fill:hsl(52, 70%, 49%);
+    --ogf-tree-family-stroke:hsl(52, 65%, 34%);
+    --ogf-tree-current-fill:hsl(64, 70%, 43%);
+    --ogf-tree-current-text:hsl(213, 13%, 14%);
+  }
+}
+@media(max-width:1050px) {
+  main.tree-mode {
+    grid-template-columns:minmax(0, 1fr);
+    grid-template-rows:minmax(0, .78fr) minmax(0, 1.22fr);
+    gap:8px;
+    padding:8px;
+  }
+  main.tree-mode #inspector-pane {
+    grid-column:1;
+    grid-row:1;
+    min-height:0;
+    max-height:none;
+    height:100%;
+    overflow:auto;
+  }
+  main.tree-mode #tree-pane {
+    grid-column:1;
+    grid-row:2;
+    height:100%;
+  }
+  main.tree-mode #inspector-pane .card-header { padding-top:14px; padding-bottom:10px; }
+}
+@media(max-width:760px) {
+  main.tree-mode {
+    grid-template-rows:minmax(0, .85fr) minmax(0, 1.15fr);
+    padding:6px;
+    gap:6px;
+  }
+  main.tree-mode #tree-pane { min-height:0; }
+  main.tree-mode #tree-pane .tree-toolbar { flex-wrap:wrap; padding:6px; }
+  main.tree-mode #tree-pane .tree-toolbar-title { width:auto; flex:1 1 100%; }
+  main.tree-mode #tree-pane .tree-canvas { min-height:0; height:auto; }
+  main.tree-mode #inspector-pane { max-height:none; }
+}
+body.ogf-tree-open { overflow:hidden; }

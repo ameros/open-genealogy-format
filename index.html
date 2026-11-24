@@ -15,11 +15,12 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 <link rel="stylesheet" href="css/styles.css">
 <style>
-.card-content-layout { display:flex; align-items:flex-start; gap:22px; padding:16px; }
-.card-portrait-column { flex:0 0 260px; width:260px; }
-.record-portrait { display:block; width:100%; max-width:260px; max-height:360px; object-fit:contain; object-position:top left; border-radius:8px; margin:0; }
-#card-fields { display:block; flex:1 1 0; min-width:0; width:auto; padding:0; margin:0; }
-@media (max-width: 760px) { .card-content-layout { flex-direction:column; } .card-portrait-column { flex-basis:auto; width:auto; max-width:100%; } .record-portrait { max-width:min(100%, 360px); } }
+/* Keep the portrait at its existing display size, centred above the record data. */
+.card-content-layout { display:flex; flex-direction:column; align-items:center; gap:18px; padding:16px; }
+.card-portrait-column { flex:0 0 auto; width:260px; max-width:100%; margin:0 auto; display:flex; justify-content:center; }
+.record-portrait { display:block; width:100%; max-width:260px; max-height:360px; object-fit:contain; object-position:center; border-radius:8px; margin:0 auto; }
+#card-fields { display:block; flex:1 1 auto; align-self:stretch; min-width:0; width:100%; padding:0; margin:0; }
+@media (max-width: 760px) { .card-content-layout { padding:12px; gap:16px; } .card-portrait-column { width:260px; max-width:100%; } .record-portrait { max-width:260px; max-height:360px; } }
 .media-load-hint { margin:0 0 12px; color:var(--muted); font-size:12px; }
 .map-link { display:inline-block; margin:6px 0 2px; padding:5px 8px; border:1px solid var(--border); border-radius:6px; font-weight:600; }
 .map-link-wrap { display:block; }
@@ -106,6 +107,7 @@
     <span class="badge" id="lang-badge">LANG: EN</span>
   </a>
   <button id="toggle-yaml-btn" class="toolbar-icon" type="button" title="Show YAML editor" aria-label="Show YAML editor"><i class="fa-solid fa-code" aria-hidden="true"></i></button>
+  <button id="tree-view-btn" class="toolbar-icon" type="button" title="Open tree view" aria-label="Open tree view" aria-pressed="false"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i></button>
   <label class="toolbar-select-wrap" aria-label="Load a sample">
     <span class="sr-only">Samples</span>
     <select id="sample-select" class="toolbar-select">
@@ -132,7 +134,7 @@
   <button id="add-source-btn" class="toolbar-icon" type="button" title="Add Source" aria-label="Add Source"><i class="fa-solid fa-book-open" aria-hidden="true"></i></button>
   <button id="import-ged-btn" class="toolbar-icon" type="button" title="Import GEDCOM file" aria-label="Import GEDCOM file"><i class="fa-solid fa-file-import" aria-hidden="true"></i></button>
   <input type="file" id="ged-input" accept=".ged,.gedcom" style="display:none">
-  <button id="load-media-btn" class="toolbar-icon" type="button" title="Load media folder" aria-label="Load media folder"><i class="fa-solid fa-folder-open" aria-hidden="true"></i></button>
+  <button id="load-media-btn" class="toolbar-icon" type="button" title="Select the folder containing media referenced by relative paths in your OGF/GEDCOM file (for example, its media/ folder)." aria-label="Select the media folder referenced by your OGF or GEDCOM file"><i class="fa-solid fa-photo-film" aria-hidden="true"></i></button>
   <input type="file" id="media-folder-input" webkitdirectory directory multiple style="display:none">
   <button id="open-yaml-btn" class="toolbar-icon" type="button" title="Open YAML file" aria-label="Open YAML file"><i class="fa-solid fa-file-lines" aria-hidden="true"></i></button>
   <input type="file" id="yaml-input" accept=".yaml,.yml,.txt" style="display:none">
@@ -148,6 +150,21 @@
     <textarea id="yaml-editor" spellcheck="false"></textarea>
   </section>
 
+  <section id="tree-pane" hidden aria-label="OGF family tree">
+    <div class="tree-toolbar">
+      <div class="tree-toolbar-title">Family tree</div>
+      <label>Layout <select id="tree-orientation"><option value="vertical">Vertical</option><option value="horizontal" selected>Horizontal</option></select></label>
+      <label>Ancestors <select id="tree-parent-generations"><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="8">8</option></select></label>
+      <label>Descendants <select id="tree-child-generations"><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="8">8</option></select></label>
+      <label title="Siblings and their nearby descendants">Other gens <select id="tree-other-generations"><option value="0">0</option><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option></select></label>
+      <button id="tree-zoom-out" type="button" aria-label="Zoom out" title="Zoom out">−</button>
+      <button id="tree-zoom-in" type="button" aria-label="Zoom in" title="Zoom in">+</button>
+      <button id="tree-reset" type="button" title="Focus selected person and immediate family">Focus</button>
+      <button id="tree-close-btn" class="tree-close-btn" type="button" title="Close tree view" aria-label="Close tree view"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <div class="tree-canvas"><svg id="ogf-tree-svg" role="img" aria-label="Interactive family tree"></svg></div>
+    <div id="tree-status" class="tree-status" aria-live="polite"></div>
+  </section>
   <section id="directory-pane">
     <div class="dir-controls">
       <div class="tabs">
@@ -173,6 +190,7 @@
   </section>
 
   <section id="inspector-pane">
+    <button id="tree-card-close" class="tree-panel-close" type="button" title="Hide selected record card" aria-label="Hide selected record card"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     <div id="card-container"></div>
   </section>
 </main>
@@ -244,6 +262,10 @@
   </div>
 </div>
 
+<!-- Same layout stack used by gedcom-svg-tree: D3 v5 + dagre-d3. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.16.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dagre-d3/0.6.4/dagre-d3.min.js"></script>
 <script src="open-genealogy-format.js"></script>
+<script src="ogf-tree.js"></script>
 </body>
 </html>

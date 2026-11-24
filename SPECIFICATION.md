@@ -246,7 +246,38 @@ These are optional conventions, not mandatory schema properties. Applications ma
 
 Metadata must not be used to rewrite record values.
 
-### 7.1 Contextual display metadata
+### 7.1 Optional tree relationship mapping
+
+An application may use an optional `tree_relationships` object in `@meta@` to
+configure how a tree view reads relationships from Family records. This is
+application presentation configuration, not a required OGF vocabulary or a
+new relationship assertion.
+
+```yaml
+tree_relationships:
+  individual_type: Individual
+  family_type: Family
+  family:
+    partner_fields:
+      - husb
+      - wife
+    child_fields:
+      - chil
+```
+
+- `individual_type` identifies the record type used for people.
+- `family_type` identifies the record type used for family/partnership records.
+- `family.partner_fields` lists Family fields containing references to Individual records.
+- `family.child_fields` lists Family fields containing references to child Individual records.
+- A configured field may contain a single reference or a list of references.
+- Field names are examples only; OGF does not reserve `husb`, `wife` or `chil`.
+
+A viewer must not infer relationships from field names or reverse references
+when no mapping is supplied. It must preserve the underlying record values and
+references. Unresolved references may be reported by the viewer, but must not
+be guessed or silently replaced.
+
+### 7.2 Contextual display metadata
 
 The `@meta@` document may define the following optional properties:
 
@@ -257,7 +288,7 @@ The `@meta@` document may define the following optional properties:
 
 These properties configure presentation. They do not create, modify or replace genealogical facts, record identifiers or relationship references.
 
-#### 7.1.1 Field-key form
+#### 7.2.1 Field-key form
 
 A property may contain a bare field key. The application reads that field from the record whose display title is being generated:
 
@@ -267,7 +298,7 @@ individual_display_field: name
 
 This is shorthand for selecting one field; it is not a new record field.
 
-#### 7.1.2 Template form
+#### 7.2.2 Template form
 
 A property may instead contain a string template with one or more placeholders. Template values should be quoted in YAML.
 
@@ -287,19 +318,19 @@ The reference field must contain a single record identifier. The referenced reco
 
 This syntax addresses one reference hop and one field on the target record; it does not define arbitrary nested object traversal or chained references.
 
-#### 7.1.3 Resolution and fallback
+#### 7.2.3 Resolution and fallback
 
 An unresolved placeholder contributes an empty string. If the complete expression produces no usable display text, the current viewer falls back to its normal title-generation behavior for that record type.
 
 Applications should provide a readable fallback when a configured key, reference or target field is missing. A missing display value must not cause the record itself or its original reference to be removed.
 
-#### 7.1.4 Use in links
+#### 7.2.4 Use in links
 
 When a viewer renders a link to an `Individual`, it should use the resolved `individual_display_field` value as the link text. For a link to a `Family`, it should use `family_display_field`. The same target-type rule applies to reverse-reference labels. A viewer may use its normal title-generation behavior when the corresponding property is absent or cannot produce text.
 
 The `@dictionary@` is not required to contain entries for these metadata properties or for the fields they select. The dictionary describes field labels, descriptions and grouping; display metadata selects values for presentation.
 
-#### 7.1.5 Preservation
+#### 7.2.5 Preservation
 
 Display metadata must never replace stored names with derived strings, rewrite relationship identifiers, or infer a name from a spouse or family context. Changing a display property changes presentation only.
 

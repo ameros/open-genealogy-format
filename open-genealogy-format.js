@@ -65,6 +65,46 @@ const mediaObjectUrls = new Map();
 const mediaFilesByPath = new Map();
 const mediaFilesByName = new Map();
 
+// Remote images use one provider-independent policy. Omit the page referrer
+// for privacy and to reduce host-side hotlink restrictions; use the service
+// worker cache where CORS permits, otherwise let the browser load the image.
+const REMOTE_MEDIA_CACHE_PATH = new URL("__ogf_media_cache__", document.baseURI).pathname;
+let remoteMediaCacheControllerReady = !!navigator.serviceWorker?.controller;
+if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
+  navigator.serviceWorker.register(new URL("media-cache-sw.js", document.baseURI), { scope: "./" })
+    .then(() => navigator.serviceWorker.ready)
+    .then(() => {
+      remoteMediaCacheControllerReady = !!navigator.serviceWorker.controller;
+    })
+    .catch(error => console.warn("Remote image caching is unavailable; images will load directly.", error));
+  navigator.serviceWorker?.addEventListener("controllerchange", () => {
+    remoteMediaCacheControllerReady = true;
+    if (state.selectedId) renderInspector();
+  });
+}
+
+function configureRemoteImageRequest(img, url) {
+  try {
+    const parsed = new URL(url, document.baseURI);
+    if (/^https?:$/.test(parsed.protocol) && parsed.origin !== location.origin) {
+      img.referrerPolicy = "no-referrer";
+    }
+  } catch (_) {
+    // Leave non-URL and local media untouched.
+  }
+}
+
+function getRemoteMediaDisplayUrl(url) {
+  try {
+    const parsed = new URL(url, document.baseURI);
+    if (!/^https?:$/.test(parsed.protocol) || parsed.origin === location.origin) return url;
+    if (!remoteMediaCacheControllerReady || !navigator.serviceWorker?.controller) return url;
+    return `${REMOTE_MEDIA_CACHE_PATH}?url=${encodeURIComponent(parsed.href)}`;
+  } catch (_) {
+    return url;
+  }
+}
+
 function normalizeMediaPath(value) {
   return String(value ?? "")
     .trim()
@@ -149,18 +189,28 @@ function isImageFileReference(value) {
 function createEmbeddedImage(value, altText = "", allowUnknownExtension = false) {
   const src = resolveImageReference(value, allowUnknownExtension);
   if (!src) return null;
+  const displaySrc = getRemoteMediaDisplayUrl(src);
   const link = document.createElement("a");
   link.className = "image-open-link";
-  link.href = src;
+  link.href = displaySrc;
   link.target = "_blank";
   link.rel = "noopener noreferrer";
   link.setAttribute("aria-label", `Open image: ${altText || "Attached image"}`);
   const img = document.createElement("img");
   img.className = "field-image-preview";
-  img.setAttribute("src", src);
+  configureRemoteImageRequest(img, src);
+  img.setAttribute("src", displaySrc);
   img.setAttribute("alt", altText || "Attached image");
   img.loading = "lazy";
-  img.addEventListener("error", () => link.remove(), { once: true });
+  img.addEventListener("error", () => {
+    if (displaySrc !== src && !img.dataset.directFallback) {
+      img.dataset.directFallback = "1";
+      link.href = src;
+      img.src = src;
+      return;
+    }
+    link.remove();
+  });
   link.appendChild(img);
   return link;
 }
@@ -287,7 +337,29 @@ function parseYamlStream(text) {
         const key = line.slice(0, kvIdx).trim();
         const rawVal = line.slice(kvIdx + 1).trim();
         currentKey = key;
-        if (rawVal === "") {
+        if (rawVal === "" && key === "tree_relationships") {
+          // Preserve the optional nested tree configuration as one metadata
+          // value. Other OGF record fields retain the existing flat parser.
+          const config = { family: { partner_fields: [], child_fields: [] } };
+          let inFamily = false, activeList = null;
+          let j = i + 1;
+          for (; j < lines.length; j++) {
+            const nestedLine = lines[j];
+            if (!nestedLine.trim()) continue;
+            const indent = (nestedLine.match(/^\s*/) || [""])[0].length;
+            if (indent <= (line.match(/^\s*/) || [""])[0].length) break;
+            const nested = nestedLine.trim();
+            let match;
+            if (indent === 2 && (match = nested.match(/^individual_type:\s*(.*?)\s*$/))) config.individual_type = unquote(match[1]);
+            else if (indent === 2 && (match = nested.match(/^family_type:\s*(.*?)\s*$/))) config.family_type = unquote(match[1]);
+            else if (indent === 2 && nested === "family:") { inFamily = true; activeList = null; }
+            else if (indent === 4 && inFamily && nested === "partner_fields:") activeList = config.family.partner_fields;
+            else if (indent === 4 && inFamily && nested === "child_fields:") activeList = config.family.child_fields;
+            else if (indent >= 6 && activeList && (match = nested.match(/^[-]\s*(.*?)\s*$/))) activeList.push(unquote(match[1]));
+          }
+          entries.push({ key, value: config, group: groupIndex });
+          i = j - 1;
+        } else if (rawVal === "") {
           entries.push({ key, value: [], group: groupIndex });
         } else {
           entries.push({ key, value: unquote(rawVal), group: groupIndex });
@@ -315,8 +387,19 @@ function serializeYamlStream(docs) {
       prevGroup = entry.group;
       if (Array.isArray(entry.value)) {
         out.push(entry.key + ":");
-        for (const item of entry.value) {
-          out.push("  - " + formatScalar(item));
+        for (const item of entry.value) out.push("  - " + formatScalar(item));
+      } else if (entry.key === "tree_relationships" && entry.value && typeof entry.value === "object") {
+        const cfg = entry.value;
+        out.push(entry.key + ":");
+        if (cfg.individual_type) out.push("  individual_type: " + formatScalar(cfg.individual_type));
+        if (cfg.family_type) out.push("  family_type: " + formatScalar(cfg.family_type));
+        if (cfg.family) {
+          out.push("  family:");
+          for (const listKey of ["partner_fields", "child_fields"]) {
+            if (!Array.isArray(cfg.family[listKey])) continue;
+            out.push("    " + listKey + ":");
+            for (const item of cfg.family[listKey]) out.push("      - " + formatScalar(item));
+          }
         }
       } else {
         out.push(entry.key + ": " + formatScalar(entry.value));
@@ -500,6 +583,7 @@ function rebuildFromEditor() {
 
     renderDirectory();
     renderInspector();
+    window.dispatchEvent(new Event("ogf:data-updated"));
   } catch (err) {
     status.textContent = "Error: " + err.message;
     status.style.color = "#f87171";
@@ -712,20 +796,28 @@ function renderInspectorDetailed() {
       portraitColumn.className = "card-portrait-column";
       const portraitLink = document.createElement("a");
       portraitLink.className = "image-open-link portrait-open-link";
-      portraitLink.href = portraitUrl;
+      const portraitDisplayUrl = getRemoteMediaDisplayUrl(portraitUrl);
+      portraitLink.href = portraitDisplayUrl;
       portraitLink.target = "_blank";
       portraitLink.rel = "noopener noreferrer";
       portraitLink.setAttribute("aria-label", `Open image: ${title}`);
       const portrait = document.createElement("img");
       portrait.className = "record-portrait";
-      portrait.setAttribute("src", portraitUrl);
+      configureRemoteImageRequest(portrait, portraitUrl);
+      portrait.setAttribute("src", portraitDisplayUrl);
       portrait.setAttribute("alt", title);
       portrait.loading = "eager";
       portrait.addEventListener("error", () => {
+        if (portraitDisplayUrl !== portraitUrl && !portrait.dataset.directFallback) {
+          portrait.dataset.directFallback = "1";
+          portraitLink.href = portraitUrl;
+          portrait.src = portraitUrl;
+          return;
+        }
         // A missing optional image must not add an error message to the card
         // or interfere with the record fields.
         portraitColumn.remove();
-      }, { once: true });
+      });
       portraitLink.appendChild(portrait);
       portraitColumn.appendChild(portraitLink);
       contentLayout.insertBefore(portraitColumn, fieldsEl);
@@ -1229,6 +1321,7 @@ function convertGedcomToOgf(gedText) {
         { key: "encoding", value: "UTF-8", group: 0 },
         { key: "individual_display_field", value: "name", group: 0 },
         { key: "family_display_field", value: "{$wife.name_givn} & {$husb.name}", group: 0 },
+        { key: "tree_relationships", value: { individual_type: "Individual", family_type: "Family", family: { partner_fields: ["husb", "wife"], child_fields: ["chil"] } }, group: 0 },
         { key: "date_approx", value: "About {date}", group: 1 },
         { key: "date_uncertain", value: "Possibly {date}", group: 1 },
         { key: "date_range", value: "Between {start} and {end}", group: 1 },
@@ -1548,7 +1641,7 @@ function addMetadataEditorRow(key = "", value = "") {
   keyInput.className = "meta-key"; keyInput.type = "text"; keyInput.value = key; keyInput.placeholder = "metadata_key";
   const valueInput = document.createElement("input");
   valueInput.className = "meta-value"; valueInput.type = "text";
-  valueInput.value = Array.isArray(value) ? value.join(", ") : String(value ?? ""); valueInput.placeholder = "Value";
+  valueInput.value = value && typeof value === "object" ? JSON.stringify(value) : (Array.isArray(value) ? value.join(", ") : String(value ?? "")); valueInput.placeholder = key === "tree_relationships" ? "JSON tree relationship configuration" : "Value";
   const remove = document.createElement("button");
   remove.type = "button"; remove.className = "icon-button delete-entry-btn"; remove.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>'; remove.title = "Remove metadata field"; remove.setAttribute("aria-label", "Remove metadata field");
   remove.addEventListener("click", () => row.remove());
@@ -1586,7 +1679,14 @@ document.getElementById("save-metadata-btn").addEventListener("click", () => {
     if (!key) return;
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key) || key === "id" || key === "type") { error = `Invalid metadata key: ${key}`; return; }
     if (keys.has(key)) { error = `Duplicate metadata key: ${key}`; return; }
-    keys.add(key); entries.push({ key, value, group: index + 1 });
+    keys.add(key);
+    let storedValue = value;
+    if (key === "tree_relationships") {
+      try { storedValue = JSON.parse(value); }
+      catch (_) { error = "tree_relationships must be valid JSON when edited here."; return; }
+      if (!storedValue || typeof storedValue !== "object" || Array.isArray(storedValue)) { error = "tree_relationships must be a JSON object."; return; }
+    }
+    entries.push({ key, value: storedValue, group: index + 1 });
   });
   if (error) { alert(error); return; }
   let metaDoc = state.docs.find(d => d.id === "@meta@" || d.type === "Meta");
@@ -1824,5 +1924,24 @@ document.getElementById("download-yaml-btn").addEventListener("click", () => {
   a.click();
 });
 
+// Narrow public bridge for the optional OGF tree module. The tree reads the
+// same in-memory records and delegates selection back to the existing card.
+window.OGFApp = {
+  getDocs: () => state.docs,
+  getMeta: () => state.meta,
+  getSelectedId: () => state.selectedId,
+  getRecordTitle: doc => getRecordTitle(doc, Object.fromEntries(state.docs.map(item => [item.id, item]))),
+  selectRecord: id => {
+    const doc = state.docs.find(item => item.id === id);
+    if (!doc) return;
+    state.selectedId = id;
+    state.editMode = false;
+    state.activeTab = doc.type || "All";
+    updateTabUI();
+    renderDirectory();
+    renderInspector();
+  }
+};
+
 // Samples are stored next to index.html and loaded on startup.
-loadSample("en");
+loadSample("en-gedcom");
