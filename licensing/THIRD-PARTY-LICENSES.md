@@ -27,3 +27,7 @@ upstream copyright and license terms continue to apply.
 
 The licenses of these dependencies do not grant commercial-use permission
 for the OGF application as a whole. They apply to their respective components.
+
+See the [licensing overview](README.md) for how these notices relate to the OGF licenses.
+
+Related: [Licensing overview](README.md)

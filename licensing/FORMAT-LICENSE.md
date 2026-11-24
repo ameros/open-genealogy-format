@@ -25,7 +25,7 @@ data files unless those materials are expressly identified as covered.
 
 Software implementations and source code in this repository are
 separately licensed under the PolyForm Noncommercial License 1.0.0.
-See the repository's LICENSE file.
+See the repository's [software license](../LICENSE).
 
 Important scope note:
 CC BY-NC 4.0 restricts use for purposes that are primarily intended
@@ -35,3 +35,5 @@ every circumstance. If the intent is to prohibit all internal use
 by commercial companies, including activity that might otherwise be
 characterized as non-commercial, obtain legal advice and use
 separately drafted terms for that restriction.
+
+Related: [Licensing overview](README.md) · [Software license](../LICENSE)

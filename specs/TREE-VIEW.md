@@ -1,9 +1,9 @@
-# OGF Tree View (prototype)
+# Tree view
 
-The tree view is an optional view over the existing OGF records. It does not
-create, rewrite, or infer genealogy facts. The Family records are the source of
-relationship topology; reverse references on Individual records are not used
-by this prototype.
+The tree is an optional view of existing OGF records. It does not create or
+change genealogy facts. Family records define the relationships used by this
+viewer; Individual-side reverse references are not used. The shared metadata
+rules are defined in [the specification](SPECIFICATION.md).
 
 ## Relationship configuration
 
@@ -48,7 +48,7 @@ gender_mapping:
 
 The tree calls the same shared interpretation rule available to other
 renderers. It uses exact value matching; absent or unrecognized values use the
-neutral unknown style. See [SPECIFICATION.md](SPECIFICATION.md#72-shared-gender-mapping).
+neutral unknown style. See [the shared gender mapping rules](SPECIFICATION.md#72-shared-gender-mapping).
 
 The renderer uses the same core mechanism as `gedcom-svg-tree`:
 
@@ -81,3 +81,5 @@ order, configured field order, and YAML list order; names and IDs are not
 alphabetically sorted. The existing OGF record card remains the editor for the
 selected node. Mobile uses the same graph and selection logic with a responsive
 layout.
+
+Related: [OGF specification](SPECIFICATION.md) · [Project overview](../README.md)

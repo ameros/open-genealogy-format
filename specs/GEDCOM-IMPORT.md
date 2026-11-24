@@ -5,11 +5,9 @@
 
 ## 1. Purpose
 
-This document defines how GEDCOM data is imported into OGF.
-
-The importer must prioritize preservation of source data and references.
-
-The importer performs structural transformation, not genealogical interpretation.
+This document defines the GEDCOM 5.5.1 to OGF import rules. It supplements
+[the OGF specification](SPECIFICATION.md). Import changes structure, not
+genealogical meaning.
 
 ## 2. Strict transformation policy
 
@@ -476,58 +474,10 @@ Only field order and blank-line placement may change.
 
 The resulting YAML must preserve the selected grouping when exported.
 
-## 14. Import validation checklist
-
-An importer implementation should verify the following:
-
-### Records and identifiers
-
-- [ ] Every imported Individual has its original GEDCOM identifier.
-- [ ] Every imported Family has its original GEDCOM identifier.
-- [ ] Every imported Source has its original GEDCOM identifier.
-- [ ] No identifiers have been stripped, rewritten or renumbered.
-
-### Relationships
-
-- [ ] Family-side references are preserved.
-- [ ] FAMS is removed only when a matching HUSB or WIFE link exists.
-- [ ] FAMC is removed only when a matching CHIL link exists.
-- [ ] Nested FAMC/FAMS data is retained.
-- [ ] Unresolved references remain visible.
-
-### Fields and values
-
-- [ ] Nested tags are flattened correctly.
-- [ ] Structural parents with children do not create empty fields.
-- [ ] Empty leaf values are preserved.
-- [ ] Repeated tags do not overwrite one another.
-- [ ] Only top-level Individual NAME values have GEDCOM slash delimiters removed.
-- [ ] Unknown tags are retained.
-
-### Dates
-
-- [ ] GEDCOM date expressions are preserved exactly.
-- [ ] No automatic EDTF conversion occurs.
-- [ ] Unknown date expressions are retained.
-
-### Sources and media
-
-- [ ] SOUR records become Source cards.
-- [ ] Source references are preserved.
-- [ ] Inline OBJE data is retained.
-- [ ] Standalone OBJE references can be resolved for display.
-- [ ] Media paths are not incorrectly treated as public URLs.
-
-### Dictionary
-
-- [ ] The dictionary includes actual imported keys.
-- [ ] Structural keys are excluded.
-- [ ] Repeated-field suffixes are represented.
-- [ ] Unknown fields do not receive invented descriptions.
-- [ ] Dictionary and record keys remain synchronized.
-
-## 15. Final rule
+## Final rule
 
 **Import is a transformation of structure, not an interpretation of genealogy.**
 
 When a value, relationship, date or reference cannot be interpreted safely, preserve it rather than guessing.
+
+Related: [OGF specification](SPECIFICATION.md) · [Project overview](../README.md)

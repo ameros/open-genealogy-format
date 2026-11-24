@@ -1,6 +1,8 @@
-# OGF name display rules
+# Name display
 
-Name display is presentation-only. It does not rewrite, normalize, infer, or delete a person's recorded names.
+This guide describes the viewer's name-selection settings. Name display is
+presentation-only: it does not rewrite, infer or delete recorded names. The
+format-level rules are in [the OGF specification](SPECIFICATION.md#13-name-variants-and-contextual-display).
 
 ## Individual name variants
 
@@ -21,7 +23,7 @@ The field names are examples; values are always taken literally from the record.
 
 ## Global rules in `@meta@`
 
-The viewer supports these flat metadata keys (the current OGF stream parser stores metadata as flat key/value entries):
+The viewer supports these metadata keys:
 
 - `display_individual_default_name_field`: final configured fallback, normally `name`.
 - `display_individual_card_name_field`: name field for an Individual card heading.
@@ -49,3 +51,5 @@ These selectors affect the spouse names used in that Family's title and the corr
 ## Indicators
 
 For a selected field, the viewer looks for a matching type key such as `name_birth_type`; for the base `name` field it uses `name_type`. If no explicit type value exists, a non-default selected field is shown as the indicator. Indicators explain which stored value was selected; they do not assert any genealogical interpretation beyond the source data.
+
+Related: [OGF specification](SPECIFICATION.md) · [Project overview](../README.md)

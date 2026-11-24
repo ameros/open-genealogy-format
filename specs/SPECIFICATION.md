@@ -336,7 +336,8 @@ tree:
 A viewer must not infer relationships from field names or reverse references
 when no mapping is supplied. It must preserve the underlying record values and
 references. Unresolved references may be reported by the viewer, but must not
-be guessed or silently replaced.
+be guessed or silently replaced. See [TREE-VIEW.md](TREE-VIEW.md) for the current
+viewer behavior.
 
 ### 7.4 Contextual display metadata
 
@@ -613,13 +614,11 @@ The selected display value is a presentation result. It must not overwrite the o
 
 ## 14. Import and interoperability
 
-GEDCOM import behavior is defined in the companion document:
+The importer must preserve original identifiers, source values, references
+and unknown fields to the extent supported by the parser. It must not infer
+missing facts or silently normalize source data.
 
-`gedcom-import-rules.md`
-
-The importer must preserve original identifiers, source values, references and unknown fields to the extent supported by the parser.
-
-The importer must not infer missing facts or silently normalize source data.
+See [GEDCOM-IMPORT.md](GEDCOM-IMPORT.md) for the detailed GEDCOM 5.5.1 rules.
 
 ## 15. Conformance principle
 
