@@ -1,13 +1,18 @@
 # Open Genealogy Format — Specification
 
 **Status:** Revised draft  
-**Version:** Not yet assigned
+**Version:** 0.1.0-draft
 
 ## 1. Purpose
 
 Open Genealogy Format (OGF) is a flat, human-readable, self-describing format for genealogical data.
 
 It uses YAML multi-document streams to store records, references, metadata and field descriptions.
+
+The specification version identifies this document revision. It is independent of
+`@meta@.version`, which identifies the metadata contract used by an OGF data file.
+Changing this document does not automatically require a metadata contract version
+change; that version changes only when the metadata contract requires it.
 
 OGF separates:
 
@@ -606,7 +611,7 @@ OGF must preserve all stored name values.
 
 The format does not assume that a person's surname changes as a result of marriage.
 
-Applications may use the optional `individual_display_field` and `family_display_field` properties in `@meta@` to select display values for Individual and Family records. These properties are defined in section 7.1.
+Applications may use the optional `individual_display_field` and `family_display_field` properties in `@meta@` to select display values for Individual and Family records. These properties are defined in section 7.4.
 
 Applications must not infer a name variant from a spouse or family relationship.
 

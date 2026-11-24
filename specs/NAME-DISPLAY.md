@@ -1,55 +1,61 @@
 # Name display
 
-This guide describes the viewer's name-selection settings. Name display is
-presentation-only: it does not rewrite, infer or delete recorded names. The
-format-level rules are in [the OGF specification](SPECIFICATION.md#13-name-variants-and-contextual-display).
+This guide describes how the OGF viewer selects names for record titles and
+reference links. Name display is presentation-only: it does not rewrite, infer
+or delete recorded names. The format-level rules are in
+[the OGF specification](SPECIFICATION.md#13-name-variants-and-contextual-display).
 
 ## Individual name variants
 
-Store every known variant as its own field on the Individual record. For example:
+Store each known name variant in its own field on the Individual record. For
+example:
 
 ```yaml
 name: Alex Married
-name_type: married
 name_birth: Alex Birth
-name_birth_type: birth
 name_adopted: Alex Adopted
-name_adopted_type: adopted
 name_married_2: Alex Later Married
-name_married_2_type: married
 ```
 
-The field names are examples; values are always taken literally from the record. The viewer does not infer a married surname from a spouse.
+These field names are examples, not reserved OGF fields. The viewer does not
+infer a married or adopted name from a spouse, a relationship, or another name
+field. It displays the value selected by the metadata configuration.
 
 ## Global rules in `@meta@`
 
-The viewer supports these metadata keys:
+Use `individual_display_field` to select the title for an Individual record and
+`family_display_field` to select the title for a Family record. The same
+resolved values are used as link text when another record refers to that
+Individual or Family.
 
-- `display_individual_default_name_field`: final configured fallback, normally `name`.
-- `display_individual_card_name_field`: name field for an Individual card heading.
-- `display_individual_directory_name_field`: name field in the directory list and sorting.
-- `display_individual_reference_name_field`: name field in ordinary `@id@` reference links.
-- `display_family_card_title_template`: Family card title; supports `{husb}`, `{wife}`, `{husb_id}`, `{wife_id}`, `{id}`.
-- `display_family_reference_title_template`: Family reference title; same placeholders.
-- `display_name_indicators`: `true`/`false`; show a small indicator for the selected name type/variant.
-
-If a configured name field is absent or empty, the viewer falls back to `display_individual_default_name_field`, then `name`, then the existing given-name/surname fields. It never synthesizes a surname from a spouse.
-
-## Per-family spouse selection
-
-A Family record may explicitly select a name field for either spouse:
+A setting may contain a field key:
 
 ```yaml
-husb: "@I-X@"
-husb_name_field: name_birth
-wife: "@I-Y@"
-wife_name_field: name_married_2
+individual_display_field: name_birth
 ```
 
-These selectors affect the spouse names used in that Family's title and the corresponding `husb`/`wife` reference pills on that Family card. They do not change the Individual's own card, directory name, or unrelated references. If omitted or if the selected field is empty, the configured Individual reference name rule is used.
+Or a template. `{field_key}` reads a field from the current record;
+`{$reference_key.field_key}` follows a record reference and reads a field from
+the referenced record:
 
-## Indicators
+```yaml
+individual_display_field: "{given_name} {family_name}"
+family_display_field: "{$wife.name} & {$husb.name}"
+```
 
-For a selected field, the viewer looks for a matching type key such as `name_birth_type`; for the base `name` field it uses `name_type`. If no explicit type value exists, a non-default selected field is shown as the indicator. Indicators explain which stored value was selected; they do not assert any genealogical interpretation beyond the source data.
+Template values should be quoted in YAML. Reference placeholders require a
+single identifier in the referenced field and an existing target record. An
+unresolved placeholder contributes an empty string. If the configured value
+produces no usable title, the viewer uses its normal title-generation fallback.
+
+These settings belong to the shared `@meta@` document. They are not
+name-specific display flags and do not alter the source record.
+
+## Preservation
+
+The viewer preserves every stored name variant and the original relationship
+identifiers. It does not create a name variant, choose a spouse's surname, or
+rewrite a name because of marriage or adoption. Changing display metadata
+changes presentation only.
 
 Related: [OGF specification](SPECIFICATION.md) · [Project overview](../README.md)
