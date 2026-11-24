@@ -229,6 +229,31 @@ function unquote(val) {
   return s;
 }
 
+// Optional selectable values use a plain dictionary companion key:
+// sex_values: "M=Male | F=Female | U=Unknown".
+// Codes remain the stored values; labels are presentation only.
+function parseDictionaryValues(raw) {
+  const values = {};
+  for (const part of String(raw ?? "").split("|")) {
+    const separator = part.indexOf("=");
+    if (separator < 0) continue;
+    const code = part.slice(0, separator).trim();
+    const label = part.slice(separator + 1).trim();
+    if (code) values[code] = label || code;
+  }
+  return values;
+}
+
+function formatDictionaryValues(values) {
+  return Object.entries(values).map(([code, label]) => `${code}=${label}`).join(" | ");
+}
+
+function dictionaryValueLabel(key, value) {
+  const choices = state.dict[key] && state.dict[key].values;
+  const code = String(value ?? "");
+  return choices && Object.prototype.hasOwnProperty.call(choices, code) ? choices[code] : code;
+}
+
 function parseYamlStream(text) {
   const chunks = text.split(/^---\s*$/gm);
   const docs = [];
@@ -449,14 +474,20 @@ function rebuildFromEditor() {
       if (d.id === "@meta@" || d.type === "Meta") {
         state.meta = d.map;
       } else if (d.id === "@dictionary@" || d.type === "Dictionary") {
+        const dictionaryEntries = new Map(d.entries.map(entry => [entry.key, entry]));
         for (const e of d.entries) {
           if (e.key === "id" || e.key === "type") continue;
+          const companionBase = e.key.endsWith("_values") ? e.key.slice(0, -7) : "";
+          // A *_values entry is metadata for its base field, not a field itself.
+          if (companionBase && dictionaryEntries.has(companionBase)) continue;
           const raw = String(e.value || "");
           const parts = raw.split(/\s+[—-]\s+/);
+          const valuesEntry = dictionaryEntries.get(e.key + "_values");
           state.dict[e.key] = {
             label: parts.length > 1 ? parts[0].trim() : (raw || formatKeyLabel(e.key)),
             desc: parts.length > 1 ? parts.slice(1).join(" - ").trim() : "",
-            group: e.group
+            group: e.group,
+            values: valuesEntry ? parseDictionaryValues(valuesEntry.value) : null
           };
         }
       }
@@ -757,7 +788,7 @@ function renderInspectorDetailed() {
 
       for (const v of values) {
         const valueSpan = document.createElement("span");
-        appendLinkedText(valueSpan, v, docMap);
+        appendLinkedText(valueSpan, dictionaryValueLabel(entry.key, v), docMap);
         valDiv.appendChild(valueSpan);
 
         // Embed image files directly beneath their GEDCOM/OGF field value.
@@ -917,7 +948,7 @@ function renderInspector() {
       const values = Array.isArray(entry.value) ? entry.value : [entry.value];
       for (const item of values) {
         const span = document.createElement("span");
-        span.textContent = String(item ?? "");
+        span.textContent = dictionaryValueLabel(entry.key, item);
         value.appendChild(span);
       }
 
@@ -981,11 +1012,37 @@ function renderEditorCard(container, doc) {
     }
     keySelect.value = key;
 
-    const valueInput = document.createElement("input");
-    valueInput.type = "text";
-    valueInput.className = "eval";
-    valueInput.value = Array.isArray(value) ? value.join(", ") : String(value ?? "");
-    valueInput.placeholder = "Value or @id@ (comma-separated for list)";
+    const initialValue = Array.isArray(value) ? value.join(", ") : String(value ?? "");
+    function makeValueControl(fieldKey, currentValue) {
+      const choices = state.dict[fieldKey] && state.dict[fieldKey].values;
+      if (choices && !Array.isArray(value)) {
+        const select = document.createElement("select");
+        select.className = "eval";
+        select.appendChild(new Option("Select a value…", ""));
+        for (const [code, label] of Object.entries(choices)) {
+          select.appendChild(new Option(`${label} (${code})`, code));
+        }
+        // Keep an imported or manually entered code even if it is not listed.
+        if (currentValue && !Object.prototype.hasOwnProperty.call(choices, currentValue)) {
+          select.appendChild(new Option(`${currentValue} (not listed)`, currentValue));
+        }
+        select.value = currentValue;
+        return select;
+      }
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "eval";
+      input.value = currentValue;
+      input.placeholder = "Value or @id@ (comma-separated for list)";
+      return input;
+    }
+    let valueInput = makeValueControl(key, initialValue);
+    keySelect.addEventListener("change", () => {
+      const currentValue = row.querySelector(".eval").value;
+      const nextControl = makeValueControl(keySelect.value, currentValue);
+      row.querySelector(".eval").replaceWith(nextControl);
+      valueInput = nextControl;
+    });
 
     const removeButton = document.createElement("button");
     removeButton.type = "button";
@@ -1170,6 +1227,8 @@ function convertGedcomToOgf(gedText) {
         { key: "type", value: "Meta", group: 0 },
         { key: "language", value: "en", group: 0 },
         { key: "encoding", value: "UTF-8", group: 0 },
+        { key: "individual_display_field", value: "name", group: 0 },
+        { key: "family_display_field", value: "{$wife.name_givn} & {$husb.name}", group: 0 },
         { key: "date_approx", value: "About {date}", group: 1 },
         { key: "date_uncertain", value: "Possibly {date}", group: 1 },
         { key: "date_range", value: "Between {start} and {end}", group: 1 },
@@ -1295,6 +1354,9 @@ function convertGedcomToOgf(gedText) {
   for (const key of [...importedKeys.keys()].sort()) {
     const label = curatedLabels[key] || key.replace(/_\d+$/, "").replace(/^_+/, "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
     dictionaryEntries.push({ key, value: label, group: importedKeys.get(key) });
+    if (key === "sex") {
+      dictionaryEntries.push({ key: "sex_values", value: "M=Male | F=Female | U=Unknown", group: importedKeys.get(key) });
+    }
   }
   outDocs.splice(1, 0, {
     id: "@dictionary@",
@@ -1376,13 +1438,14 @@ document.getElementById("apply-replacer-btn").addEventListener("click", () => {
 const dictionaryModal = document.getElementById("dictionary-modal");
 const dictionaryRowsEl = document.getElementById("dictionary-rows");
 
-function addDictionaryEditorRow(key = "", label = "", desc = "", group = 1) {
+function addDictionaryEditorRow(key = "", label = "", desc = "", group = 1, choices = "") {
   const row = document.createElement("div");
   row.className = "dictionary-row";
   row.innerHTML = `
     <input class="dict-key" type="text" value="${escapeHtml(key)}" placeholder="custom_field">
     <input class="dict-label" type="text" value="${escapeHtml(label)}" placeholder="Field label">
     <input class="dict-desc" type="text" value="${escapeHtml(desc)}" placeholder="Optional description">
+    <input class="dict-choices" type="text" value="${escapeHtml(choices)}" placeholder="M=Male | F=Female" title="Optional code=label choices, separated by |">
     <input class="dict-group" type="number" min="1" step="1" value="${Number(group) || 1}" title="Display group">
     <button type="button" class="icon-button delete-entry-btn" title="Remove dictionary entry" aria-label="Remove dictionary entry"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
   `;
@@ -1394,12 +1457,17 @@ function openDictionaryEditor() {
   dictionaryRowsEl.innerHTML = "";
   const dictionaryDoc = state.docs.find(d => d.id === "@dictionary@" || d.type === "Dictionary");
   if (dictionaryDoc) {
+    const entriesByKey = new Map(dictionaryDoc.entries.map(entry => [entry.key, entry]));
     for (const entry of dictionaryDoc.entries) {
       if (entry.key === "id" || entry.key === "type") continue;
+      const baseKey = entry.key.endsWith("_values") ? entry.key.slice(0, -7) : "";
+      if (baseKey && entriesByKey.has(baseKey)) continue;
       const raw = String(entry.value ?? "");
       const parts = raw.split(/\s+[—-]\s+/);
+      const choicesEntry = entriesByKey.get(entry.key + "_values");
       addDictionaryEditorRow(entry.key, parts.length > 1 ? parts[0].trim() : raw,
-        parts.length > 1 ? parts.slice(1).join(" - ").trim() : "", entry.group);
+        parts.length > 1 ? parts.slice(1).join(" - ").trim() : "", entry.group,
+        choicesEntry ? String(choicesEntry.value ?? "") : "");
     }
   }
   dictionaryModal.classList.add("open");
@@ -1421,6 +1489,7 @@ document.getElementById("save-dictionary-btn").addEventListener("click", () => {
     const key = row.querySelector(".dict-key").value.trim();
     const label = row.querySelector(".dict-label").value.trim();
     const desc = row.querySelector(".dict-desc").value.trim();
+    const choicesRaw = row.querySelector(".dict-choices").value.trim();
     const group = Math.max(1, Number(row.querySelector(".dict-group").value) || 1);
     if (!key) return;
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key) || key === "id" || key === "type") {
@@ -1433,6 +1502,25 @@ document.getElementById("save-dictionary-btn").addEventListener("click", () => {
     }
     keys.add(key);
     entries.push({ key, value: label + (desc ? " — " + desc : ""), group });
+    if (choicesRaw) {
+      const parsed = parseDictionaryValues(choicesRaw);
+      const choiceParts = choicesRaw.split("|").map(part => part.trim()).filter(Boolean);
+      if (!choiceParts.length || choiceParts.some(part => !part.includes("=") || !part.slice(0, part.indexOf("=")).trim())) {
+        error = `Invalid choices for ${key}. Use code=label pairs separated by |.`;
+        return;
+      }
+      if (Object.keys(parsed).length !== choiceParts.length) {
+        error = `Duplicate or invalid choice code for ${key}.`;
+        return;
+      }
+      const valuesKey = key + "_values";
+      if (keys.has(valuesKey)) {
+        error = `Dictionary key conflict: ${valuesKey} is reserved for choices for ${key}.`;
+        return;
+      }
+      keys.add(valuesKey);
+      entries.push({ key: valuesKey, value: formatDictionaryValues(parsed), group });
+    }
   });
   if (error) {
     alert(error);
@@ -1470,7 +1558,15 @@ function openMetadataEditor() {
   metadataRowsEl.innerHTML = "";
   const metaDoc = state.docs.find(d => d.id === "@meta@" || d.type === "Meta");
   const entries = metaDoc ? metaDoc.entries : [
-    { key: "language", value: "en" }, { key: "encoding", value: "UTF-8" }
+    { key: "language", value: "en" },
+    { key: "encoding", value: "UTF-8" },
+    { key: "individual_display_field", value: "name" },
+    { key: "family_display_field", value: "{$wife.name_givn} & {$husb.name}" },
+    { key: "date_approx", value: "About {date}" },
+    { key: "date_uncertain", value: "Possibly {date}" },
+    { key: "date_range", value: "Between {start} and {end}" },
+    { key: "date_before", value: "On or before {date}" },
+    { key: "date_after", value: "On or after {date}" }
   ];
   for (const entry of entries) if (entry.key !== "id" && entry.key !== "type") addMetadataEditorRow(entry.key, entry.value);
   metadataModal.classList.add("open");

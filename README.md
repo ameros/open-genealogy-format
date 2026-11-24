@@ -39,6 +39,13 @@ id: "@meta@"
 type: Meta
 language: en
 encoding: UTF-8
+individual_display_field: name
+family_display_field: "{$wife.name_givn} & {$husb.name}"
+date_approx: "About {date}"
+date_uncertain: "Possibly {date}"
+date_range: "Between {start} and {end}"
+date_before: "On or before {date}"
+date_after: "On or after {date}"
 ---
 id: "@dictionary@"
 type: Dictionary

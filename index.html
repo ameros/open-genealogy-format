@@ -23,9 +23,10 @@
 .media-load-hint { margin:0 0 12px; color:var(--muted); font-size:12px; }
 .map-link { display:inline-block; margin:6px 0 2px; padding:5px 8px; border:1px solid var(--border); border-radius:6px; font-weight:600; }
 .map-link-wrap { display:block; }
-.dictionary-grid { display:grid; grid-template-columns:1.1fr 1fr 1.5fr 70px 28px; gap:8px; align-items:center; }
-.dictionary-row { display:grid; grid-template-columns:1.1fr 1fr 1.5fr 70px 28px; gap:8px; align-items:center; }
+.dictionary-grid { display:grid; grid-template-columns:1fr .9fr 1.1fr 1.5fr 58px 28px; gap:8px; align-items:center; }
+.dictionary-row { display:grid; grid-template-columns:1fr .9fr 1.1fr 1.5fr 58px 28px; gap:8px; align-items:center; }
 .dictionary-row input { min-width:0; width:100%; box-sizing:border-box; }
+@media (max-width:760px) { .dictionary-grid { display:none; } .dictionary-row { grid-template-columns:1fr 1fr; } .dictionary-row .dict-desc, .dictionary-row .dict-choices { grid-column:1 / -1; } .dictionary-row .dict-group { max-width:100px; } }
 /* Keep layout-editing controls out of the way until the user points at a group/field. */
 .field-group { position:relative; margin-bottom:20px; }
 .field-group:last-child { margin-bottom:0; }
@@ -213,10 +214,10 @@
     </div>
     <div class="modal-body">
       <p style="font-size:13px; color:var(--muted)">
-        Define available fields here first. Existing record data is retained if a dictionary entry is removed.
+        Define available fields here first. Optional choices use code=label pairs separated by | (for example M=Male | F=Female). The viewer shows a dropdown and friendly labels; records continue to store the original codes. Unlisted values are preserved.
       </p>
       <div class="dictionary-grid" style="font-weight:600; color:var(--muted); border-bottom:1px solid var(--border); padding-bottom:6px;">
-        <span>Key</span><span>Label</span><span>Description</span><span>Group</span><span></span>
+        <span>Key</span><span>Label</span><span>Description</span><span>Choices (code=label)</span><span>Group</span><span></span>
       </div>
       <div id="dictionary-rows" style="display:flex; flex-direction:column; gap:8px;"></div>
       <button id="add-dictionary-row-btn" type="button" class="secondary"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add Dictionary Entry</button>

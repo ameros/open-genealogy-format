@@ -5,7 +5,6 @@ language: en
 encoding: UTF-8
 individual_display_field: full_name
 family_display_field: "{$wife_id.full_name} & {$husband_id.full_name}"
-
 date_approx: "About {date}"
 date_uncertain: "Possibly {date}"
 date_range: "Between {start} and {end}"
@@ -20,6 +19,7 @@ given_name: Given Name
 middle_name: Middle Name
 family_name: Family Name
 gender: Gender
+gender_values: "male=Male | female=Female | nonbinary=Non-binary | unknown=Unknown"
 
 birth_date: Birth Date
 birth_place: Birth Place
@@ -32,6 +32,8 @@ wife_id: Wife
 child_id: Child
 marriage_date: Marriage Date
 marriage_place: Marriage Place
+div: Divorce
+div_values: "Y=Yes | N=No"
 
 source_id: Source
 note: Note

@@ -5,7 +5,6 @@ language: en
 encoding: UTF-8
 individual_display_field: name
 family_display_field: "{$wife.name_givn} & {$husb.name}"
-
 date_approx: "About {date}"
 date_uncertain: "Possibly {date}"
 date_range: "Between {start} and {end}"
@@ -89,6 +88,7 @@ occu: Occupation
 refn: Reference
 
 sex: Sex
+sex_values: "M=Male | F=Female | U=Unknown"
 
 text: Text
 text_cont: Text Continuation
@@ -760,7 +760,7 @@ buri_plac: Chewalla Baptist, Marshall Co., MS
 refn: Clinton-34
 
 note: The earliest record of Moses Baum is in Rutherford
-note_cont: "County, Tennessee in 1827: indictments for \\"riot\\" were"
+note_cont: 'County, Tennessee in 1827: indictments for "riot" were'
 note_cont_2: found against Samuel Green, Samuel Wilson, Moses Baum
 note_cont_3: and Thomas Baum who were fined $10 apiece.
 ---
@@ -18350,7 +18350,7 @@ obje_file: https://upload.wikimedia.org/wikipedia/commons/d/d5/JFK_inaugural_add
 obje_file_form: ogg
 obje_file_form_type: audio
 
-text: Quote:
+text: "Quote:"
 text_cont: "And so, my fellow Americans: ask not what your country can do for you--ask what you can do for your country."
 
 www: https://en.wikipedia.org/wiki/File:JFK_inaugural_address.ogg

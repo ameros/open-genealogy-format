@@ -5,7 +5,6 @@ language: pl
 encoding: UTF-8
 individual_display_field: "{imie} {drugie_imie} {nazwisko}"
 family_display_field: "{$zona_id.imie} {$zona_id.nazwisko} & {$maz_id.imie} {$maz_id.nazwisko}"
-
 date_approx: "Około {date}"
 date_uncertain: "Prawdopodobnie {date}"
 date_range: "Między {start} a {end}"
@@ -19,6 +18,7 @@ imie: Imię
 drugie_imie: Drugie imię
 nazwisko: Nazwisko
 plec: Płeć
+plec_values: "M=Mężczyzna | F=Kobieta | U=Nieznana"
 
 urodzenie_data: Data urodzenia
 urodzenie_miejsce: Miejsce urodzenia

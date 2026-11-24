@@ -217,11 +217,32 @@ id: "@meta@"
 type: Meta
 language: en
 encoding: UTF-8
+individual_display_field: name
+family_display_field: "{$wife.name_givn} & {$husb.name}"
+date_approx: "About {date}"
+date_uncertain: "Possibly {date}"
+date_range: "Between {start} and {end}"
+date_before: "On or before {date}"
+date_after: "On or after {date}"
 ```
 
 The `language` field identifies the primary language used for presentation.
 
-Additional metadata may define localized date descriptions or display settings.
+The viewer's standard metadata defaults are:
+
+| Property | Default example | Purpose |
+|---|---|---|
+| `language` | `en` | Primary presentation language |
+| `encoding` | `UTF-8` | Text encoding declaration |
+| `individual_display_field` | `name` | Individual card and link title |
+| `family_display_field` | `{$wife.name_givn} & {$husb.name}` | Family card and link title |
+| `date_approx` | `About {date}` | Approximate-date description |
+| `date_uncertain` | `Possibly {date}` | Uncertain-date description |
+| `date_range` | `Between {start} and {end}` | Date-range description |
+| `date_before` | `On or before {date}` | Open-ended date ending |
+| `date_after` | `On or after {date}` | Open-ended date beginning |
+
+These are optional conventions, not mandatory schema properties. Applications may use built-in defaults when a property is absent. Samples should include the complete set so that their intended display behavior is explicit. Localized samples may translate the date-description templates and use display fields appropriate to their own dictionary keys.
 
 Metadata must not be used to rewrite record values.
 
