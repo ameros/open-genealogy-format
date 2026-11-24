@@ -29,6 +29,15 @@
   if (!pane || !canvas || !svgElement || !status) return;
 
   const svg = d3.select(svgElement);
+  // Unknown gender uses the reverse of the blue-to-pink background blend:
+  // pink on the left, blue on the right.
+  const defs = svg.append('defs');
+  const unknownGenderGradient = defs.append('linearGradient')
+    .attr('id', 'ogf-unknown-gender-gradient')
+    .attr('x1', '0%').attr('y1', '0%')
+    .attr('x2', '100%').attr('y2', '0%');
+  unknownGenderGradient.append('stop').attr('offset', '0%').attr('stop-color', 'hsl(348, 100%, 83%)');
+  unknownGenderGradient.append('stop').attr('offset', '100%').attr('stop-color', 'hsl(205, 100%, 80%)');
   const inner = svg.append('g').attr('class', 'ogf-tree-inner');
   const graphRenderer = new dagreD3.render();
   let graph = null;
@@ -252,57 +261,126 @@
     return lines.length ? lines : [''];
   }
 
-  function makeNodeLabel(record, adapter) {
-    const title = getRecordTitle(record, adapter);
-    if (record.type === adapter.config.familyType) {
-      const family = adapter.families.find(item => item.id === record.id);
-      const partners = (family?.partnerIds || []).map(id => {
-        const partner = adapter.records.get(id);
-        return partner ? getRecordTitle(partner, adapter) : id;
-      });
-      const names = partners.slice(0, 2).map(name => wrapSvgLabel(name, 10)).flat();
-      if (partners.length > 2) names.push(`+${partners.length - 2}`);
-      return { family: true, titleLines: names.length ? names.slice(0, 4) : ['Family'], detailLines: [] };
+  function firstField(map, keys) {
+    for (const key of keys) {
+      const value = map?.[key];
+      if (Array.isArray(value)) { const found=value.map(item=>String(item??'').trim()).find(Boolean); if(found)return found; }
+      else if(value!==undefined && value!==null && String(value).trim()) return String(value).trim();
     }
-    const map = record.map || {};
-    const birthDate = map.birt_date || map.birth_date || map.birthdate || '';
-    const deathDate = map.deat_date || map.death_date || map.deathdate || '';
-    const birthPlace = map.birt_plac || map.birt_place || map.birth_place || '';
-    const dates = [birthDate ? `b. ${birthDate}` : '', deathDate ? `d. ${deathDate}` : ''].filter(Boolean).join(' · ');
-    const detail = [dates, birthPlace].filter(Boolean).join(' · ');
-    const titleLines = wrapSvgLabel(title, 25);
-    const detailLines = detail ? wrapSvgLabel(detail, 34) : [];
-    return { family: false, titleLines, detailLines };
+    return '';
   }
 
-  function appendSvgNodeLabel(nodeSelection, label) {
-    // Native SVG text is positioned in the same node-local coordinate system
-    // as the shape. This avoids foreignObject sizing/offset differences.
+  function makeNodeLabel(record, adapter) {
+    const title=getRecordTitle(record,adapter), map=record.map||{};
+    if(record.type===adapter.config.familyType){
+      // The Family title is resolved from @meta@ family_display_field.
+      // Do not reconstruct partner names or inject a separator in the renderer.
+      const configuredTitle=String(title||'Family').trim();
+      const titleLines=[];
+      if(configuredTitle.includes('&')){
+        const parts=configuredTitle.split('&');
+        parts.forEach((part,index)=>{
+          titleLines.push(...wrapSvgLabel(part.trim(),20));
+          if(index<parts.length-1)titleLines.push('&');
+        });
+      } else {
+        titleLines.push(...wrapSvgLabel(configuredTitle,20));
+      }
+      const marriageDate=firstField(map,['marr_date','marriage_date']);
+      const marriagePlace=firstField(map,['marr_plac','marr_place','marriage_place']);
+      const divorce=firstField(map,['div_date','divorce_date','div']);
+      const detailLines=[];
+      if(marriageDate||marriagePlace)detailLines.push({icon:'⚭',kind:'marriage',text:[marriageDate,marriagePlace].filter(Boolean).join(', ')});
+      if(divorce && !/^n$/i.test(divorce))detailLines.push({icon:'⚮',kind:'divorce',text:divorce==='Y'?'':divorce});
+      return {family:true,titleLines,detailLines};
+    }
+    const birthDate=firstField(map,['birt_date','birth_date','birthdate']);
+    const deathDate=firstField(map,['deat_date','death_date','deathdate']);
+    const birthPlace=firstField(map,['birt_plac','birt_place','birth_place']);
+    const deathPlace=firstField(map,['deat_plac','deat_place','death_place']);
+    const burialPlace=firstField(map,['buri_plac','buri_place','burial_place','bur_place']);
+    const detailLines=[];
+    if(birthDate||birthPlace)detailLines.push({icon:'\uf004',kind:'birth',text:[birthDate,birthPlace].filter(Boolean).join(', ')});
+    if(deathDate||deathPlace)detailLines.push({icon:'\uf4ba',kind:'death',text:[deathDate,deathPlace].filter(Boolean).join(', ')});
+    if(burialPlace)detailLines.push({icon:'\uf720',kind:'burial',text:burialPlace});
+    const sex=String(firstField(map,['sex','gender'])).trim().toUpperCase();
+    const genderClass=sex==='M'||sex==='MALE'?'male':sex==='F'||sex==='FEMALE'?'female':'unknown';
+    const genderIcon=genderClass==='male'?'♂':genderClass==='female'?'♀':'';
+    return {family:false,titleLines:wrapSvgLabel(title,27).slice(0,3),detailLines,genderClass,genderIcon,imageUrl:app.getImageUrl?app.getImageUrl(record):null};
+  }
+
+  function appendSvgNodeLabel(nodeSelection,label) {
     nodeSelection.selectAll('g.label').remove();
-    const labelGroup = nodeSelection.append('g').attr('class', 'ogf-svg-node-label').attr('pointer-events', 'none');
-    if (label.family) {
-      const lines = label.titleLines;
-      const lineHeight = 13;
-      const firstY = -((lines.length - 1) * lineHeight) / 2 + 4;
-      const text = labelGroup.append('text').attr('class', 'ogf-svg-family-name').attr('text-anchor', 'middle');
-      lines.forEach((line, index) => text.append('tspan').attr('x', 0).attr('y', firstY + index * lineHeight).text(line));
+    const group=nodeSelection.append('g').attr('class','ogf-svg-node-label').attr('pointer-events','none');
+    if(label.family){
+      const lh=22,dh=22,total=label.titleLines.length*lh+(label.detailLines.length?label.detailLines.length*dh+7:0);
+      let y=-total/2+16;
+      const title=group.append('text').attr('class','ogf-svg-family-name').attr('text-anchor','middle');
+      label.titleLines.forEach(line=>{title.append('tspan').attr('x',0).attr('y',y).text(line);y+=lh;});
+      if(label.detailLines.length){
+        y+=3;
+        const detail=group.append('text').attr('class','ogf-svg-family-detail').attr('text-anchor','middle');
+        label.detailLines.forEach(item=>{
+          const lines=wrapSvgLabel(item.text,20);
+          lines.forEach((line,index)=>{
+            const tspan=detail.append('tspan').attr('x',0).attr('y',y);
+            if(index===0)tspan.append('tspan').attr('class',`ogf-tree-event-icon ogf-tree-${item.kind}-icon`).text(item.icon+' ');
+            tspan.append('tspan').text(line);
+            y+=dh;
+          });
+        });
+      }
       return;
     }
-    const titleLineHeight = 15;
-    const detailLineHeight = 11;
-    const totalHeight = label.titleLines.length * titleLineHeight + label.detailLines.length * detailLineHeight + (label.detailLines.length ? 4 : 0);
-    let y = -totalHeight / 2 + 11;
-    const title = labelGroup.append('text').attr('class', 'ogf-svg-person-name').attr('text-anchor', 'middle');
-    label.titleLines.forEach(line => {
-      title.append('tspan').attr('x', 0).attr('y', y).text(line);
-      y += titleLineHeight;
+
+    const hasPhoto=!!label.imageUrl;
+    const ix=-198,iy=-48,iw=80,ih=96;
+    let image=null;
+    if(hasPhoto){
+      const portrait=group.append('g').attr('class','ogf-svg-person-portrait');
+      const displayUrl=app.getImageDisplayUrl?app.getImageDisplayUrl(label.imageUrl):label.imageUrl;
+      image=portrait.append('image').attr('class','ogf-tree-person-image')
+        .attr('x',ix).attr('y',iy).attr('width',iw).attr('height',ih)
+        .attr('preserveAspectRatio','xMidYMid slice')
+        .attr('href',displayUrl).attr('xlink:href',displayUrl);
+      image.on('error',function(){
+        const element=d3.select(this);
+        if(displayUrl!==label.imageUrl && !element.attr('data-direct-fallback')){
+          element.attr('data-direct-fallback','1').attr('href',label.imageUrl).attr('xlink:href',label.imageUrl);
+          return;
+        }
+        element.remove();
+        title.attr('text-anchor','middle');
+        title.selectAll('tspan').attr('x',0);
+        if(detail){detail.attr('text-anchor','middle');detail.selectAll('tspan').attr('x',0);}
+      });
+      if(app.configureImageRequest)app.configureImageRequest(image.node(),label.imageUrl);
+    }
+
+    const tx=hasPhoto?-104:0,anchor=hasPhoto?'start':'middle';
+    const th=20,dh=20,total=label.titleLines.length*th+label.detailLines.length*dh+(label.detailLines.length?5:0);
+    let y=-total/2+11;
+    const title=group.append('text').attr('class','ogf-svg-person-name').attr('text-anchor',anchor);
+    label.titleLines.forEach((line,index)=>{
+      const tspan=title.append('tspan').attr('x',tx).attr('y',y);
+      if(index===0 && label.genderIcon){
+        tspan.append('tspan').attr('class',`ogf-tree-gender-symbol ogf-gender-${label.genderClass}`).text(label.genderIcon + ' ');
+      }
+      tspan.append('tspan').text(line);
+      y+=th;
     });
-    if (label.detailLines.length) {
-      y += 1;
-      const detail = labelGroup.append('text').attr('class', 'ogf-svg-person-detail').attr('text-anchor', 'middle');
-      label.detailLines.forEach(line => {
-        detail.append('tspan').attr('x', 0).attr('y', y).text(line);
-        y += detailLineHeight;
+    let detail=null;
+    if(label.detailLines.length){
+      y+=2;
+      detail=group.append('text').attr('class','ogf-svg-person-detail').attr('text-anchor',anchor);
+      label.detailLines.forEach(item=>{
+        const lines=wrapSvgLabel(item.text,hasPhoto?38:48);
+        lines.forEach((line,index)=>{
+          const tspan=detail.append('tspan').attr('x',tx).attr('y',y);
+          if(index===0)tspan.append('tspan').attr('class',`ogf-tree-event-icon ogf-tree-${item.kind}-icon`).text(item.icon + ' ');
+          tspan.append('tspan').text(line);
+          y+=dh;
+        });
       });
     }
   }
@@ -334,18 +412,8 @@
       if (!record) continue;
       const isFamily = record.type === adapter.config.familyType;
       const label = makeNodeLabel(record, adapter);
-      const personHeight = Math.max(82, 24 + label.titleLines.length * 15 + label.detailLines.length * 11 + (label.detailLines.length ? 8 : 0));
-      g.setNode(id, {
-        label: '',
-        class: isFamily ? 'ogf-dagre-family' : 'ogf-dagre-individual',
-        shape: isFamily ? 'circle' : 'rect',
-        width: isFamily ? 94 : 256,
-        height: isFamily ? 94 : personHeight,
-        padding: 0,
-        rx: isFamily ? 47 : 9,
-        ry: isFamily ? 47 : 9,
-        ogfLabel: label
-      });
+      const nodeClass = isFamily ? 'ogf-dagre-family' : `ogf-dagre-individual ogf-gender-${label.genderClass || 'unknown'}`;
+      g.setNode(id, { label:'', class:nodeClass, shape:isFamily?'circle':'rect', width:isFamily?250:420, height:isFamily?250:156, padding:0, rx:isFamily?125:9, ry:isFamily?125:9, ogfLabel:label });
     }
     for (const edge of tree.edges) {
       if (g.hasNode(edge.from) && g.hasNode(edge.to)) g.setEdge(edge.from, edge.to, { curve: d3.curveBasis });
