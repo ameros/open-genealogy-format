@@ -168,6 +168,7 @@ The browser viewer provides:
 - Google Maps links for recognized coordinate pairs.
 - Image display from GEDCOM media references.
 - Reordering, merging and splitting field groups.
+- Experimental OGF-native tree view, configured through optional `tree_relationships` metadata.
 
 Presentation operations must not modify field names or values.
 
@@ -226,6 +227,7 @@ The current viewer uses the Individual setting for links whose target record is 
 - `README.md` — project overview and introduction.
 - `SPECIFICATION.md` — formal OGF data specification.
 - `gedcom-import-rules.md` — detailed GEDCOM import requirements.
+- `TREE-VIEW.md` — experimental tree-view relationship configuration and behavior.
 
 ## Core rule
 

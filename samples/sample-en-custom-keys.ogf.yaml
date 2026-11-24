@@ -1,4 +1,9 @@
 ---
+# OGF FILE METADATA (not family-history data)
+# This document configures how an OGF file is interpreted and presented by a viewer.
+# It may contain language, display-field templates, date wording, and optional
+# relationship mappings for visualisations such as the family tree.
+# These settings do not describe people, events, or relationships themselves.
 id: "@meta@"
 type: Meta
 language: en
@@ -10,7 +15,21 @@ date_uncertain: "Possibly {date}"
 date_range: "Between {start} and {end}"
 date_before: "On or before {date}"
 date_after: "On or after {date}"
+tree_relationships:
+  individual_type: Individual
+  family_type: Family
+  family:
+    partner_fields:
+      - husband_id
+      - wife_id
+    child_fields:
+      - child_id
+
 ---
+# FIELD DICTIONARY (not family-history data)
+# This document provides human-readable labels and optional value choices for
+# fields used in the records below. It helps OGF viewers display and edit fields
+# consistently; it does not contain genealogical facts or add data to records.
 id: "@dictionary@"
 type: Dictionary
 
