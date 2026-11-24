@@ -62,12 +62,12 @@ The repository does not use one license for every kind of material.
 
 - The application and source code are covered by the root [LICENSE](LICENSE).
 - The format specification and documentation are covered by
-  [CC BY-NC 4.0](license/FORMAT-LICENSE.md).
+  [CC BY-NC 4.0](licensing/FORMAT-LICENSE.md).
 - Third-party components keep their own licenses.
 
-See the [licensing guide](license/README.md) for the full breakdown,
-[commercial licensing](license/COMMERCIAL-LICENSING.md), and
-[third-party notices](license/THIRD-PARTY-LICENSES.md).
+See the [licensing guide](licensing/README.md) for the full breakdown,
+[commercial licensing](licensing/COMMERCIAL-LICENSING.md), and
+[third-party notices](licensing/THIRD-PARTY-LICENSES.md).
 
 ## Core rule
 
