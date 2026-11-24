@@ -7,19 +7,20 @@ by this prototype.
 
 ## Relationship configuration
 
-Add `tree_relationships` to the `@meta@` document. Field names are examples,
+Add `tree.relationships` to the `@meta@` document. Field names are examples,
 not reserved OGF vocabulary:
 
 ```yaml
-tree_relationships:
-  individual_type: Individual
-  family_type: Family
-  family:
-    partner_fields:
-      - husb
-      - wife
-    child_fields:
-      - chil
+tree:
+  relationships:
+    individual_type: Individual
+    family_type: Family
+    family:
+      partner_fields:
+        - husb
+        - wife
+      child_fields:
+        - chil
 ```
 
 - `partner_fields` lists Family fields whose values reference Individuals.
@@ -32,27 +33,22 @@ tree_relationships:
 - Unresolved references are reported in the tree status; they are not guessed.
 - Without this configuration, the tree does not infer relationships.
 
-## Gender field configuration
+## Shared gender interpretation
 
-The optional `tree_gender_field` property in `@meta@` identifies the
-Individual record field used to determine the gender styling of tree nodes.
-For example:
-
-```yaml
-tree_gender_field: sex
-```
-
-If the data uses a different key, configure that exact key instead:
+Gender classification is configured once through the shared top-level
+`@meta@.gender_mapping` object, not through a tree-specific property. For
+example:
 
 ```yaml
-tree_gender_field: gender
+gender_mapping:
+  field: sex
+  male: M
+  female: F
 ```
 
-The renderer reads only the configured field. It uses the corresponding
-`<field>_values` dictionary entry, when present, to interpret stored codes.
-If `tree_gender_field` is absent, or the value is missing or unrecognized,
-the node receives the neutral gender style. The renderer does not fall back
-to guessed field names such as `sex` or `gender`.
+The tree calls the same shared interpretation rule available to other
+renderers. It uses exact value matching; absent or unrecognized values use the
+neutral unknown style. See [SPECIFICATION.md](SPECIFICATION.md#72-shared-gender-mapping).
 
 The renderer uses the same core mechanism as `gedcom-svg-tree`:
 
@@ -69,14 +65,9 @@ The renderer uses the same core mechanism as `gedcom-svg-tree`:
 - Individual nodes show birth and death dates and places, plus burial place,
   when those values exist; the first resolved `obje_file` image is used as a
   portrait, and no empty portrait placeholder is shown when an image is absent;
-- the optional `tree_gender_field` property in `@meta@` selects the Individual
-  field used for gender classification (for example, `tree_gender_field: sex`
-  or `tree_gender_field: gender`); the renderer does not guess a field when the
-  property is absent;
-- the configured field's dictionary companion (for example, `sex_values:
-  M=Male | F=Female | U=Unknown`) is used to interpret stored codes; Male/M
-  and Female/F values select the corresponding blue and rose node borders,
-  while missing, unrecognized, or unconfigured values use the neutral
+- the shared `@meta@.gender_mapping` setting classifies Individual nodes;
+  exact configured male/female values select the corresponding blue and rose
+  node borders, while missing or unrecognized values use the neutral
   pink-to-blue gradient border;
 - Family nodes show the configured Family title and marriage date/place when
   present;

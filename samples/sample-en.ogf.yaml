@@ -1,30 +1,34 @@
 ---
 # OGF FILE METADATA (not family-history data)
 # This document configures how an OGF file is interpreted and presented by a viewer.
-# It may contain language, display-field templates, date wording, and optional
-# relationship mappings for visualisations such as the family tree.
+# It defines the versioned data-to-renderer contract, including shared
+# interpretation mappings and renderer-specific settings.
 # These settings do not describe people, events, or relationships themselves.
 id: "@meta@"
 type: Meta
+version: 1
 language: en
 encoding: UTF-8
-tree_gender_field: sex
+gender_mapping:
+  field: sex
+  male: M
+  female: F
+tree:
+  relationships:
+    individual_type: Individual
+    family_type: Family
+    family:
+      partner_fields:
+        - husb
+        - wife
+      child_fields:
+        - chil
 
 date_approx: "About {date}"
 date_uncertain: "Possibly {date}"
 date_range: "Between {start} and {end}"
 date_before: "On or before {date}"
 date_after: "On or after {date}"
-tree_relationships:
-  individual_type: Individual
-  family_type: Family
-  family:
-    partner_fields:
-      - husb
-      - wife
-    child_fields:
-      - chil
-
 ---
 # FIELD DICTIONARY (not family-history data)
 # This document provides human-readable labels and optional value choices for

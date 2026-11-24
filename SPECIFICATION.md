@@ -207,7 +207,12 @@ Repeated tags must not overwrite earlier values. A deterministic suffix may be a
 
 ## 7. Metadata: `@meta@`
 
-The optional `@meta@` document describes file-level metadata and presentation settings.
+The optional `@meta@` document describes the metadata contract between an OGF
+data file and applications that interpret or render it. It contains file-level
+metadata, shared data-interpretation mappings, and renderer-specific settings.
+
+The `version` property versions this metadata contract. It does not version the
+OGF application, individual records, or the specification document itself.
 
 Example:
 
@@ -215,6 +220,7 @@ Example:
 ---
 id: "@meta@"
 type: Meta
+version: 1
 language: en
 encoding: UTF-8
 individual_display_field: name
@@ -246,23 +252,78 @@ These are optional conventions, not mandatory schema properties. Applications ma
 
 Metadata must not be used to rewrite record values.
 
-### 7.1 Optional tree relationship mapping
+### 7.1 Metadata contract version
 
-An application may use an optional `tree_relationships` object in `@meta@` to
-configure how a tree view reads relationships from Family records. This is
-application presentation configuration, not a required OGF vocabulary or a
-new relationship assertion.
+`@meta@.version` is a positive integer identifying the contract used by the
+metadata document.
+
+- Version `1` is the first stable metadata contract.
+- A change that breaks compatibility with existing metadata or changes the
+  meaning of an existing property requires a new contract version.
+- Adding an optional property that older applications can safely ignore does
+  not, by itself, require a version increment.
+- An application must not silently interpret an explicitly unsupported
+  metadata version as version 1. It must report that the version is unsupported.
+- A missing `version` property identifies an unversioned/legacy metadata
+  document. Applications may retain legacy compatibility behavior, but new
+  files and first-release examples should always include `version: 1`.
+
+The metadata contract describes how incoming data is interpreted and how
+applications should behave when presenting it. Shared interpretation settings
+belong directly in `@meta@`; renderer-specific settings belong under a
+renderer-specific namespace.
+
+### 7.2 Shared gender mapping
+
+The optional `gender_mapping` object defines how an application interprets a
+field on an Individual record as male or female. It is a shared data
+interpretation rule, not a tree-view setting, and may be reused by any renderer
+or feature that needs this classification (including data cards).
 
 ```yaml
-tree_relationships:
-  individual_type: Individual
-  family_type: Family
-  family:
-    partner_fields:
-      - husb
-      - wife
-    child_fields:
-      - chil
+gender_mapping:
+  field: sex
+  male: M
+  female: F
+```
+
+- `field` is the exact Individual record field to read.
+- `male` is the exact stored value that represents male.
+- `female` is the exact stored value that represents female.
+- Matching is exact; applications must not guess field names, translate values,
+  or infer gender from names, relationships, or other data.
+- A missing field, missing value, or value matching neither configured value
+  must be treated as unknown/unclassified.
+- Applications must not modify the original record value.
+- The mapping is optional. Without it, gender classification is unknown.
+
+For example, a dataset using `gender: male/female` may declare:
+
+```yaml
+gender_mapping:
+  field: gender
+  male: male
+  female: female
+```
+
+### 7.3 Tree relationship mapping
+
+An application may use the optional `tree.relationships` object in `@meta@` to
+configure how a tree view reads relationships from Family records. This is
+renderer-specific presentation configuration, not a required OGF vocabulary or
+a new relationship assertion.
+
+```yaml
+tree:
+  relationships:
+    individual_type: Individual
+    family_type: Family
+    family:
+      partner_fields:
+        - husb
+        - wife
+      child_fields:
+        - chil
 ```
 
 - `individual_type` identifies the record type used for people.
@@ -277,7 +338,7 @@ when no mapping is supplied. It must preserve the underlying record values and
 references. Unresolved references may be reported by the viewer, but must not
 be guessed or silently replaced.
 
-### 7.2 Contextual display metadata
+### 7.4 Contextual display metadata
 
 The `@meta@` document may define the following optional properties:
 
@@ -288,7 +349,7 @@ The `@meta@` document may define the following optional properties:
 
 These properties configure presentation. They do not create, modify or replace genealogical facts, record identifiers or relationship references.
 
-#### 7.2.1 Field-key form
+#### 7.4.1 Field-key form
 
 A property may contain a bare field key. The application reads that field from the record whose display title is being generated:
 
@@ -298,7 +359,7 @@ individual_display_field: name
 
 This is shorthand for selecting one field; it is not a new record field.
 
-#### 7.2.2 Template form
+#### 7.4.2 Template form
 
 A property may instead contain a string template with one or more placeholders. Template values should be quoted in YAML.
 
@@ -318,19 +379,19 @@ The reference field must contain a single record identifier. The referenced reco
 
 This syntax addresses one reference hop and one field on the target record; it does not define arbitrary nested object traversal or chained references.
 
-#### 7.2.3 Resolution and fallback
+#### 7.4.3 Resolution and fallback
 
 An unresolved placeholder contributes an empty string. If the complete expression produces no usable display text, the current viewer falls back to its normal title-generation behavior for that record type.
 
 Applications should provide a readable fallback when a configured key, reference or target field is missing. A missing display value must not cause the record itself or its original reference to be removed.
 
-#### 7.2.4 Use in links
+#### 7.4.4 Use in links
 
 When a viewer renders a link to an `Individual`, it should use the resolved `individual_display_field` value as the link text. For a link to a `Family`, it should use `family_display_field`. The same target-type rule applies to reverse-reference labels. A viewer may use its normal title-generation behavior when the corresponding property is absent or cannot produce text.
 
 The `@dictionary@` is not required to contain entries for these metadata properties or for the fields they select. The dictionary describes field labels, descriptions and grouping; display metadata selects values for presentation.
 
-#### 7.2.5 Preservation
+#### 7.4.5 Preservation
 
 Display metadata must never replace stored names with derived strings, rewrite relationship identifiers, or infer a name from a spouse or family context. Changing a display property changes presentation only.
 

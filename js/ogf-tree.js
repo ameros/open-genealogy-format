@@ -51,7 +51,7 @@
 
   function configuredRelationships() {
     const meta = app.getMeta() || {};
-    const config = meta.tree_relationships;
+    const config = (meta.tree && meta.tree.relationships) || meta.tree_relationships;
     if (!config || typeof config !== 'object') return null;
     const family = config.family || {};
     const partnerFields = Array.isArray(family.partner_fields) ? family.partner_fields : [];
@@ -303,17 +303,7 @@
     if(birthDate||birthPlace)detailLines.push({icon:'\uf004',kind:'birth',text:[birthDate,birthPlace].filter(Boolean).join(', ')});
     if(deathDate||deathPlace)detailLines.push({icon:'\uf4ba',kind:'death',text:[deathDate,deathPlace].filter(Boolean).join(', ')});
     if(burialPlace)detailLines.push({icon:'\uf720',kind:'burial',text:burialPlace});
-    const meta=app.getMeta()||{};
-    const genderField=String(meta.tree_gender_field||'').trim();
-    const rawGender=genderField ? firstField(map,[genderField]) : '';
-    const genderDictionary=genderField && app.getDictionary ? app.getDictionary() : {};
-    const genderValues=genderDictionary[genderField]?.values || {};
-    const genderLabel=rawGender
-      ? String(genderValues[rawGender] || rawGender).trim().toUpperCase()
-      : '';
-    const genderClass=genderLabel==='M'||genderLabel==='MALE'?'male'
-      : genderLabel==='F'||genderLabel==='FEMALE'?'female'
-      : 'unknown';
+    const genderClass = app.getGenderClass ? app.getGenderClass(record) : 'unknown';
     const genderIcon=genderClass==='male'?'♂':genderClass==='female'?'♀':'';
     return {family:false,titleLines:wrapSvgLabel(title,27).slice(0,3),detailLines,genderClass,genderIcon,imageUrl:app.getImageUrl?app.getImageUrl(record):null};
   }
@@ -586,7 +576,7 @@
     const adapter = buildAdapterData();
     if (!adapter.config) {
       inner.selectAll('*').remove();
-      status.textContent = 'Configure tree_relationships in @meta@ (partner_fields and child_fields) to display the tree.';
+      status.textContent = 'Configure tree.relationships in @meta@ (partner_fields and child_fields) to display the tree.';
       return;
     }
 

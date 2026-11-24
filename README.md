@@ -4,7 +4,7 @@ A flat, human-readable, self-describing YAML format for genealogical data.
 
 Open Genealogy Format (OGF) is designed to store family-history data in a transparent, portable format that does not depend on a fixed set of genealogical tags or a particular application.
 
-The format separates the data itself from its presentation. Records contain genealogical facts and references; `@meta@` and `@dictionary@` provide language, labels, descriptions and presentation grouping.
+The format separates the data itself from its presentation. Records contain genealogical facts and references; `@meta@` defines the versioned contract between incoming data and renderer behavior, while `@dictionary@` provides labels, descriptions and presentation grouping.
 
 ## Design principles
 - **Flat records:** Each record is a separate YAML document, separated by `---`.
@@ -168,7 +168,7 @@ The browser viewer provides:
 - Google Maps links for recognized coordinate pairs.
 - Image display from GEDCOM media references.
 - Reordering, merging and splitting field groups.
-- Experimental OGF-native tree view, configured through optional `tree_relationships` metadata.
+- Experimental OGF-native tree view, configured through optional `tree.relationships` metadata.
 
 Presentation operations must not modify field names or values.
 
@@ -182,7 +182,9 @@ A person may have multiple historically valid names, including birth, adopted an
 
 OGF should preserve these values without assuming that a surname changed because of a marriage.
 
-The `@meta@` document can select which stored fields an application uses when presenting Individuals and Families. These settings affect presentation only; they do not change record values or relationship references.
+The `@meta@` document defines the metadata contract between the data file and applications that interpret or render it. Its `version` property identifies the contract version (the first stable contract is `1`). Shared interpretation rules such as `gender_mapping` live at the top level of `@meta@` and can be reused by different renderers. Renderer-specific settings, such as `tree.relationships`, remain under their renderer namespace.
+
+The `@meta@` document can also select which stored fields an application uses when presenting Individuals and Families. These settings affect presentation only; they do not change record values or relationship references.
 
 ### Display metadata
 
@@ -263,18 +265,21 @@ Third-party dependencies remain subject to their respective licenses. See [THIRD
 
 User-provided genealogical data is not relicensed by either of the above notices. Its ownership and applicable terms remain with the relevant data owners.
 
-### Tree gender field
+### Shared gender mapping
 
-The optional `@meta@` property `tree_gender_field` identifies the Individual
-record field used to classify gender for tree-node styling. For example:
+The optional `@meta@.gender_mapping` object defines the exact field and values
+used to classify an Individual record as male or female. It is independent of
+the tree renderer and can be reused by data cards and other presentation
+features:
 
 ```yaml
-tree_gender_field: sex
+gender_mapping:
+  field: sex
+  male: M
+  female: F
 ```
 
-The configured field's dictionary companion (for example, `sex_values:
-M=Male | F=Female | U=Unknown`) is used to interpret stored codes. Values
-labelled Male/Female, or the standard `M`/`F` codes, select the corresponding
-node style. If the property is absent, the field is missing, or its value
-cannot be classified, the node uses the neutral unknown style. The tree does
-not guess between `sex`, `gender`, or other field names.
+Applications match the configured values exactly. Missing or unrecognized
+values remain unknown; applications do not infer gender or change stored data.
+See [SPECIFICATION.md](SPECIFICATION.md#72-shared-gender-mapping) for the
+contract and [TREE-VIEW.md](TREE-VIEW.md) for tree-specific configuration.

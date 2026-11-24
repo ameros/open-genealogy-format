@@ -304,6 +304,101 @@ function dictionaryValueLabel(key, value) {
   return choices && Object.prototype.hasOwnProperty.call(choices, code) ? choices[code] : code;
 }
 
+
+function parseNestedYamlValue(lines, startIndex, parentIndent) {
+  const nextContent = from => {
+    for (let i = from; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      return i;
+    }
+    return lines.length;
+  };
+  const first = nextContent(startIndex);
+  if (first >= lines.length) return [{}, startIndex];
+  const firstIndent = (lines[first].match(/^\s*/) || [""])[0].length;
+  if (firstIndent <= parentIndent) return [{}, startIndex];
+
+  function parseBlock(index, indent) {
+    const isList = lines[index].trim().startsWith("- ");
+    const result = isList ? [] : {};
+    let i = index;
+    while (i < lines.length) {
+      i = nextContent(i);
+      if (i >= lines.length) break;
+      const line = lines[i];
+      const currentIndent = (line.match(/^\s*/) || [""])[0].length;
+      if (currentIndent < indent) break;
+      if (currentIndent > indent) break;
+      const trimmed = line.trim();
+
+      if (isList) {
+        if (!trimmed.startsWith("- ")) break;
+        const raw = trimmed.slice(2).trim();
+        if (raw) result.push(unquote(raw));
+        else {
+          const child = nextContent(i + 1);
+          if (child < lines.length && (lines[child].match(/^\s*/) || [""])[0].length > indent) {
+            const [value, next] = parseBlock(child, (lines[child].match(/^\s*/) || [""])[0].length);
+            result.push(value);
+            i = next;
+            continue;
+          }
+          result.push("");
+        }
+        i++;
+        continue;
+      }
+
+      if (trimmed.startsWith("- ")) break;
+      const colon = trimmed.indexOf(":");
+      if (colon <= 0) { i++; continue; }
+      const key = trimmed.slice(0, colon).trim();
+      const raw = trimmed.slice(colon + 1).trim();
+      if (raw !== "") {
+        result[key] = unquote(raw);
+        i++;
+      } else {
+        const child = nextContent(i + 1);
+        if (child < lines.length && (lines[child].match(/^\s*/) || [""])[0].length > indent) {
+          const [value, next] = parseBlock(child, (lines[child].match(/^\s*/) || [""])[0].length);
+          result[key] = value;
+          i = next;
+        } else {
+          result[key] = {};
+          i++;
+        }
+      }
+    }
+    return [result, i];
+  }
+  return parseBlock(first, firstIndent);
+}
+
+function appendYamlNestedValue(out, key, value, indent = 0) {
+  const pad = " ".repeat(indent);
+  if (Array.isArray(value)) {
+    out.push(pad + key + ":");
+    for (const item of value) {
+      if (item && typeof item === "object" && !Array.isArray(item)) {
+        out.push(pad + "  -");
+        for (const [childKey, childValue] of Object.entries(item)) {
+          appendYamlNestedValue(out, childKey, childValue, indent + 4);
+        }
+      } else {
+        out.push(pad + "  - " + formatScalar(item));
+      }
+    }
+  } else if (value && typeof value === "object") {
+    out.push(pad + key + ":");
+    for (const [childKey, childValue] of Object.entries(value)) {
+      appendYamlNestedValue(out, childKey, childValue, indent + 2);
+    }
+  } else {
+    out.push(pad + key + ": " + formatScalar(value));
+  }
+}
+
 function parseYamlStream(text) {
   const chunks = text.split(/^---\s*$/gm);
   const docs = [];
@@ -337,28 +432,13 @@ function parseYamlStream(text) {
         const key = line.slice(0, kvIdx).trim();
         const rawVal = line.slice(kvIdx + 1).trim();
         currentKey = key;
-        if (rawVal === "" && key === "tree_relationships") {
-          // Preserve the optional nested tree configuration as one metadata
-          // value. Other OGF record fields retain the existing flat parser.
-          const config = { family: { partner_fields: [], child_fields: [] } };
-          let inFamily = false, activeList = null;
-          let j = i + 1;
-          for (; j < lines.length; j++) {
-            const nestedLine = lines[j];
-            if (!nestedLine.trim()) continue;
-            const indent = (nestedLine.match(/^\s*/) || [""])[0].length;
-            if (indent <= (line.match(/^\s*/) || [""])[0].length) break;
-            const nested = nestedLine.trim();
-            let match;
-            if (indent === 2 && (match = nested.match(/^individual_type:\s*(.*?)\s*$/))) config.individual_type = unquote(match[1]);
-            else if (indent === 2 && (match = nested.match(/^family_type:\s*(.*?)\s*$/))) config.family_type = unquote(match[1]);
-            else if (indent === 2 && nested === "family:") { inFamily = true; activeList = null; }
-            else if (indent === 4 && inFamily && nested === "partner_fields:") activeList = config.family.partner_fields;
-            else if (indent === 4 && inFamily && nested === "child_fields:") activeList = config.family.child_fields;
-            else if (indent >= 6 && activeList && (match = nested.match(/^[-]\s*(.*?)\s*$/))) activeList.push(unquote(match[1]));
-          }
-          entries.push({ key, value: config, group: groupIndex });
-          i = j - 1;
+        if (rawVal === "" && ["gender_mapping", "tree", "tree_relationships"].includes(key)) {
+          // These metadata properties are structured objects. Parse their
+          // indentation-based YAML recursively while leaving ordinary records
+          // on the existing flat-field path.
+          const [nestedValue, nextIndex] = parseNestedYamlValue(lines, i + 1, (line.match(/^\s*/) || [""])[0].length);
+          entries.push({ key, value: nestedValue, group: groupIndex });
+          i = nextIndex - 1;
         } else if (rawVal === "") {
           entries.push({ key, value: [], group: groupIndex });
         } else {
@@ -388,19 +468,8 @@ function serializeYamlStream(docs) {
       if (Array.isArray(entry.value)) {
         out.push(entry.key + ":");
         for (const item of entry.value) out.push("  - " + formatScalar(item));
-      } else if (entry.key === "tree_relationships" && entry.value && typeof entry.value === "object") {
-        const cfg = entry.value;
-        out.push(entry.key + ":");
-        if (cfg.individual_type) out.push("  individual_type: " + formatScalar(cfg.individual_type));
-        if (cfg.family_type) out.push("  family_type: " + formatScalar(cfg.family_type));
-        if (cfg.family) {
-          out.push("  family:");
-          for (const listKey of ["partner_fields", "child_fields"]) {
-            if (!Array.isArray(cfg.family[listKey])) continue;
-            out.push("    " + listKey + ":");
-            for (const item of cfg.family[listKey]) out.push("      - " + formatScalar(item));
-          }
-        }
+      } else if (["gender_mapping", "tree", "tree_relationships"].includes(entry.key) && entry.value && typeof entry.value === "object") {
+        appendYamlNestedValue(out, entry.key, entry.value);
       } else {
         out.push(entry.key + ": " + formatScalar(entry.value));
       }
@@ -576,9 +645,13 @@ function rebuildFromEditor() {
       }
     }
 
+    const metaVersion = state.meta.version;
+    if (metaVersion !== undefined && metaVersion !== null && metaVersion !== "" && Number(metaVersion) !== 1) {
+      throw new Error(`Unsupported @meta@ contract version: ${metaVersion}. This viewer supports version 1.`);
+    }
     const lang = (state.meta.language || "en").toUpperCase();
     document.getElementById("lang-badge").textContent = "LANG: " + lang;
-    status.textContent = "Valid (" + docs.length + " docs)";
+    status.textContent = "Valid · @meta@ v" + (metaVersion || "legacy") + " (" + docs.length + " docs)";
     status.style.color = "#4ade80";
 
     renderDirectory();
@@ -1317,11 +1390,13 @@ function convertGedcomToOgf(gedText) {
       entries: [
         { key: "id", value: "@meta@", group: 0 },
         { key: "type", value: "Meta", group: 0 },
+        { key: "version", value: "1", group: 0 },
         { key: "language", value: "en", group: 0 },
         { key: "encoding", value: "UTF-8", group: 0 },
         { key: "individual_display_field", value: "name", group: 0 },
         { key: "family_display_field", value: "{$wife.name_givn} & {$husb.name}", group: 0 },
-        { key: "tree_relationships", value: { individual_type: "Individual", family_type: "Family", family: { partner_fields: ["husb", "wife"], child_fields: ["chil"] } }, group: 0 },
+        { key: "gender_mapping", value: { field: "sex", male: "M", female: "F" }, group: 0 },
+        { key: "tree", value: { relationships: { individual_type: "Individual", family_type: "Family", family: { partner_fields: ["husb", "wife"], child_fields: ["chil"] } } }, group: 0 },
         { key: "date_approx", value: "About {date}", group: 1 },
         { key: "date_uncertain", value: "Possibly {date}", group: 1 },
         { key: "date_range", value: "Between {start} and {end}", group: 1 },
@@ -1641,7 +1716,7 @@ function addMetadataEditorRow(key = "", value = "") {
   keyInput.className = "meta-key"; keyInput.type = "text"; keyInput.value = key; keyInput.placeholder = "metadata_key";
   const valueInput = document.createElement("input");
   valueInput.className = "meta-value"; valueInput.type = "text";
-  valueInput.value = value && typeof value === "object" ? JSON.stringify(value) : (Array.isArray(value) ? value.join(", ") : String(value ?? "")); valueInput.placeholder = key === "tree_relationships" ? "JSON tree relationship configuration" : "Value";
+  valueInput.value = value && typeof value === "object" ? JSON.stringify(value) : (Array.isArray(value) ? value.join(", ") : String(value ?? "")); valueInput.placeholder = ["gender_mapping", "tree", "tree_relationships"].includes(key) ? "JSON object" : "Value";
   const remove = document.createElement("button");
   remove.type = "button"; remove.className = "icon-button delete-entry-btn"; remove.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>'; remove.title = "Remove metadata field"; remove.setAttribute("aria-label", "Remove metadata field");
   remove.addEventListener("click", () => row.remove());
@@ -1651,6 +1726,7 @@ function openMetadataEditor() {
   metadataRowsEl.innerHTML = "";
   const metaDoc = state.docs.find(d => d.id === "@meta@" || d.type === "Meta");
   const entries = metaDoc ? metaDoc.entries : [
+    { key: "version", value: "1" },
     { key: "language", value: "en" },
     { key: "encoding", value: "UTF-8" },
     { key: "individual_display_field", value: "name" },
@@ -1681,10 +1757,14 @@ document.getElementById("save-metadata-btn").addEventListener("click", () => {
     if (keys.has(key)) { error = `Duplicate metadata key: ${key}`; return; }
     keys.add(key);
     let storedValue = value;
-    if (key === "tree_relationships") {
+    if (["gender_mapping", "tree", "tree_relationships"].includes(key)) {
       try { storedValue = JSON.parse(value); }
-      catch (_) { error = "tree_relationships must be valid JSON when edited here."; return; }
-      if (!storedValue || typeof storedValue !== "object" || Array.isArray(storedValue)) { error = "tree_relationships must be a JSON object."; return; }
+      catch (_) { error = `${key} must be a valid JSON object when edited here.`; return; }
+      if (!storedValue || typeof storedValue !== "object" || Array.isArray(storedValue)) { error = `${key} must be a JSON object.`; return; }
+    }
+    if (key === "version" && (!Number.isInteger(Number(value)) || Number(value) < 1)) {
+      error = "version must be a positive integer.";
+      return;
     }
     entries.push({ key, value: storedValue, group: index + 1 });
   });
@@ -1926,10 +2006,22 @@ document.getElementById("download-yaml-btn").addEventListener("click", () => {
 
 // Narrow public bridge for the optional OGF tree module. The tree reads the
 // same in-memory records and delegates selection back to the existing card.
+function getGenderClass(record) {
+  const mapping = state.meta.gender_mapping;
+  if (!mapping || typeof mapping !== "object" || !mapping.field) return "unknown";
+  const rawValue = record && record.map ? record.map[mapping.field] : undefined;
+  if (rawValue === undefined || rawValue === null || Array.isArray(rawValue)) return "unknown";
+  const value = String(rawValue);
+  if (value === String(mapping.male)) return "male";
+  if (value === String(mapping.female)) return "female";
+  return "unknown";
+}
+
 window.OGFApp = {
   getDocs: () => state.docs,
   getMeta: () => state.meta,
   getDictionary: () => state.dict,
+  getGenderClass,
   getSelectedId: () => state.selectedId,
   getRecordTitle: doc => getRecordTitle(doc, Object.fromEntries(state.docs.map(item => [item.id, item]))),
   getImageUrl: doc => getImageCandidates(doc)[0] || null,
