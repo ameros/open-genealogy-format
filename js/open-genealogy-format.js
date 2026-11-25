@@ -106,6 +106,10 @@ function appendLinkedText(container, value, docMap) {
         pill.className = "link-pill";
         pill.textContent = getRecordTitle(target, docMap) + " (" + token + ")";
         pill.addEventListener("click", () => {
+          // In the tree workspace, follow the reference in both views.
+          if (document.querySelector("main")?.classList.contains("tree-mode") &&
+              window.OGFTree?.navigateTo(token)) return;
+
           state.selectedId = token;
           state.editMode = false;
           if (["Individual", "Family", "Source", "Repository"].includes(target.type)) {
@@ -1125,6 +1129,10 @@ function renderInspectorDetailed() {
       pill.className = "link-pill backlink-pill";
       pill.textContent = `${formatKeyLabel(bl.key)} in ${getRecordTitle(bl.from, docMap)}`;
       pill.addEventListener("click", () => {
+        // Keep tree navigation synchronized when following a "Referenced In" backlink.
+        if (document.querySelector("main")?.classList.contains("tree-mode") &&
+            window.OGFTree?.navigateTo(bl.from.id)) return;
+
         state.selectedId = bl.from.id;
         renderDirectory();
         renderInspector();

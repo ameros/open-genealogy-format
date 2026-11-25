@@ -42,6 +42,10 @@
   const graphRenderer = new dagreD3.render();
   let graph = null;
   let selectedId = null;
+  // Selecting nodes opens the details card until the user explicitly closes it.
+  // After that, node clicks only navigate the tree; details require the button.
+  let detailsAutoOpen = true;
+  let pendingTreeRender = false;
   let zoomBehavior = null;
   let renderToken = 0;
 
@@ -412,7 +416,7 @@
       const isFamily = record.type === adapter.config.familyType;
       const label = makeNodeLabel(record, adapter);
       const nodeClass = isFamily ? 'ogf-dagre-family' : `ogf-dagre-individual ogf-gender-${label.genderClass || 'unknown'}`;
-      g.setNode(id, { label:'', class:nodeClass, shape:isFamily?'circle':'rect', width:isFamily?250:420, height:isFamily?250:156, padding:0, rx:isFamily?125:9, ry:isFamily?125:9, ogfLabel:label });
+      g.setNode(id, { label:'\u00a0', class:nodeClass, shape:isFamily?'circle':'rect', width:isFamily?250:420, height:isFamily?250:156, padding:0, rx:isFamily?125:9, ry:isFamily?125:9, ogfLabel:label });
     }
     for (const edge of tree.edges) {
       if (g.hasNode(edge.from) && g.hasNode(edge.to)) g.setEdge(edge.from, edge.to, { curve: d3.curveBasis });
@@ -555,20 +559,34 @@
     svg.transition().duration(220).call(zoomBehavior.transform, next);
   }
 
-  function selectNode(id) {
-    if (!graph || !graph.hasNode(id)) return;
+  function navigateToRecord(id) {
+    // Records reached from details may not belong to the currently rendered
+    // subgraph. Validate against the complete dataset, then use the same
+    // selection, re-rooting and rendering path as a tree-node click.
+    const records = buildAdapterData().records;
+    if (!records.has(id)) return false;
+
     selectedId = id;
-    document.querySelector('main')?.classList.remove('tree-card-hidden');
     app.selectRecord(id);
 
-    // Treat the clicked record as the new navigation root. Rebuild the ordered
-    // family subgraph using the current ancestor/descendant controls so users
-    // can walk through a large genealogy one person/family at a time. Keep the
-    // current zoom scale, then centre the newly selected root in the viewport.
-    // The Dagre layout may reposition nodes because the visible rooted subgraph
-    // has changed; positions remain stable until the next navigation action.
-    renderTree(false);
-    centerNode(id);
+    // Never render or transform an SVG while its mobile pane is display:none:
+    // its viewport is zero-sized. Defer the graph render until the tree is
+    // visible again, then run the exact same render-and-fit path as a node click.
+    const treeIsCovered = mainElement?.classList.contains('tree-details-open');
+    if (treeIsCovered) {
+      pendingTreeRender = true;
+    } else {
+      renderTree(false);
+      centerNode(id);
+    }
+
+    if (detailsAutoOpen) mainElement?.classList.add('tree-details-open');
+    return true;
+  }
+
+  function selectNode(id) {
+    // Tree clicks and details-card references deliberately share one path.
+    navigateToRecord(id);
   }
 
   function renderTree(resetZoom = true) {
@@ -661,8 +679,19 @@
   const treeViewButton = document.getElementById('tree-view-btn');
   const directoryPane = document.getElementById('directory-pane');
 
+  // Public navigation bridge used by reference links in the details card.
+  // It updates the selected record and rebuilds the tree around that record,
+  // while leaving the current tree/details screen state unchanged.
+  window.OGFTree = {
+    navigateTo(id) {
+      if (!mainElement?.classList.contains('tree-mode')) return false;
+      return navigateToRecord(id);
+    },
+    getSelectedId: () => selectedId
+  };
+
   function closeTreeView() {
-    mainElement?.classList.remove('tree-mode', 'tree-card-hidden');
+    mainElement?.classList.remove('tree-mode', 'tree-card-hidden', 'tree-details-open');
     document.body.classList.remove('ogf-tree-open');
     pane.hidden = true;
     if (directoryPane) directoryPane.hidden = false;
@@ -673,7 +702,8 @@
   function openTreeView() {
     mainElement?.classList.add('tree-mode');
     document.body.classList.add('ogf-tree-open');
-    mainElement?.classList.remove('tree-card-hidden');
+    mainElement?.classList.remove('tree-card-hidden', 'tree-details-open');
+    detailsAutoOpen = true;
     pane.hidden = false;
     if (directoryPane) directoryPane.hidden = true;
     treeViewButton?.classList.add('active');
@@ -689,7 +719,25 @@
   });
   document.getElementById('tree-close-btn')?.addEventListener('click', closeTreeView);
   document.getElementById('tree-card-close')?.addEventListener('click', () => {
-    mainElement?.classList.add('tree-card-hidden');
+    detailsAutoOpen = false;
+    mainElement?.classList.remove('tree-details-open');
+
+    // Wait until CSS has restored the tree pane to the layout and it has real
+    // dimensions. Rebuild from the selected record, then fit the new graph.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (pendingTreeRender) {
+        pendingTreeRender = false;
+        renderTree(true);
+      } else {
+        fitToTree();
+      }
+    }));
+  });
+  document.getElementById('tree-show-details')?.addEventListener('click', () => {
+    const id = selectedId || app.getSelectedId?.();
+    if (!id) return;
+    app.selectRecord(id);
+    mainElement?.classList.add('tree-details-open');
   });
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && mainElement?.classList.contains('tree-mode')) closeTreeView();
@@ -698,7 +746,16 @@
   window.addEventListener('ogf:data-updated', () => {
     if (document.querySelector('main')?.classList.contains('tree-mode')) renderTree(true);
   });
-  window.addEventListener('resize', () => {
-    if (document.querySelector('main')?.classList.contains('tree-mode')) fitToTree();
-  });
+  let resizeFrame = 0;
+  function handleViewportChange() {
+    if (!document.querySelector('main')?.classList.contains('tree-mode')) return;
+    cancelAnimationFrame(resizeFrame);
+    resizeFrame = requestAnimationFrame(() => {
+      // Refit after the browser has applied the new viewport dimensions. The
+      // selected record remains the navigation root across rotation.
+      if (!mainElement?.classList.contains('tree-details-open')) fitToTree();
+    });
+  }
+  window.addEventListener('resize', handleViewportChange, { passive: true });
+  window.addEventListener('orientationchange', handleViewportChange, { passive: true });
 })();

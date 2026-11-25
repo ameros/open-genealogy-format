@@ -32,3 +32,7 @@ log, not a replacement for the specification or Git history.
 - Keep the default dictionary as a human-readable set of target OGF fields users can choose to adopt.
 - Import GEDCOM tag paths as flattened lowercase keys (for example, `BIRT.DATE` becomes `birt_date`) and add generated labels for those imported keys.
 - Keep GEDCOM-specific structural parsing separate from semantic field translation.
+
+
+### Tree reference navigation rendering
+- Tree-node clicks and record references followed from the details card now use the same navigation function. References to records outside the currently rendered subgraph are validated against the full dataset, then selected, re-rooted and rendered using the same path as a node click.
