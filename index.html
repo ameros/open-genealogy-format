@@ -111,8 +111,9 @@
   <label class="toolbar-select-wrap" aria-label="Load a sample">
     <span class="sr-only">Samples</span>
     <select id="sample-select" class="toolbar-select">
-      <option value="">Samples…</option>
-      <option value="en-gedcom">English — GEDCOM keys</option>
+      <option value="">Project / samples…</option>
+      <option value="new">New empty project</option>
+      <option value="en-gedcom">English — GEDCOM example</option>
       <option value="pl">Polski — polskie klucze</option>
       <option value="en-custom">English — custom keys</option>
     </select>
@@ -132,6 +133,7 @@
   <button id="add-ind-btn" class="toolbar-icon" type="button" title="Add Individual" aria-label="Add Individual"><i class="fa-solid fa-user-plus" aria-hidden="true"></i></button>
   <button id="add-fam-btn" class="toolbar-icon" type="button" title="Add Family" aria-label="Add Family"><i class="fa-solid fa-users" aria-hidden="true"></i></button>
   <button id="add-source-btn" class="toolbar-icon" type="button" title="Add Source" aria-label="Add Source"><i class="fa-solid fa-book-open" aria-hidden="true"></i></button>
+  <button id="add-repository-btn" class="toolbar-icon" type="button" title="Add Repository" aria-label="Add Repository"><i class="fa-solid fa-building-columns" aria-hidden="true"></i></button>
   <button id="import-ged-btn" class="toolbar-icon" type="button" title="Import GEDCOM file" aria-label="Import GEDCOM file"><i class="fa-solid fa-file-import" aria-hidden="true"></i></button>
   <input type="file" id="ged-input" accept=".ged,.gedcom" style="display:none">
   <button id="load-media-btn" class="toolbar-icon" type="button" title="Select the folder containing media referenced by relative paths in your OGF/GEDCOM file (for example, its media/ folder)." aria-label="Select the media folder referenced by your OGF or GEDCOM file"><i class="fa-solid fa-photo-film" aria-hidden="true"></i></button>
@@ -171,6 +173,7 @@
         <button class="active" data-tab="Individual" id="tab-ind">Individuals (0)</button>
         <button data-tab="Family" id="tab-fam">Families (0)</button>
         <button data-tab="Source" id="tab-source">Sources (0)</button>
+        <button data-tab="Repository" id="tab-repository">Repositories (0)</button>
         <button data-tab="All" id="tab-all">All (0)</button>
       </div>
       <div class="dir-row">

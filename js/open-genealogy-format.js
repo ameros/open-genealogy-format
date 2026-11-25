@@ -7,6 +7,76 @@ const SAMPLE_FILES = {
   "en-custom": "samples/sample-en-custom-keys.ogf.yaml"
 };
 
+// The starter project is intentionally empty: it contains configuration and a
+// human-readable dictionary, but no example people, families or sources.
+// GEDCOM import does not use a built-in tag-to-field translation table. Source
+// tag paths are flattened as-is; this dictionary supplies useful OGF fields
+// that users may choose to use or rename imported fields to.
+
+function createDefaultProjectDocs() {
+  const dictionaryFields = [
+    ["name", "Full name", "Name as recorded", 1],
+    ["given_name", "Given name", "Given or personal names", 1],
+    ["surname", "Surname", "Family name", 1],
+    ["nickname", "Nickname", "Informal or alternative name", 1],
+    ["sex", "Sex", "Recorded sex value", 1],
+    ["birth_date", "Date of birth", "Date associated with the birth event", 1],
+    ["birth_place", "Place of birth", "Place associated with the birth event", 1],
+    ["death_date", "Date of death", "Date associated with the death event", 1],
+    ["death_place", "Place of death", "Place associated with the death event", 1],
+    ["burial_date", "Date of burial", "Date associated with the burial event", 1],
+    ["burial_place", "Place of burial", "Place associated with the burial event", 1],
+    ["occupation", "Occupation", "Recorded occupation or profession", 1],
+    ["education", "Education", "Recorded education or qualification", 1],
+    ["title", "Personal title", "Recorded personal or formal title", 1],
+    ["cause_of_death", "Cause of death", "Recorded cause of death", 1],
+    ["source_reference", "Source reference", "Reference to a Source record", 1],
+    ["husb", "Husband", "", 2],
+    ["wife", "Wife", "", 2],
+    ["chil", "Child", "", 2],
+    ["marriage_date", "Date of marriage", "Date associated with the marriage event", 2],
+    ["marriage_place", "Place of marriage", "Place associated with the marriage event", 2],
+    ["divorce", "Divorced", "A divorce event recorded for the family", 2],
+    ["source_title", "Source title", "Title of a source record", 3],
+    ["source_text", "Source text", "Text transcribed or associated with a source", 3],
+    ["repository_name", "Repository name", "Name of the institution holding a source", 4],
+    ["repository_website", "Repository website", "Website of the repository", 4],
+    ["event_type", "Event type", "Type of a general event; values may be displayed using the event-type choices", 5],
+    ["event_date", "Event date", "Date associated with a general event", 5],
+    ["event_place", "Event place", "Place associated with a general event", 5],
+    ["event_description", "Event description", "Description or note associated with a general event", 5]
+  ];
+  const metaEntries = [
+    { key: "id", value: "@meta@", group: 0 },
+    { key: "type", value: "Meta", group: 0 },
+    { key: "format_version", value: "1", group: 0 },
+    { key: "version", value: "1", group: 0 },
+    { key: "language", value: "en", group: 0 },
+    { key: "encoding", value: "UTF-8", group: 0 },
+    { key: "individual_display_field", value: "name", group: 0 },
+    { key: "family_display_field", value: "{$wife.name} & {$husb.name}", group: 0 },
+    { key: "gender_mapping", value: { field: "sex", male: "M", female: "F" }, group: 0 },
+    { key: "tree", value: { relationships: { individual_type: "Individual", family_type: "Family", family: { partner_fields: ["husb", "wife"], child_fields: ["chil"] } } }, group: 0 },
+    { key: "date_approx", value: "About {date}", group: 1 },
+    { key: "date_uncertain", value: "Possibly {date}", group: 1 },
+    { key: "date_range", value: "Between {start} and {end}", group: 1 },
+    { key: "date_before", value: "On or before {date}", group: 1 },
+    { key: "date_after", value: "On or after {date}", group: 1 }
+  ];
+  const dictionaryEntries = [
+    { key: "id", value: "@dictionary@", group: 0 },
+    { key: "type", value: "Dictionary", group: 0 }
+  ];
+  for (const [key, label, description, group] of dictionaryFields) {
+    dictionaryEntries.push({ key, value: description ? `${label} — ${description}` : label, group });
+  }
+  dictionaryEntries.push({ key: "sex_values", value: "M=Male | F=Female | U=Unknown", group: 1 });
+  return [
+    { id: "@meta@", type: "Meta", entries: metaEntries, map: Object.fromEntries(metaEntries.map(e => [e.key, e.value])) },
+    { id: "@dictionary@", type: "Dictionary", entries: dictionaryEntries, map: Object.fromEntries(dictionaryEntries.map(e => [e.key, e.value])) }
+  ];
+}
+
 const LINK_RE = /^@.+@$/;
 const REF_TOKEN_RE = /@[^@\s]+@/g;
 const URL_TOKEN_RE = /(?:https?:\/\/[^\s<>"']+|www\.[^\s<>"']+)/gi;
@@ -38,7 +108,7 @@ function appendLinkedText(container, value, docMap) {
         pill.addEventListener("click", () => {
           state.selectedId = token;
           state.editMode = false;
-          if (["Individual", "Family", "Source"].includes(target.type)) {
+          if (["Individual", "Family", "Source", "Repository"].includes(target.type)) {
             state.activeTab = target.type;
             updateTabUI();
           }
@@ -302,7 +372,8 @@ function formatDictionaryValues(values) {
 }
 
 function dictionaryValueLabel(key, value) {
-  const choices = state.dict[key] && state.dict[key].values;
+  const baseKey = String(key || "").replace(/_\d+$/, "");
+  const choices = state.dict[baseKey] && state.dict[baseKey].values;
   const code = String(value ?? "");
   return choices && Object.prototype.hasOwnProperty.call(choices, code) ? choices[code] : code;
 }
@@ -586,8 +657,12 @@ function getRecordTitle(doc, docMap) {
     if (full) return full;
   }
   if (doc.type === "Source") {
-    const sourceTitle = m.titl || m.tytul || m.title || m.abbr || m.auth;
+    const sourceTitle = m.source_title || m.titl || m.tytul || m.title || m.abbr || m.auth;
     if (sourceTitle) return String(sourceTitle);
+  }
+  if (doc.type === "Repository") {
+    const repositoryName = m.repository_name || m.name || m.repo_name;
+    if (repositoryName) return String(repositoryName);
   }
   if (doc.type === "Family") {
     const configured = state.meta.family_display_field;
@@ -595,24 +670,20 @@ function getRecordTitle(doc, docMap) {
       const display = resolveDisplayTemplate(doc, configured, docMap);
       if (display) return display;
     }
-    // Backward-compatible fallback for datasets without display metadata.
-    const hId = m.husb || m.husband_id || m.maz_id;
-    const wId = m.wife || m.wife_id || m.zona_id;
-    const hName = hId && docMap[hId] ? getRecordTitle(docMap[hId], docMap) : "";
-    const wName = wId && docMap[wId] ? getRecordTitle(docMap[wId], docMap) : "";
-    if (hName || wName) return [hName || "?", wName || "?"].join(" + ");
   }
   return m.title || doc.id || "Untitled";
 }
 
 function getRecordDate(doc) {
   const m = doc.map;
-  return m.birth_date || m.urodzenie_data || m.birt_date || m.marriage_date || m.slub_data || m.marr_date || m.date || "";
+  return m.birth_date || m.death_date || m.burial_date || m.marriage_date || m.event_date ||
+    m.urodzenie_data || m.birt_date || m.slub_data || m.marr_date || m.date || "";
 }
 
 function getRecordPlace(doc) {
   const m = doc.map;
-  return m.birth_place || m.urodzenie_miejsce || m.birt_place || m.marriage_place || m.slub_miejsce || m.marr_place || m.place || "";
+  return m.birth_place || m.death_place || m.burial_place || m.marriage_place || m.event_place ||
+    m.urodzenie_miejsce || m.birt_place || m.slub_miejsce || m.marr_place || m.place || "";
 }
 
 function rebuildFromEditor() {
@@ -696,17 +767,21 @@ function renderDirectory() {
   const inds = allDisplay.filter(d => d.type === "Individual");
   const fams = allDisplay.filter(d => d.type === "Family");
   const sources = allDisplay.filter(d => d.type === "Source");
+  const repositories = allDisplay.filter(d => d.type === "Repository");
 
   document.getElementById("tab-ind").textContent = `Individuals (${inds.length})`;
   document.getElementById("tab-fam").textContent = `Families (${fams.length})`;
   const sourceTab = document.getElementById("tab-source");
   if (sourceTab) sourceTab.textContent = `Sources (${sources.length})`;
+  const repositoryTab = document.getElementById("tab-repository");
+  if (repositoryTab) repositoryTab.textContent = `Repositories (${repositories.length})`;
   document.getElementById("tab-all").textContent = `All (${allDisplay.length})`;
 
   let filtered = allDisplay;
   if (state.activeTab === "Individual") filtered = inds;
   else if (state.activeTab === "Family") filtered = fams;
   else if (state.activeTab === "Source") filtered = sources;
+  else if (state.activeTab === "Repository") filtered = repositories;
 
   const q = document.getElementById("search-input").value.trim().toLowerCase();
   if (q) {
@@ -776,7 +851,15 @@ function renderInspectorDetailed() {
   const doc = docMap[state.selectedId];
 
   if (!doc) {
-    container.innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">Select a record from the list to inspect its details.</div>`;
+    container.innerHTML = `
+                            <div class="empty-state" style="text-align:center">
+                              <h2>Start building your family history</h2>
+                              <p>
+                                Add your first person or family, or explore sample data
+                                to see how Open Genealogy Format works.
+                              </p>
+                            </div>
+                          `;
     return;
   }
 
@@ -1077,7 +1160,7 @@ function renderInspector() {
     container.innerHTML = "";
 
     if (!doc) {
-      container.textContent = "Select a record from the list to inspect its details.";
+      container.textContent = "Your genealogy starts here. Add your first person or family, or explore sample data to see how Open Genealogy Format works.";;
       return;
     }
 
@@ -1339,7 +1422,7 @@ function updateTabUI() {
 }
 
 // GEDCOM structural converter
-// Preserve tag names, values, and complete tag paths without semantic mapping.
+// Flatten source tag paths without translating their meaning into OGF fields.
 function convertGedcomToOgf(gedText) {
   const lines = gedText.split(/\r?\n/);
   const records = [];
@@ -1372,9 +1455,9 @@ function convertGedcomToOgf(gedText) {
   }
   if (currentRec) records.push(currentRec);
 
-  // Keep GEDCOM xrefs as record IDs. GEDCOM relationship values such as
-  // FAMC @F1@ and HUSB @I1@ must resolve to these exact IDs in the viewer.
-  // Rewriting record IDs without rewriting every reference breaks the links.
+  // Keep GEDCOM xrefs as record IDs. Relationship references must resolve to
+  // these exact IDs in the viewer. Rewriting IDs without rewriting every
+  // reference breaks the links.
 
   // GEDCOM 5.5.1 commonly stores media in a separate level-0 OBJE record:
   //   1 OBJE @O1@
@@ -1412,7 +1495,7 @@ function convertGedcomToOgf(gedText) {
         { key: "language", value: "en", group: 0 },
         { key: "encoding", value: "UTF-8", group: 0 },
         { key: "individual_display_field", value: "name", group: 0 },
-        { key: "family_display_field", value: "{$wife.name_givn} & {$husb.name}", group: 0 },
+        { key: "family_display_field", value: "{$wife.name} & {$husb.name}", group: 0 },
         { key: "gender_mapping", value: { field: "sex", male: "M", female: "F" }, group: 0 },
         { key: "tree", value: { relationships: { individual_type: "Individual", family_type: "Family", family: { partner_fields: ["husb", "wife"], child_fields: ["chil"] } } }, group: 0 },
         { key: "date_approx", value: "About {date}", group: 1 },
@@ -1428,9 +1511,9 @@ function convertGedcomToOgf(gedText) {
   const rawFamilyById = new Map(records.filter(r => r.tag === "FAM" && r.xref).map(r => [r.xref, r]));
 
   for (const rec of records) {
-    if (!rec.xref || !["INDI", "FAM", "SOUR"].includes(rec.tag)) continue;
+    if (!rec.xref || !["INDI", "FAM", "SOUR", "REPO"].includes(rec.tag)) continue;
 
-    const type = rec.tag === "INDI" ? "Individual" : rec.tag === "FAM" ? "Family" : "Source";
+    const type = rec.tag === "INDI" ? "Individual" : rec.tag === "FAM" ? "Family" : rec.tag === "SOUR" ? "Source" : "Repository";
     const id = rec.xref;
     const entries = [
       { key: "id", value: id, group: 0 },
@@ -1450,9 +1533,14 @@ function convertGedcomToOgf(gedText) {
     }
 
     function emitGedcomNode(node, parentPath) {
-      const key = parentPath
-        ? `${parentPath}_${cleanTag(node.tag)}`
+      const gedcomPath = parentPath ? `${parentPath}.${node.tag}` : node.tag;
+      const fallbackKey = parentPath
+        ? `${parentPath.toLowerCase().replace(/\./g, "_")}_${cleanTag(node.tag)}`
         : cleanTag(node.tag);
+      // Keep source tag names intact (lowercase) and flatten their hierarchy
+      // with underscores. The importer does not translate GEDCOM semantics
+      // into the project's human-readable dictionary fields.
+      const key = fallbackKey;
 
       // GEDCOM uses slashes to delimit the surname in NAME values.
       // They are syntax markers, not part of the person's display name.
@@ -1464,17 +1552,24 @@ function convertGedcomToOgf(gedText) {
       }
 
       // Drop an Individual-side FAMC/FAMS pointer only when the referenced
-      // Family record contains the matching reciprocal CHIL/HUSB/WIFE link.
-      // Descendant data such as FAMC.PEDI remains flattened and preserved.
+      // Family record contains a reciprocal field configured in @meta@.tree.
+      // The configured field names are also enumerated in @dictionary@; the
+      // GEDCOM tags are lowercased by the normal fallback path, not hardcoded
+      // here. Descendant data such as FAMC.PEDI remains preserved.
       if (rec.tag === "INDI" && parentPath === "" &&
           (node.tag === "FAMC" || node.tag === "FAMS")) {
         const family = rawFamilyById.get(value);
         const individualId = rec.xref;
-        const reciprocal = family && family.children.some(child =>
-          node.tag === "FAMS"
-            ? ((child.tag === "HUSB" || child.tag === "WIFE") && child.val === individualId)
-            : (child.tag === "CHIL" && child.val === individualId)
-        );
+        const relationshipConfig = (state.meta?.tree && state.meta.tree.relationships) || state.meta?.tree_relationships || {};
+        const familyConfig = relationshipConfig.family || {};
+        const configuredFields = node.tag === "FAMS"
+          ? (Array.isArray(familyConfig.partner_fields) ? familyConfig.partner_fields : [])
+          : (Array.isArray(familyConfig.child_fields) ? familyConfig.child_fields : []);
+        const configuredFieldSet = new Set(configuredFields.map(field => String(field).toLowerCase()));
+        const reciprocal = family && family.children.some(child => {
+          const familyField = cleanTag(child.tag);
+          return configuredFieldSet.has(familyField) && child.val === individualId;
+        });
         if (reciprocal) value = null;
       }
 
@@ -1494,7 +1589,7 @@ function convertGedcomToOgf(gedText) {
       }
 
       for (const child of node.children) {
-        emitGedcomNode(child, key);
+        emitGedcomNode(child, gedcomPath);
       }
     }
 
@@ -1513,36 +1608,24 @@ function convertGedcomToOgf(gedText) {
     emittedRecordDocs.push(recordDoc);
   }
 
-  // Build a dictionary from exactly the keys emitted by this import.
-  // Curated descriptions are intentionally limited to well-known GEDCOM paths;
-  // unknown/custom keys receive neutral labels and no invented description.
-  const curatedLabels = {
-    name: "Name", name_givn: "Given Name", name_surn: "Surname",
-    birt_date: "Birth Date", birt_plac: "Birth Place",
-    deat_date: "Death Date", deat_plac: "Death Place",
-    marr_date: "Marriage Date", marr_plac: "Marriage Place",
-    husb: "Husband", wife: "Wife", chil: "Child",
-    titl: "Title", auth: "Author", publ: "Publication",
-    data_date: "Data Date", data_text: "Data Text"
-  };
+  // Start from the default OGF field dictionary and add neutral entries for
+  // every imported source key not already listed. No source-tag-to-OGF-field
+  // translation is performed: tag paths are retained as flattened keys.
+  const defaultProjectDocs = createDefaultProjectDocs();
+  const defaultDictionary = defaultProjectDocs.find(doc => doc.id === "@dictionary@");
+  const dictionaryEntries = defaultDictionary.entries.map(entry => ({ ...entry }));
+  const knownDictionaryKeys = new Set(dictionaryEntries.map(entry => entry.key));
   const importedKeys = new Map();
   for (const recordDoc of emittedRecordDocs) {
     for (const entry of recordDoc.entries) {
-      if (entry.key !== "id" && entry.key !== "type" && !importedKeys.has(entry.key)) {
+      if (entry.key !== "id" && entry.key !== "type" && !knownDictionaryKeys.has(entry.key) && !importedKeys.has(entry.key)) {
         importedKeys.set(entry.key, entry.group);
       }
     }
   }
-  const dictionaryEntries = [
-    { key: "id", value: "@dictionary@", group: 0 },
-    { key: "type", value: "Dictionary", group: 0 }
-  ];
   for (const key of [...importedKeys.keys()].sort()) {
-    const label = curatedLabels[key] || key.replace(/_\d+$/, "").replace(/^_+/, "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-    dictionaryEntries.push({ key, value: label, group: importedKeys.get(key) });
-    if (key === "sex") {
-      dictionaryEntries.push({ key: "sex_values", value: "M=Male | F=Female | U=Unknown", group: importedKeys.get(key) });
-    }
+    const label = key.replace(/_\d+$/, "").replace(/^_+/, "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    dictionaryEntries.push({ key, value: label, group: importedKeys.get(key) + 10 });
   }
   outDocs.splice(1, 0, {
     id: "@dictionary@",
@@ -1665,6 +1748,7 @@ document.getElementById("cancel-dictionary-btn").addEventListener("click", () =>
 document.getElementById("add-dictionary-row-btn").addEventListener("click", () => addDictionaryEditorRow());
 
 document.getElementById("save-dictionary-btn").addEventListener("click", () => {
+  const existingDictionary = state.docs.find(d => d.id === "@dictionary@" || d.type === "Dictionary");
   const entries = [
     { key: "id", value: "@dictionary@", group: 0 },
     { key: "type", value: "Dictionary", group: 0 }
@@ -1749,7 +1833,7 @@ function openMetadataEditor() {
     { key: "language", value: "en" },
     { key: "encoding", value: "UTF-8" },
     { key: "individual_display_field", value: "name" },
-    { key: "family_display_field", value: "{$wife.name_givn} & {$husb.name}" },
+    { key: "family_display_field", value: "{$wife.name} & {$husb.name}" },
     { key: "date_approx", value: "About {date}" },
     { key: "date_uncertain", value: "Possibly {date}" },
     { key: "date_range", value: "Between {start} and {end}" },
@@ -1824,6 +1908,22 @@ document.getElementById("toggle-yaml-btn").addEventListener("click", () => {
   updateYamlToggleButton();
 });
 
+function loadNewProject() {
+  const docs = createDefaultProjectDocs();
+  const yaml = serializeYamlStream(docs);
+  const editor = document.getElementById("yaml-editor");
+  editor.value = yaml;
+  state.selectedId = null;
+  state.editMode = false;
+  state.activeTab = "Individual";
+  updateTabUI();
+  rebuildFromEditor();
+  const status = document.getElementById("yaml-status");
+  status.textContent = "New empty project · default metadata and dictionary ready";
+  status.style.color = "#4ade80";
+  document.getElementById("sample-select").value = "";
+}
+
 async function loadSample(language) {
   const filename = SAMPLE_FILES[language];
   const status = document.getElementById("yaml-status");
@@ -1876,7 +1976,8 @@ async function loadSample(language) {
 
 document.getElementById("sample-select").addEventListener("change", event => {
   const language = event.target.value;
-  if (language) loadSample(language);
+  if (language === "new") loadNewProject();
+  else if (language) loadSample(language);
 });
 
 document.getElementById("yaml-editor").addEventListener("input", rebuildFromEditor);
@@ -1900,10 +2001,9 @@ document.getElementById("add-ind-btn").addEventListener("click", () => {
     type: "Individual",
     entries: [
       { key: "id", value: id, group: 0 },
-      { key: "type", value: "Individual", group: 0 },
-      { key: "name_first", value: "New Person", group: 1 }
+      { key: "type", value: "Individual", group: 0 }
     ],
-    map: { id, type: "Individual", name_first: "New Person" }
+    map: { id, type: "Individual" }
   });
   state.activeTab = "Individual";
   state.selectedId = id;
@@ -1920,10 +2020,9 @@ document.getElementById("add-fam-btn").addEventListener("click", () => {
     type: "Family",
     entries: [
       { key: "id", value: id, group: 0 },
-      { key: "type", value: "Family", group: 0 },
-      { key: "marriage_date", value: "", group: 1 }
+      { key: "type", value: "Family", group: 0 }
     ],
-    map: { id, type: "Family", marriage_date: "" }
+    map: { id, type: "Family" }
   });
   state.activeTab = "Family";
   state.selectedId = id;
@@ -1942,12 +2041,30 @@ document.getElementById("add-source-btn")?.addEventListener("click", () => {
     type: "Source",
     entries: [
       { key: "id", value: id, group: 0 },
-      { key: "type", value: "Source", group: 0 },
-      { key: "titl", value: "New Source", group: 1 }
+      { key: "type", value: "Source", group: 0 }
     ],
-    map: { id, type: "Source", titl: "New Source" }
+    map: { id, type: "Source" }
   });
   state.activeTab = "Source";
+  state.selectedId = id;
+  state.editMode = true;
+  updateTabUI();
+  syncDocsToEditor();
+});
+
+document.getElementById("add-repository-btn")?.addEventListener("click", () => {
+  const slug = Math.random().toString(36).slice(2, 7);
+  const id = `@repo_${slug}@`;
+  state.docs.push({
+    id,
+    type: "Repository",
+    entries: [
+      { key: "id", value: id, group: 0 },
+      { key: "type", value: "Repository", group: 0 }
+    ],
+    map: { id, type: "Repository" }
+  });
+  state.activeTab = "Repository";
   state.selectedId = id;
   state.editMode = true;
   updateTabUI();
@@ -2058,5 +2175,5 @@ window.OGFApp = {
   }
 };
 
-// Samples are stored next to index.html and loaded on startup.
-loadSample("en-gedcom");
+// Start with a clean project; samples remain available as explicit examples.
+loadNewProject();

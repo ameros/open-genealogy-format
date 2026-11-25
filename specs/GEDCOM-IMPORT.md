@@ -34,6 +34,7 @@ The importer creates dedicated OGF records for:
 | `INDI` | `Individual` |
 | `FAM` | `Family` |
 | `SOUR` | `Source` |
+| `REPO` | `Repository` |
 
 Other GEDCOM record types do not receive dedicated card interfaces in the current application.
 
@@ -80,39 +81,41 @@ Every reference must continue to point to the same identifier.
 
 ## 5. Flattening GEDCOM hierarchy
 
-GEDCOM uses hierarchical levels. OGF stores fields using flat keys.
-
-The importer must flatten tag paths by joining lowercase tag names with underscores.
+GEDCOM uses hierarchical levels. OGF stores record fields as flat keys. The
+importer flattens each tag path by lowercasing its tag names and joining nested
+levels with underscores. It does not translate GEDCOM tags into the default
+human-readable OGF dictionary fields.
 
 Examples:
 
-| GEDCOM | OGF |
+| GEDCOM path | Imported OGF key |
 |---|---|
 | `NAME` | `name` |
 | `NAME.GIVN` | `name_givn` |
 | `NAME.SURN` | `name_surn` |
 | `BIRT.DATE` | `birt_date` |
 | `BIRT.PLAC` | `birt_plac` |
-| `BIRT.PLAC.MAP.LATI` | `birt_plac_map_lati` |
-| `BIRT.PLAC.MAP.LONG` | `birt_plac_map_long` |
 | `DEAT.DATE` | `deat_date` |
+| `MARR.DATE` | `marr_date` |
+| `DIV` | `div` |
 | `_MARNM` | `_marnm` |
+
+The dictionary is not an import mapping table. It provides a set of useful OGF
+fields (for example, `birth_date`, `birth_place` and `marriage_date`) that users
+may choose to use. If a user wants an imported key to use one of those fields,
+they can explicitly rename it after import. The importer must not make that
+semantic decision on the user's behalf.
+
+Leading underscores in extension tags must be preserved. Repeated tags must
+not overwrite earlier values. A deterministic suffix may be appended, for
+example `_2`, `_3`.
 
 ### 5.1 Tag names
 
-Tag names are converted to lowercase.
-
-Nested tag names are joined with `_`.
-
-The importer must not semantically translate GEDCOM tags.
-
-For example:
-
-- `BIRT` becomes `birt`, not `birth`.
-- `DEAT` becomes `deat`, not `death`.
-- `MARR` becomes `marr`, not `marriage`.
-
-Leading underscores in extension tags must be preserved.
+Tag names are source data. Lowercasing and flattening only make them valid,
+consistent OGF field keys; they do not translate their meaning. The original
+values are preserved, subject only to explicitly documented structural handling
+such as removal of GEDCOM name-delimiter slashes from a top-level personal name.
 
 ### 5.2 Structural parents
 
@@ -137,242 +140,6 @@ It must not produce:
 birt: ""
 birt_date: "25 NOV 1976"
 ```
-
-### 5.3 Empty leaf values
-
-An empty leaf value must be preserved as an empty string.
-
-### 5.4 Repeated tags
-
-Repeated tags must not overwrite one another.
-
-The importer must use deterministic unique field names, for example:
-
-```yaml
-note: First note
-note_2: Second note
-note_3: Third note
-```
-
-A generated suffix must not overwrite another field that already exists.
-
-## 6. NAME handling
-
-The importer removes GEDCOM surname delimiters `/` only from the top-level `NAME` value of an Individual.
-
-Input:
-
-```gedcom
-1 NAME John /Smith/
-2 GIVN John
-2 SURN Smith
-```
-
-Output:
-
-```yaml
-name: John Smith
-name_givn: John
-name_surn: Smith
-```
-
-The importer must not modify:
-
-- `GIVN` values.
-- `SURN` values.
-- Other name substructures.
-- Slash characters in unrelated fields.
-
-The importer must preserve multiple name records and name-related fields.
-
-It must not infer which name is a birth, adopted or married name unless the source explicitly provides that information.
-
-## 7. Individual and Family relationships
-
-### 7.1 Family-side references
-
-Family-side relationship fields are preserved as references.
-
-Examples:
-
-```gedcom
-0 @F1@ FAM
-1 HUSB @I1@
-1 WIFE @I2@
-1 CHIL @I3@
-```
-
-Become:
-
-```yaml
-id: "@F1@"
-type: Family
-
-husb: "@I1@"
-wife: "@I2@"
-chil: "@I3@"
-```
-
-The importer must not replace these values with names.
-
-### 7.2 Individual-side references
-
-GEDCOM Individual records may contain:
-
-- `FAMS` — spouse relationship to a Family.
-- `FAMC` — child relationship to a Family.
-
-These references may duplicate the relationship already represented on the Family record.
-
-### 7.3 Conditional removal of redundant FAMS
-
-An Individual's `FAMS: @F1@` may be removed only if:
-
-1. Family `@F1@` exists.
-2. That Family has a `HUSB` or `WIFE` reference to the same Individual.
-
-If either condition is not met, preserve the `FAMS` reference.
-
-### 7.4 Conditional removal of redundant FAMC
-
-An Individual's `FAMC: @F1@` may be removed only if:
-
-1. Family `@F1@` exists.
-2. That Family has a `CHIL` reference to the same Individual.
-
-If either condition is not met, preserve the `FAMC` reference.
-
-### 7.5 Nested FAMC and FAMS data
-
-Removing a redundant relationship pointer must not remove nested data.
-
-For example:
-
-```gedcom
-1 FAMC @F1@
-2 PEDI adopted
-2 STAT proven
-```
-
-The relationship pointer may be omitted when the Family-side relationship is present, but the additional values must be retained, for example:
-
-```yaml
-famc_pedi: adopted
-famc_stat: proven
-```
-
-The same preservation rule applies to nested `FAMS` information.
-
-### 7.6 Reverse references
-
-The viewer may display reverse links by inspecting Family records.
-
-These reverse links are derived presentation data, not additional imported facts.
-
-## 8. Source records
-
-GEDCOM `SOUR` records become OGF `Source` records.
-
-Example:
-
-```gedcom
-0 @S1@ SOUR
-1 TITL Parish Register
-1 AUTH St Mary's Parish
-1 PUBL London
-```
-
-Output:
-
-```yaml
-id: "@S1@"
-type: Source
-
-titl: Parish Register
-auth: St Mary's Parish
-publ: London
-```
-
-Nested fields are flattened using the same rules.
-
-Examples:
-
-- `DATA.DATE` becomes `data_date`.
-- `DATA.TEXT` becomes `data_text`.
-
-References to Sources from Individuals and Families must be preserved exactly.
-
-The viewer must support navigation between records and their referenced Sources.
-
-The importer must not create dedicated Repository or other record cards in the current implementation.
-
-## 9. Multimedia and OBJE records
-
-### 9.1 General rule
-
-GEDCOM multimedia information must not be discarded merely because `OBJE` is not a dedicated card type.
-
-The importer must preserve the original media references and file values.
-
-### 9.2 Inline OBJE
-
-For an inline object:
-
-```gedcom
-1 OBJE
-2 FILE photos/john.jpg
-```
-
-The flattened field is:
-
-```yaml
-obje_file: photos/john.jpg
-```
-
-### 9.3 Standalone OBJE records
-
-GEDCOM may define a separate object record:
-
-```gedcom
-0 @O1@ OBJE
-1 FILE photos/john.jpg
-```
-
-An Individual may reference it:
-
-```gedcom
-1 OBJE @O1@
-```
-
-The importer must resolve the reference for media presentation.
-
-The original object reference must not be silently discarded.
-
-The resolved `FILE` value must be made available to the viewer for image rendering, for example through `obje_file`.
-
-An unresolved object reference must remain visible as an unresolved reference.
-
-### 9.4 Image rendering
-
-The viewer should:
-
-1. Identify usable image references.
-2. Resolve remote URLs directly where supported.
-3. Resolve local paths against a user-selected media directory.
-4. Display the first usable image as the record portrait.
-5. Keep other media references accessible in the record fields.
-
-The portrait must be rendered as an actual image element:
-
-```html
-<img src="resolved-image-source" alt="Record image">
-```
-
-The portrait must not be displayed a second time as an ordinary image inside the `obje_file` field row.
-
-If the image cannot be resolved or loaded, the record must remain usable without a broken-image placeholder.
-
-A local GEDCOM path must not be assumed to be a public URL. Browser access to local media may require the user to select the media directory.
 
 ## 10. Date preservation
 
@@ -400,7 +167,13 @@ It must not assume that GEDCOM `CAL`, `EST` and `ABT` have identical meanings to
 
 ## 11. Dictionary generation
 
-The importer must generate or update an `@dictionary@` document based on the fields actually emitted during import.
+A new empty OGF project starts with a default `@dictionary@` containing a
+curated set of human-readable OGF fields. This dictionary is a starting
+vocabulary for users; it does not contain GEDCOM tag mappings and the importer
+does not consult it to rename imported fields.
+
+During GEDCOM import, the importer retains the default dictionary and adds
+neutral entries for source-derived flattened keys that are not already listed.
 
 ### 11.1 Included fields
 
@@ -409,6 +182,7 @@ Include the flattened keys used by imported:
 - Individual records.
 - Family records.
 - Source records.
+- Repository records.
 
 Exclude structural keys:
 
@@ -419,15 +193,16 @@ Include generated suffix keys such as `_2` and `_3` when they occur.
 
 ### 11.2 Labels and descriptions
 
-Known GEDCOM tag paths may receive curated labels and descriptions.
-
-Unknown or custom fields must receive neutral generated labels and empty descriptions.
+Fields already present in the default dictionary retain their human-readable
+labels. Source-derived keys not already present receive neutral generated labels
+and empty descriptions. The importer must not infer a semantic label from a
+GEDCOM tag.
 
 The importer must not invent semantic descriptions for unknown tags.
 
 ### 11.3 Shared dictionary
 
-The dictionary is shared by Individuals, Families and Sources.
+The dictionary is shared by Individuals, Families, Sources and Repositories.
 
 The Add Field interface must use the dictionary as its source of available fields.
 

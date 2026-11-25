@@ -6,6 +6,11 @@ YAML multi-document files and keeps records, metadata and presentation separate.
 The format has an open field vocabulary: applications must preserve fields they
 do not recognize. Records are connected by stable identifiers, not by copied
 names. Import and display must not silently invent facts or change stored data.
+The dictionary defines useful OGF fields and labels; it does not translate tags
+from GEDCOM or other source formats. Importers preserve source tags as flattened
+field keys, and users may explicitly rename or reorganize those fields.
+The viewer starts with an empty project containing default metadata and a curated
+human-readable dictionary; example files are available from the Samples menu.
 
 ## A small example
 
@@ -23,15 +28,14 @@ gender_mapping:
 ---
 id: "@dictionary@"
 type: Dictionary
-
-name: Name
-birt_date: Birth Date
+name: Full name
+birth_date: Date of birth
 ---
 id: "@I1@"
 type: Individual
 name: Alex Smith
 sex: M
-birt_date: "25 NOV 1976"
+birth_date: "25 NOV 1976"
 ```
 
 `@meta@.format_version` identifies the OGF data-format contract;
@@ -60,7 +64,7 @@ description of the format.
 | Document | What it covers |
 |---|---|
 | [Specification](specs/SPECIFICATION.md) | Records, identifiers, metadata, dictionary, dates and presentation rules |
-| [GEDCOM import](specs/GEDCOM-IMPORT.md) | How GEDCOM 5.5.1 data is mapped into OGF |
+| [GEDCOM import](specs/GEDCOM-IMPORT.md) | How GEDCOM 5.5.1 structures are flattened and preserved during import |
 | [Tree view](specs/TREE-VIEW.md) | Tree relationships and tree-specific behavior |
 | [Name display](specs/NAME-DISPLAY.md) | Viewer settings for choosing and displaying name variants |
 

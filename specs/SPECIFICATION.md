@@ -76,7 +76,7 @@ id: "@I1@"
 type: Individual
 
 name: John Smith
-birt_date: "25 NOV 1976"
+birth_date: "25 NOV 1976"
 ---
 id: "@F1@"
 type: Family
@@ -95,8 +95,9 @@ The current viewer provides dedicated card interfaces for:
 - `Individual`
 - `Family`
 - `Source`
+- `Repository`
 
-Other record types are not currently assigned dedicated card interfaces.
+The record type vocabulary remains extensible.
 
 ### 4.1 Individual
 
@@ -110,8 +111,8 @@ id: "@I1@"
 type: Individual
 
 name: John Smith
-birt_date: "25 NOV 1976"
-birt_plac: London
+birth_date: "25 NOV 1976"
+birth_place: London
 ```
 
 ### 4.2 Family
@@ -144,12 +145,29 @@ Example:
 id: "@S1@"
 type: Source
 
-titl: Parish Register
-auth: St Mary's Parish
-publ: London
+source_title: Parish Register
+source_text: Parish register entry transcript
 ```
 
 Source identifiers and references must be preserved.
+
+### 4.4 Repository
+
+Represents an institution or other repository that holds a source.
+
+Example:
+
+```yaml
+---
+id: "@R1@"
+type: Repository
+
+repository_name: City Archives
+repository_website: https://example.org/archive
+```
+
+Repository records may be referenced by Source records. A viewer should preserve
+those references and may render them as navigable links.
 
 ## 5. Identifiers and references
 ### 5.1 Identifiers
@@ -190,9 +208,12 @@ A reverse reference must not be mistaken for an independently stored genealogica
 
 OGF field names are open.
 
-For imported GEDCOM data, hierarchical tag paths are represented by joining lowercase tag names with underscores.
+Importers may flatten hierarchical source structures into field keys. They must
+not silently translate source tags into a different OGF vocabulary. The field
+dictionary defines useful OGF fields and labels, but it is not a source-format
+mapping table. A user may rename imported fields explicitly.
 
-Examples:
+Examples of source-tag flattening:
 
 | GEDCOM path | OGF key |
 |---|---|
@@ -204,10 +225,11 @@ Examples:
 | `BIRT.PLAC.MAP.LATI` | `birt_plac_map_lati` |
 | `_MARNM` | `_marnm` |
 
-GEDCOM tag names must not be semantically translated.
-A tag such as `BIRT` becomes `birt`, not `birth`.
-
-Leading underscores in extension tags must be preserved.
+The importer does not translate these source-derived keys into the human-readable
+starter fields such as `birth_date` or `marriage_date`. Those fields are available
+in the dictionary for users to adopt through an explicit rename or editing step.
+Unknown paths remain available and must not be discarded. Leading underscores
+in extension tags must be preserved.
 
 Repeated tags must not overwrite earlier values. A deterministic suffix may be appended, for example `_2`, `_3`.
 
@@ -231,7 +253,7 @@ version: 1
 language: en
 encoding: UTF-8
 individual_display_field: name
-family_display_field: "{$wife.name_givn} & {$husb.name}"
+family_display_field: "{$wife.name} & {$husb.name}"
 date_approx: "About {date}"
 date_uncertain: "Possibly {date}"
 date_range: "Between {start} and {end}"
@@ -248,7 +270,7 @@ The viewer's standard metadata defaults are:
 | `language` | `en` | Primary presentation language |
 | `encoding` | `UTF-8` | Text encoding declaration |
 | `individual_display_field` | `name` | Individual card and link title |
-| `family_display_field` | `{$wife.name_givn} & {$husb.name}` | Family card and link title |
+| `family_display_field` | `{$wife.name} & {$husb.name}` | Family card and link title |
 | `date_approx` | `About {date}` | Approximate-date description |
 | `date_uncertain` | `Possibly {date}` | Uncertain-date description |
 | `date_range` | `Between {start} and {end}` | Date-range description |
@@ -424,7 +446,9 @@ Display metadata must never replace stored names with derived strings, rewrite r
 
 ## 8. Dictionary: `@dictionary@`
 
-The optional `@dictionary@` document defines field labels, descriptions and grouping.
+The optional `@dictionary@` document defines field labels, descriptions,
+grouping and optional value choices. A new project should start with a default
+dictionary and no sample genealogy records.
 
 Example:
 
@@ -432,13 +456,17 @@ Example:
 ---
 id: "@dictionary@"
 type: Dictionary
-
-name: Name — Name as recorded
-birt_date: Birth Date — Date of birth
-birt_plac: Birth Place — Place of birth
-
-deat_date: Death Date — Date of death
-deat_plac: Death Place — Place of death
+name: Full name — Name as recorded
+birth_date: Date of birth — Date associated with the birth event
+birth_place: Place of birth — Place associated with the birth event
+husb: Husband
+wife: Wife
+chil: Child
+event_type: Event type
+event_date: Event date
+event_place: Event place
+event_description: Event description
+divorce: Divorced
 ```
 
 ### 8.1 Entry syntax
@@ -448,6 +476,16 @@ The general form is:
 ```yaml
 field_key: Display Label — Optional description
 ```
+
+The dictionary describes the OGF field vocabulary. It does not map GEDCOM tags
+or tags from any other source format to OGF fields. Importers preserve source
+tags as source-derived keys; users may explicitly rename those keys when they
+want to adopt a preferred OGF field name.
+
+Relationship field keys such as `husb`, `wife` and `chil` are enumerated in the
+`@dictionary@` for human-readable display. Their relationship meaning and use
+are configured by `@meta@.tree.relationships`; they are not separately defined
+by the dictionary.
 
 ### 8.2 Grouping
 
@@ -477,6 +515,21 @@ Renaming a field must keep dictionary keys and record keys synchronized.
 
 A rename must not silently overwrite another field. If a collision occurs, the application must report it and require an explicit resolution. Automatic merging of values is not defined.
 
+### 8.6 Default vocabulary
+
+A new project starts with these curated field groups:
+
+| Group | Default fields |
+|---|---|
+| Individual | `name`, `given_name`, `surname`, `nickname`, `sex`, `birth_date`, `birth_place`, `death_date`, `death_place`, `burial_date`, `burial_place`, `occupation`, `education`, `title`, `cause_of_death`, `source_reference` |
+| Family | `marriage_date`, `marriage_place` |
+| Source | `source_title`, `source_text` |
+| Repository | `repository_name`, `repository_website` |
+| General event | `event_type`, `event_date`, `event_place`, `event_description` |
+
+The general-event group deliberately has no generic `event_cause` field. The
+Individual field `cause_of_death` is separate and maps to `DEAT.CAUS`.
+
 ## 9. Dates
 
 OGF supports two date notations:
@@ -491,13 +544,13 @@ Both are valid stored representations.
 Examples:
 
 ```yaml
-birt_date: "25 NOV 1975"
-birt_date: "NOV 1975"
-birt_date: "1975"
-birt_date: "ABT 1975"
-birt_date: "BEF 1976"
-birt_date: "BET 1975 AND 1976"
-birt_date: "FROM 1975 TO 1976"
+birth_date: "25 NOV 1975"
+birth_date: "NOV 1975"
+birth_date: "1975"
+birth_date: "ABT 1975"
+birth_date: "BEF 1976"
+birth_date: "BET 1975 AND 1976"
+birth_date: "FROM 1975 TO 1976"
 ```
 
 ### 9.2 EDTF dates
@@ -505,12 +558,12 @@ birt_date: "FROM 1975 TO 1976"
 Examples:
 
 ```yaml
-birt_date: "1975-11-25"
-birt_date: "1975-11"
-birt_date: "1975"
-birt_date: "1975~"
-birt_date: "1975?"
-birt_date: "1975..1976"
+birth_date: "1975-11-25"
+birth_date: "1975-11"
+birth_date: "1975"
+birth_date: "1975~"
+birth_date: "1975?"
+birth_date: "1975..1976"
 ```
 
 ### 9.3 Preservation
@@ -558,7 +611,7 @@ Example:
 name: John Smith
 sex: M
 
-birt_date: "25 NOV 1976"
+birth_date: "25 NOV 1976"
 birt_plac: London
 
 deat_date: "2020"

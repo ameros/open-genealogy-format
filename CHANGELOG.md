@@ -13,3 +13,22 @@ log, not a replacement for the specification or Git history.
 - Updated sample files, GEDCOM import defaults and documentation to declare
   both data-contract versions.
 - Retained the specification version `0.1.0-draft`.
+
+
+## Unreleased — starter project, dictionary and relationship configuration
+
+- Start the viewer with an empty OGF project instead of loading a sample genealogy.
+- Initialize default metadata and a curated English field dictionary.
+- Add the selected human-readable starter fields to the default dictionary without source-format tag mappings.
+- Enumerate `husb`, `wife` and `chil` in the default dictionary; keep relationship behavior in `@meta@.tree.relationships`.
+- Flatten imported GEDCOM tag paths into lowercase underscore-separated keys without translating their meaning into the starter dictionary vocabulary.
+- Make redundant `FAMS`/`FAMC` removal consult `tree.relationships` and the configured relationship field names.
+- Keep Family display driven by metadata configuration rather than a hardcoded relationship fallback.
+- Add Repository records and a Repository view.
+
+## Unreleased — source-tag preservation correction
+
+- Remove GEDCOM-to-OGF field mappings from the default dictionary, importer, dictionary editor and documentation.
+- Keep the default dictionary as a human-readable set of target OGF fields users can choose to adopt.
+- Import GEDCOM tag paths as flattened lowercase keys (for example, `BIRT.DATE` becomes `birt_date`) and add generated labels for those imported keys.
+- Keep GEDCOM-specific structural parsing separate from semantic field translation.
