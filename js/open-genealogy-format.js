@@ -742,7 +742,6 @@ function rebuildFromEditor() {
       }
     }
     const lang = (state.meta.language || "en").toUpperCase();
-    document.getElementById("lang-badge").textContent = "LANG: " + lang;
     status.textContent = "Valid · OGF format v" + (formatVersion || "legacy") + " · @meta@ v" + (metaVersion || "legacy") + " (" + docs.length + " docs)";
     status.style.color = "#4ade80";
 

@@ -1,7 +1,7 @@
 {
-  "projectVersion": "0.1.0-draft",
-  "specificationVersion": "0.1.0-draft",
+  "projectVersion": "1.0.0",
+  "specificationVersion": "1.0.0",
   "formatVersion": 1,
   "metadataContractVersion": 1,
-  "releaseStatus": "draft"
+  "releaseStatus": "stable"
 }

@@ -1,7 +1,7 @@
 # Open Genealogy Format — Specification
 
-**Status:** Revised draft  
-**Version:** 0.1.0-draft
+**Status:** Stable release  
+**Version:** 1.0.0
 
 ## 1. Purpose
 
