@@ -1627,18 +1627,18 @@ function convertGedcomToOgf(gedText) {
     emittedRecordDocs.push(recordDoc);
   }
 
-  // Start from the default OGF field dictionary and add neutral entries for
-  // every imported source key not already listed. No source-tag-to-OGF-field
-  // translation is performed: tag paths are retained as flattened keys.
-  const defaultProjectDocs = createDefaultProjectDocs();
-  const defaultDictionary = defaultProjectDocs.find(doc => doc.id === "@dictionary@");
-  const dictionaryEntries = defaultDictionary.entries.map(entry => ({ ...entry }));
-  const knownDictionaryKeys = new Set(dictionaryEntries.map(entry => entry.key));
+  // GEDCOM imports start with an import-specific dictionary, not the
+  // curated starter-project dictionary. The starter defaults are reserved for
+  // new empty projects; imported keys remain source-derived and unmodified.
+  const dictionaryEntries = [
+    { key: "id", value: "@dictionary@", group: 0 },
+    { key: "type", value: "Dictionary", group: 0 }
+  ];
   const importedKeys = new Map();
   for (const recordDoc of emittedRecordDocs) {
     for (const entry of recordDoc.entries) {
       if (entry.key === "id" || entry.key === "type") continue;
-      if (!knownDictionaryKeys.has(entry.key) && !importedKeys.has(entry.key)) {
+      if (!importedKeys.has(entry.key)) {
         importedKeys.set(entry.key, entry.group);
       }
     }
@@ -1646,7 +1646,6 @@ function convertGedcomToOgf(gedText) {
   for (const key of [...importedKeys.keys()].sort()) {
     const label = key.replace(/^_+/, "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
     dictionaryEntries.push({ key, value: label, group: importedKeys.get(key) + 10 });
-    knownDictionaryKeys.add(key);
   }
   outDocs.splice(1, 0, {
     id: "@dictionary@",

@@ -171,11 +171,12 @@ It must not assume that GEDCOM `CAL`, `EST` and `ABT` have identical meanings to
 
 A new empty OGF project starts with a default `@dictionary@` containing a
 curated set of human-readable OGF fields. This dictionary is a starting
-vocabulary for users; it does not contain GEDCOM tag mappings and the importer
-does not consult it to rename imported fields.
+vocabulary for users; it does not contain GEDCOM tag mappings.
 
-During GEDCOM import, the importer retains the default dictionary and adds
-neutral entries for source-derived flattened keys that are not already listed.
+A GEDCOM import starts with an import-specific, otherwise empty `@dictionary@`.
+The importer populates it exclusively from the unique flattened keys actually
+present in the imported records. It does not merge in the starter-project
+defaults and does not consult those defaults to rename imported fields.
 
 ### 11.1 Included fields
 
@@ -205,12 +206,12 @@ the record.
 
 ### 11.3 Labels and descriptions
 
-Fields already present in the default dictionary retain their human-readable
-labels. Source-derived keys not already present receive neutral generated labels
-and empty descriptions. The importer must not infer a semantic label from a
-GEDCOM tag.
+Every imported key receives a neutral generated display label derived from its
+flattened key. The importer must not infer a semantic label from a GEDCOM tag.
 
-The importer must not invent semantic descriptions for unknown tags.
+The importer must not invent semantic descriptions for unknown tags. Starter
+dictionary labels are available only when creating a new empty OGF project;
+they are not merged into an imported project.
 
 ### 11.4 Shared dictionary
 
