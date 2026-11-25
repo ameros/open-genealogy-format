@@ -1,7 +1,7 @@
 # Open Genealogy Format — Specification
 
 **Status:** Stable release  
-**Version:** 1.0.0
+**Version:** 1.0.1
 
 ## 1. Purpose
 
@@ -231,7 +231,7 @@ in the dictionary for users to adopt through an explicit rename or editing step.
 Unknown paths remain available and must not be discarded. Leading underscores
 in extension tags must be preserved.
 
-Repeated tags must not overwrite earlier values. A deterministic suffix may be appended, for example `_2`, `_3`.
+Repeated occurrences of the same flattened key are stored as an ordered YAML list under that one key. They must not generate numbered synthetic keys such as `_2` or `_3`.
 
 ## 7. Metadata: `@meta@`
 

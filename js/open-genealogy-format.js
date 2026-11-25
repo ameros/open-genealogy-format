@@ -1272,6 +1272,7 @@ function renderEditorCard(container, doc) {
     const row = document.createElement("div");
     row.className = "edit-row";
     row.dataset.group = String(group);
+    row.dataset.multiple = Array.isArray(value) ? "true" : "false";
     const keySelect = document.createElement("select");
     keySelect.className = "ekey";
     keySelect.appendChild(new Option("Select a dictionary field…", ""));
@@ -1284,7 +1285,8 @@ function renderEditorCard(container, doc) {
     }
     keySelect.value = key;
 
-    const initialValue = Array.isArray(value) ? value.join(", ") : String(value ?? "");
+    const isMultipleValue = Array.isArray(value);
+    const initialValue = Array.isArray(value) ? value.map(item => String(item ?? "")).join("\n") : String(value ?? "");
     function makeValueControl(fieldKey, currentValue) {
       const choices = state.dict[fieldKey] && state.dict[fieldKey].values;
       if (choices && !Array.isArray(value)) {
@@ -1301,11 +1303,12 @@ function renderEditorCard(container, doc) {
         select.value = currentValue;
         return select;
       }
-      const input = document.createElement("input");
-      input.type = "text";
+      const input = isMultipleValue ? document.createElement("textarea") : document.createElement("input");
+      if (input.tagName === "INPUT") input.type = "text";
       input.className = "eval";
       input.value = currentValue;
-      input.placeholder = "Value or @id@ (comma-separated for list)";
+      input.placeholder = isMultipleValue ? "One value per line" : "Value or @id@";
+      if (isMultipleValue) input.rows = Math.min(5, Math.max(2, String(currentValue).split("\n").length));
       return input;
     }
     let valueInput = makeValueControl(key, initialValue);
@@ -1368,10 +1371,14 @@ function renderEditorCard(container, doc) {
 
     rowsEl.querySelectorAll(".edit-row").forEach(r => {
       const k = r.querySelector(".ekey").value.trim();
-      const v = r.querySelector(".eval").value.trim();
+      const rawValue = r.querySelector(".eval").value;
+      const v = rawValue.trim();
       if (!k) return;
       const group = Number(r.dataset.group) || 1;
-      if (k.endsWith("_ids") || v.includes(", @")) {
+      if (r.dataset.multiple === "true") {
+        const items = rawValue.split(/\r?\n/).map(item => item.trim()).filter(Boolean);
+        newEntries.push({ key: k, value: items, group });
+      } else if (k.endsWith("_ids") || v.includes(", @")) {
         const items = v.split(",").map(x => x.trim()).filter(Boolean);
         newEntries.push({ key: k, value: items, group });
       } else {
@@ -1526,17 +1533,22 @@ function convertGedcomToOgf(gedText) {
       { key: "id", value: id, group: 0 },
       { key: "type", value: type, group: 0 }
     ];
-    const keyCounts = {};
     let group = 0;
 
-    function addEntry(baseKey, value) {
+    function addEntry(key, value) {
       // Empty GEDCOM values are meaningful and must not be discarded.
       if (value === null || value === undefined) return;
-      keyCounts[baseKey] = (keyCounts[baseKey] || 0) + 1;
-      const finalKey = keyCounts[baseKey] === 1
-        ? baseKey
-        : `${baseKey}_${keyCounts[baseKey]}`;
-      entries.push({ key: finalKey, value, group });
+
+      // OGF stores one field definition per key. Repeated source occurrences
+      // become an ordered list of values instead of synthetic keys such as
+      // name_2, name_3, etc. Keep the first occurrence's card group.
+      const existing = entries.find(entry => entry.key === key);
+      if (existing) {
+        if (!Array.isArray(existing.value)) existing.value = [existing.value];
+        existing.value.push(value);
+        return;
+      }
+      entries.push({ key, value, group });
     }
 
     function emitGedcomNode(node, parentPath) {
@@ -1625,14 +1637,16 @@ function convertGedcomToOgf(gedText) {
   const importedKeys = new Map();
   for (const recordDoc of emittedRecordDocs) {
     for (const entry of recordDoc.entries) {
-      if (entry.key !== "id" && entry.key !== "type" && !knownDictionaryKeys.has(entry.key) && !importedKeys.has(entry.key)) {
+      if (entry.key === "id" || entry.key === "type") continue;
+      if (!knownDictionaryKeys.has(entry.key) && !importedKeys.has(entry.key)) {
         importedKeys.set(entry.key, entry.group);
       }
     }
   }
   for (const key of [...importedKeys.keys()].sort()) {
-    const label = key.replace(/_\d+$/, "").replace(/^_+/, "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    const label = key.replace(/^_+/, "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
     dictionaryEntries.push({ key, value: label, group: importedKeys.get(key) + 10 });
+    knownDictionaryKeys.add(key);
   }
   outDocs.splice(1, 0, {
     id: "@dictionary@",

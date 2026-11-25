@@ -84,24 +84,13 @@
     return result;
   }
 
-  // GEDCOM imports preserve repeated tags as suffixed OGF keys (for example
-  // chil, chil_2, chil_3). A configured base key therefore covers its
-  // numbered repetitions without requiring a closed list of suffixes.
+  // A configured relationship field has one stable key. Its value may be a
+  // scalar reference or an ordered YAML list when the source contained
+  // repeated occurrences of that field.
   function configuredFieldValues(recordMap, fieldKeys) {
-    const entries = Object.entries(recordMap || {});
-    const used = new Set();
-    const values = [];
-    for (const configuredKey of fieldKeys) {
-      const base = String(configuredKey);
-      for (const [key, value] of entries) {
-        const repeated = key.startsWith(`${base}_`) && /^\d+$/.test(key.slice(base.length + 1));
-        if ((key === base || repeated) && !used.has(key)) {
-          used.add(key);
-          values.push(value);
-        }
-      }
-    }
-    return values;
+    return fieldKeys
+      .filter(key => Object.prototype.hasOwnProperty.call(recordMap || {}, key))
+      .map(key => recordMap[key]);
   }
 
   function buildAdapterData() {

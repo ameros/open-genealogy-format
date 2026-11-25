@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.1 — 2026-11-25
+
+Backward-compatible update focused on repeated fields and GEDCOM import.
+
+- Repeated occurrences of a field are stored as an ordered list under one key,
+  instead of generating synthetic keys such as `_2` and `_3`.
+- Dictionary population reuses unique field definitions and avoids duplicate
+  entries for repeated fields.
+- Editor and tree handling updated to work with repeated values and references.
+- GEDCOM import and OGF documentation updated to describe repeated-field
+  handling.
+
 ## 1.0.0 — 2026-11-25
 
 First stable release of Open Genealogy Format (OGF).

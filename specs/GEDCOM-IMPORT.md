@@ -106,9 +106,11 @@ may choose to use. If a user wants an imported key to use one of those fields,
 they can explicitly rename it after import. The importer must not make that
 semantic decision on the user's behalf.
 
-Leading underscores in extension tags must be preserved. Repeated tags must
-not overwrite earlier values. A deterministic suffix may be appended, for
-example `_2`, `_3`.
+Leading underscores in extension tags must be preserved. Repeated occurrences
+of the same flattened key are stored as an ordered YAML list under that one
+key. The importer must not generate synthetic keys such as `_2` or `_3` for
+repeated occurrences. This keeps the dictionary vocabulary unique while
+preserving every value and its source order.
 
 ### 5.1 Tag names
 
@@ -189,9 +191,19 @@ Exclude structural keys:
 - `id`
 - `type`
 
-Include generated suffix keys such as `_2` and `_3` when they occur.
+Include each unique flattened source key once, regardless of how many times
+it occurs in imported records. Repeated occurrences are values of the same
+field and do not create additional dictionary entries.
 
-### 11.2 Labels and descriptions
+### 11.2 Repeated values
+
+A record may contain the same flattened key more than once. The importer must
+store these occurrences as an ordered YAML list under one field entry. It must
+not create numbered field keys or duplicate dictionary entries. The viewer and
+editor must preserve the list and its order when displaying, editing and saving
+the record.
+
+### 11.3 Labels and descriptions
 
 Fields already present in the default dictionary retain their human-readable
 labels. Source-derived keys not already present receive neutral generated labels
@@ -200,7 +212,7 @@ GEDCOM tag.
 
 The importer must not invent semantic descriptions for unknown tags.
 
-### 11.3 Shared dictionary
+### 11.4 Shared dictionary
 
 The dictionary is shared by Individuals, Families, Sources and Repositories.
 
@@ -210,7 +222,7 @@ A custom field must be defined in the dictionary before it can be added to a car
 
 Removing a dictionary entry must not delete existing record data.
 
-### 11.4 Key replacement
+### 11.5 Key replacement
 
 When a key is renamed, the change must be synchronized across the dictionary and all records.
 
