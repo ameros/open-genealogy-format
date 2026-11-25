@@ -85,3 +85,8 @@ See the [licensing guide](licensing/README.md) for the full breakdown,
 
 **Keep the data authoritative. Applications may interpret and display it, but
 must not silently change its stored values or meaning.**
+
+---
+The tool is listed @ https://www.cyndislist.com
+
+Here you can add a link to the list: http://www.cyndislist.com/create-a-link-to-cyndis-list/
