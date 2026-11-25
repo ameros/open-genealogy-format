@@ -6,6 +6,7 @@
 # These settings do not describe people, events, or relationships themselves.
 id: "@meta@"
 type: Meta
+format_version: 1
 version: 1
 language: en
 encoding: UTF-8

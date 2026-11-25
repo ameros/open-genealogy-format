@@ -48,7 +48,7 @@ gender_mapping:
 
 The tree calls the same shared interpretation rule available to other
 renderers. It uses exact value matching; absent or unrecognized values use the
-neutral unknown style. See [the shared gender mapping rules](SPECIFICATION.md#72-shared-gender-mapping).
+neutral unknown style. See [the shared gender mapping rules](SPECIFICATION.md#73-shared-gender-mapping).
 
 The renderer uses the same core mechanism as `gedcom-svg-tree`:
 

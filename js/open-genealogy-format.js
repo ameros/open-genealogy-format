@@ -1,3 +1,6 @@
+const SUPPORTED_OGF_FORMAT_VERSION = 1;
+const SUPPORTED_META_CONTRACT_VERSION = 1;
+
 const SAMPLE_FILES = {
   "en-gedcom": "samples/sample-en-from-gedcom.ogf.yaml",
   pl: "samples/sample-pl.ogf.yaml",
@@ -645,13 +648,27 @@ function rebuildFromEditor() {
       }
     }
 
+    const formatVersion = state.meta.format_version;
+    if (formatVersion !== undefined && formatVersion !== null && formatVersion !== "") {
+      if (!Number.isInteger(Number(formatVersion)) || Number(formatVersion) < 1) {
+        throw new Error(`Invalid OGF format version: ${formatVersion}. Expected a positive integer.`);
+      }
+      if (Number(formatVersion) !== SUPPORTED_OGF_FORMAT_VERSION) {
+        throw new Error(`Unsupported OGF format version: ${formatVersion}. This viewer supports version ${SUPPORTED_OGF_FORMAT_VERSION}.`);
+      }
+    }
     const metaVersion = state.meta.version;
-    if (metaVersion !== undefined && metaVersion !== null && metaVersion !== "" && Number(metaVersion) !== 1) {
-      throw new Error(`Unsupported @meta@ contract version: ${metaVersion}. This viewer supports version 1.`);
+    if (metaVersion !== undefined && metaVersion !== null && metaVersion !== "") {
+      if (!Number.isInteger(Number(metaVersion)) || Number(metaVersion) < 1) {
+        throw new Error(`Invalid @meta@ contract version: ${metaVersion}. Expected a positive integer.`);
+      }
+      if (Number(metaVersion) !== SUPPORTED_META_CONTRACT_VERSION) {
+        throw new Error(`Unsupported @meta@ contract version: ${metaVersion}. This viewer supports version ${SUPPORTED_META_CONTRACT_VERSION}.`);
+      }
     }
     const lang = (state.meta.language || "en").toUpperCase();
     document.getElementById("lang-badge").textContent = "LANG: " + lang;
-    status.textContent = "Valid · @meta@ v" + (metaVersion || "legacy") + " (" + docs.length + " docs)";
+    status.textContent = "Valid · OGF format v" + (formatVersion || "legacy") + " · @meta@ v" + (metaVersion || "legacy") + " (" + docs.length + " docs)";
     status.style.color = "#4ade80";
 
     renderDirectory();
@@ -1390,6 +1407,7 @@ function convertGedcomToOgf(gedText) {
       entries: [
         { key: "id", value: "@meta@", group: 0 },
         { key: "type", value: "Meta", group: 0 },
+        { key: "format_version", value: "1", group: 0 },
         { key: "version", value: "1", group: 0 },
         { key: "language", value: "en", group: 0 },
         { key: "encoding", value: "UTF-8", group: 0 },
@@ -1726,6 +1744,7 @@ function openMetadataEditor() {
   metadataRowsEl.innerHTML = "";
   const metaDoc = state.docs.find(d => d.id === "@meta@" || d.type === "Meta");
   const entries = metaDoc ? metaDoc.entries : [
+    { key: "format_version", value: "1" },
     { key: "version", value: "1" },
     { key: "language", value: "en" },
     { key: "encoding", value: "UTF-8" },
@@ -1762,8 +1781,8 @@ document.getElementById("save-metadata-btn").addEventListener("click", () => {
       catch (_) { error = `${key} must be a valid JSON object when edited here.`; return; }
       if (!storedValue || typeof storedValue !== "object" || Array.isArray(storedValue)) { error = `${key} must be a JSON object.`; return; }
     }
-    if (key === "version" && (!Number.isInteger(Number(value)) || Number(value) < 1)) {
-      error = "version must be a positive integer.";
+    if (["format_version", "version"].includes(key) && (!Number.isInteger(Number(value)) || Number(value) < 1)) {
+      error = `${key} must be a positive integer.`;
       return;
     }
     entries.push({ key, value: storedValue, group: index + 1 });

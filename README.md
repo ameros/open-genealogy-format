@@ -13,6 +13,7 @@ names. Import and display must not silently invent facts or change stored data.
 ---
 id: "@meta@"
 type: Meta
+format_version: 1
 version: 1
 language: en
 gender_mapping:
@@ -33,16 +34,23 @@ sex: M
 birt_date: "25 NOV 1976"
 ```
 
-`@meta@.version` identifies the metadata contract. Version `1` is the first
-stable contract. Shared rules such as `gender_mapping` belong directly in
-`@meta@`; view-specific settings belong under their own key, such as
-`tree.relationships`.
+`@meta@.format_version` identifies the OGF data-format contract;
+`@meta@.version` identifies the metadata contract. Both are independent and
+currently set to version `1`. Shared rules such as `gender_mapping` belong
+directly in `@meta@`; view-specific settings belong under their own key, such
+as `tree.relationships`. See [versioning and compatibility](VERSIONING.md).
 
 ## Project files
 
 - `index.html` — browser-based OGF viewer.
 - `js/` and `css/` — application source.
 - `samples/` — example OGF files.
+- `VERSION.json` — current project and data-contract release manifest.
+- `CHANGELOG.md` — notable changes by project release.
+- `VERSIONING.md` — versioning and compatibility policy.
+
+Run `node scripts/check-versions.js` before a release to check that the
+manifest, specification, viewer, importer defaults and sample declarations agree.
 
 ## Documentation
 
