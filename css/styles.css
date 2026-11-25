@@ -291,6 +291,12 @@ main.tree-mode #tree-pane { grid-column:2; grid-row:1; min-width:0; }
   main.tree-mode #inspector-pane { max-height:none; }
 }
 
+/* Desktop uses node selection to reveal details; the explicit button is
+   retained only for the mobile tree-only state. */
+@media (min-width: 1051px) {
+  #tree-show-details { display:none !important; }
+}
+
 /* Full-window OGF tree workspace with independently closable record card. */
 #tree-pane {
   --ogf-tree-family-fill: hsl(52, 100%, 49%);

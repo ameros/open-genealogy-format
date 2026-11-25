@@ -42,9 +42,11 @@
   const graphRenderer = new dagreD3.render();
   let graph = null;
   let selectedId = null;
-  // Selecting nodes opens the details card until the user explicitly closes it.
-  // After that, node clicks only navigate the tree; details require the button.
+  // Mobile uses an explicit tree/details screen switch after the first close.
+  // Desktop always opens details on node selection; closing them leaves a
+  // tree-only workspace until another node is selected.
   let detailsAutoOpen = true;
+  const isMobileTreeLayout = () => window.matchMedia('(max-width: 1050px)').matches;
   let pendingTreeRender = false;
   let zoomBehavior = null;
   let renderToken = 0;
@@ -580,7 +582,12 @@
       centerNode(id);
     }
 
-    if (detailsAutoOpen) mainElement?.classList.add('tree-details-open');
+    if (isMobileTreeLayout()) {
+      if (detailsAutoOpen) mainElement?.classList.add('tree-details-open');
+    } else {
+      // Desktop node selection always reveals the selected record card.
+      mainElement?.classList.remove('tree-card-hidden');
+    }
     return true;
   }
 
@@ -719,8 +726,14 @@
   });
   document.getElementById('tree-close-btn')?.addEventListener('click', closeTreeView);
   document.getElementById('tree-card-close')?.addEventListener('click', () => {
-    detailsAutoOpen = false;
-    mainElement?.classList.remove('tree-details-open');
+    if (isMobileTreeLayout()) {
+      detailsAutoOpen = false;
+      mainElement?.classList.remove('tree-details-open');
+    } else {
+      // On desktop, hide only the details pane and let the tree fill the
+      // workspace. Selecting any node will reveal the pane again.
+      mainElement?.classList.add('tree-card-hidden');
+    }
 
     // Wait until CSS has restored the tree pane to the layout and it has real
     // dimensions. Rebuild from the selected record, then fit the new graph.
@@ -737,7 +750,8 @@
     const id = selectedId || app.getSelectedId?.();
     if (!id) return;
     app.selectRecord(id);
-    mainElement?.classList.add('tree-details-open');
+    if (isMobileTreeLayout()) mainElement?.classList.add('tree-details-open');
+    else mainElement?.classList.remove('tree-card-hidden');
   });
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && mainElement?.classList.contains('tree-mode')) closeTreeView();
