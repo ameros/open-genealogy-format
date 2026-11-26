@@ -1,6 +1,6 @@
 # Changelog
 
-### 1.0.4 — inline YAML metadata parsing and sample tree fix
+### 1.0.4 — inline YAML metadata parsing, sample tree and version badge fixes
 
 - Fixed parsing of inline YAML collections in structured metadata. Inline lists
   such as `partners: [husb, wife]` and inline maps such as
@@ -8,6 +8,7 @@
   objects rather than plain strings.
 - Restored tree rendering for the supplied sample files, whose relationship
   configuration uses inline YAML collection syntax.
+- The header version badge now reads `projectVersion` from `VERSION.json` at runtime; it is hidden if the manifest cannot be loaded, avoiding stale hardcoded release labels.
 - Retained the reusable `defaults/meta.yaml` and `defaults/dictionary.yaml`
   files and the independent configuration behavior of existing projects and
   GEDCOM imports.

@@ -104,7 +104,7 @@
   <a class="brand" href="https://github.com/ameros/open-genealogy-format" target="_blank" rel="noopener noreferrer" aria-label="Open Genealogy Format project on GitHub">
     <img class="brand-logo" src="https://ameros.github.io/gedcom-svg-tree/apple-touch-icon.png" alt="" width="34" height="34">
     <span>Open Genealogy Viewer</span>
-    <span class="badge" id="version-badge">v1.0.3</span>
+    <span class="badge" id="version-badge" hidden aria-label="Project version"></span>
   </a>
   <button id="toggle-yaml-btn" class="toolbar-icon" type="button" title="Show YAML editor" aria-label="Show YAML editor"><i class="fa-solid fa-code" aria-hidden="true"></i></button>
   <button id="tree-view-btn" class="toolbar-icon" type="button" title="Open tree view" aria-label="Open tree view" aria-pressed="false"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i></button>
@@ -271,5 +271,32 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dagre-d3/0.6.4/dagre-d3.min.js"></script>
 <script src="js/open-genealogy-format.js"></script>
 <script src="js/ogf-tree.js"></script>
+
+<script>
+  // Keep the displayed release version in sync with VERSION.json.
+  (async function loadProjectVersion() {
+    const badge = document.getElementById("version-badge");
+    if (!badge) return;
+
+    try {
+      const response = await fetch("./VERSION.json", { cache: "no-store" });
+      if (!response.ok) throw new Error(`VERSION.json request failed: ${response.status}`);
+
+      const version = await response.json();
+      if (typeof version.projectVersion !== "string" || !version.projectVersion.trim()) {
+        throw new Error("VERSION.json does not contain a valid projectVersion");
+      }
+
+      badge.textContent = `v${version.projectVersion.trim()}`;
+      badge.title = `OGF ${version.projectVersion}; specification ${version.specificationVersion || "unknown"}`;
+      badge.hidden = false;
+    } catch (error) {
+      // Do not display a stale or hardcoded version if the manifest is unavailable.
+      badge.hidden = true;
+      console.warn("Could not load OGF version from VERSION.json.", error);
+    }
+  })();
+</script>
+
 </body>
 </html>

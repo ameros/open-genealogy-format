@@ -7,7 +7,21 @@ const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 const manifest = JSON.parse(read('VERSION.json'));
 const spec = read('specs/SPECIFICATION.md');
 const engine = read('js/open-genealogy-format.js');
+const html = read('index.html');
 const errors = [];
+
+if (!html.includes('id="version-badge"')) {
+  errors.push('index.html is missing the version badge');
+}
+if (!html.includes('fetch("./VERSION.json"')) {
+  errors.push('Version badge must load VERSION.json dynamically');
+}
+if (/<span[^>]*id="version-badge"[^>]*>\s*v?\d+\.\d+\.\d+\s*<\/span>/i.test(html)) {
+  errors.push('Version badge must not contain a hardcoded version');
+}
+if (!html.includes('version.projectVersion')) {
+  errors.push('Version badge must use projectVersion from VERSION.json');
+}
 
 if (!spec.includes(`**Version:** ${manifest.specificationVersion}`)) {
   errors.push('specs/SPECIFICATION.md version does not match VERSION.json specificationVersion');
