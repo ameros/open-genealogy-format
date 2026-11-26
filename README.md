@@ -2,10 +2,7 @@
 
 OGF is a human-readable, self-describing format for genealogical data. 
 
----
 _>> You can read it - you can write it <<_
-
----
 
 It uses YAML multi-document files and keeps records, metadata and presentation separate.
 

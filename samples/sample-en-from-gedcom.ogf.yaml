@@ -1,130 +1,115 @@
 ---
-# OGF FILE METADATA (not family-history data)
-# This document configures how an OGF file is interpreted and presented by a viewer.
-# It defines the versioned data-to-renderer contract, including shared
-# interpretation mappings and renderer-specific settings.
-# These settings do not describe people, events, or relationships themselves.
 id: "@meta@"
 type: Meta
 format_version: 1
 version: 2
 language: en
 encoding: UTF-8
+individual_display_field: name
+family_display_field: "{$wife.name} & {$husb.name}"
 gender_mapping:
   field: sex
   male: M
   female: F
+image_field: obje_file
 tree:
   individual_type: Individual
   family_type: Family
   individual:
-    birth: { date: birt_date, place: birt_plac }
-    death: { date: deat_date, place: deat_plac }
-    burial: { date: buri_date, place: buri_plac }
+    birth:
+      date: birt_date
+      place: birt_plac
+    death:
+      date: deat_date
+      place: deat_plac
+    burial:
+      date: buri_date
+      place: buri_plac
   family:
-    partners: [husb, wife]
-    children: [chil]
-    marriage: { date: marr_date, place: marr_plac }
-    divorce: { date: div_date }
-image_field: obje_file
-individual_display_field: name
-family_display_field: "{$wife.name_givn} & {$husb.name}"
+    partners:
+      - husb
+      - wife
+    children:
+      - chil
+    marriage:
+      date: marr_date
+      place: marr_plac
+    divorce:
+      date: div_date
 date_approx: "About {date}"
 date_uncertain: "Possibly {date}"
 date_range: "Between {start} and {end}"
 date_before: "On or before {date}"
 date_after: "On or after {date}"
-
 ---
-# FIELD DICTIONARY (not family-history data)
-# This document provides human-readable labels and optional value choices for
-# fields used in the records below. It helps OGF viewers display and edit fields
-# consistently; it does not contain genealogical facts or add data to records.
 id: "@dictionary@"
 type: Dictionary
 
-bapm_date: Baptism Date
-bapm_plac: Baptism Place
-bapm_quay: Baptism Quality
-
-birt_date: Birth Date
-birt_plac: Birth Place
-birt_quay: Birt Quality
-
-buri: Burial
-buri_date: Burial Date
-buri_plac: Burial Place
-buri_plac_map_lati: Burial Place Map Lati
-buri_plac_map_long: Burial Place Map Long
-buri_quay: Burial Quality
-
-chil: Child
-chil_10: Child
-chil_11: Child
-chil_12: Child
-chil_2: Child
-chil_3: Child
-chil_4: Child
-chil_5: Child
-chil_6: Child
-chil_7: Child
-chil_8: Child
-chil_9: Child
-
-deat: Death
-deat_date: Death Date
-deat_plac: Death Place
-deat_quay: Deat Quality
-
-educ: Education
-
-even_age: Event Age
-even_date: Event Date
-even_note: Event Note
-even_plac: Event Place
-even_sour: Event Source
-even_type: Event Type
-
-husb: Husband
-wife: Wife
-
-marr: Marriage
-marr_date: Marriage Date
-marr_plac: Marriage Place
-marr_quay: Marriage Quality
-
 name: Name
-name_givn: Given Name
-name_nick: Name Nick
-name_surn: Surname
 name_type: Name Type
-
-note: Note
-note_cont: Note Continuation
-note_cont_2: Note Continuation
-note_cont_3: Note Continuation
-note_cont_4: Note Continuation
-note_cont_5: Note Continuation
-note_cont_6: Note Continuation
-
-obje_file: File
-obje_file_form: File Form
-obje_file_form_type: File Form Type
-obje_titl: Caption
-
-occu: Occupation
-
-refn: Reference
+name_nick: Name Nick
+name_givn: Name Givn
+name_surn: Name Surn
 
 sex: Sex
-sex_values: "M=Male | F=Female | U=Unknown"
+sex_values: M=Male | F=Female | U=Unknown
+titl: Titl
+occu: Occu
 
-text: Text
-text_cont: Text Continuation
+birt_date: Birt Date
+birt_plac: Birt Plac
+birt_quay: Birt Quay
 
-titl: Title
+refn: Refn
+
+note: Note
+note_cont: Note Cont
+
+even_type: Even Type
+even_date: Even Date
+even_age: Even Age
+even_plac: Even Plac
+even_note: Even Note
+even_sour: Even Sour
+
+obje_file: Obje File
+obje_titl: Obje Titl
+obje_file_form: Obje File Form
+obje_file_form_type: Obje File Form Type
 
 www: Www
+
+deat_date: Deat Date
+deat_plac: Deat Plac
+deat_quay: Deat Quay
+deat: Deat
+
+buri_plac: Buri Plac
+buri_date: Buri Date
+buri_quay: Buri Quay
+buri: Buri
+buri_plac_map_lati: Buri Plac Map Lati
+buri_plac_map_long: Buri Plac Map Long
+
+bapm_date: Bapm Date
+bapm_plac: Bapm Plac
+bapm_quay: Bapm Quay
+
+educ: Educ
+
+text: Text
+text_cont: Text Cont
+
+husb: Husb
+
+wife: Wife
+
+chil: Chil
+
+marr_date: Marr Date
+marr_plac: Marr Plac
+marr: Marr
+marr_quay: Marr Quay
 ---
 id: "@I1@"
 type: Individual
@@ -222,7 +207,7 @@ deat_date: NOV 1967
 id: "@I6@"
 type: Individual
 
-name: "?"
+name: ?
 
 sex: M
 ---
@@ -393,11 +378,12 @@ deat_plac: Kossuth, Alcom Co., MS
 refn: Clinton-11
 
 note: Hattie Hayes has conflicting dates and places of birth.
-note_cont: Her death certificate says that she was born 26 July 1863
-note_cont_2: which is clearly impossible as her son Robert E. Ayers
-note_cont_3: reported in 1900 that his date of birth was Feb. 1871.
-note_cont_4: In the 1900 U.S. census her middle initial was "A" but
-note_cont_5: the 1870 U.S. census reports a Hattie J. Ayers aged 19,
+note_cont:
+  - Her death certificate says that she was born 26 July 1863
+  - which is clearly impossible as her son Robert E. Ayers
+  - reported in 1900 that his date of birth was Feb. 1871.
+  - In the 1900 U.S. census her middle initial was "A" but
+  - the 1870 U.S. census reports a Hattie J. Ayers aged 19,
 ---
 id: "@I19@"
 type: Individual
@@ -426,10 +412,11 @@ buri_plac: Red Level Cem., AL
 refn: Clinton-12
 
 note: A family story says that James M. Cassidy and his brother
-note_cont: Noah Cassidy traveled by train to Alabama to visit relatives.
-note_cont_2: It was very hot on the train and when they arrived the
-note_cont_3: weather was cold.
-note_cont_4: James developed pneumonia and died at Red Level shortly thereafter.
+note_cont:
+  - Noah Cassidy traveled by train to Alabama to visit relatives.
+  - It was very hot on the train and when they arrived the
+  - weather was cold.
+  - James developed pneumonia and died at Red Level shortly thereafter.
 ---
 id: "@I21@"
 type: Individual
@@ -503,10 +490,11 @@ buri_plac: Lowry Cemetery, Tippah Co., MS
 refn: Clinton-16
 
 note: Thomas Jefferson Blythe served as a Private in the 34th
-note_cont: Mississippi Infantry, Confederate States of America from
-note_cont_2: 1862 through 1865. He was a resident of Marshall County,
-note_cont_3: Mississippi in the 1850 U.S. census and at Tippah County,
-note_cont_4: Mississippi in the 1860 census.
+note_cont:
+  - Mississippi Infantry, Confederate States of America from
+  - 1862 through 1865. He was a resident of Marshall County,
+  - Mississippi in the 1850 U.S. census and at Tippah County,
+  - Mississippi in the 1860 census.
 ---
 id: "@I25@"
 type: Individual
@@ -552,11 +540,12 @@ deat_plac: Parker Co., TX
 refn: Clinton-18
 
 note: He served as a Private in H 23 Mississippi Infantry, C.S.A.,
-note_cont: enlisting 19 Sep 1861 and served until discharged from a
-note_cont_2: Union prison 19 June 1865. With his regiment he was captured
-note_cont_3: at the Battle of Fort Donelson, 19 feb. 1862; exchanged
-note_cont_4: at Vicksburg 3 Sep 1862 and captured near Nashville 15 Dec 1864.
-note_cont_5: Both times he was imprisoned at Camp Douglas near Chicago.
+note_cont:
+  - enlisting 19 Sep 1861 and served until discharged from a
+  - Union prison 19 June 1865. With his regiment he was captured
+  - at the Battle of Fort Donelson, 19 feb. 1862; exchanged
+  - at Vicksburg 3 Sep 1862 and captured near Nashville 15 Dec 1864.
+  - Both times he was imprisoned at Camp Douglas near Chicago.
 ---
 id: "@I28@"
 type: Individual
@@ -578,7 +567,7 @@ refn: Clinton-19
 id: "@I29@"
 type: Individual
 
-name: "? AYERS"
+name: ? AYERS
 
 sex: M
 
@@ -589,7 +578,7 @@ refn: Clinton-20
 id: "@I30@"
 type: Individual
 
-name: "?"
+name: ?
 
 sex: F
 
@@ -600,7 +589,7 @@ refn: Clinton-21
 id: "@I31@"
 type: Individual
 
-name: "? HAYES"
+name: ? HAYES
 
 sex: M
 
@@ -611,7 +600,7 @@ refn: Clinton-22
 id: "@I32@"
 type: Individual
 
-name: "?"
+name: ?
 
 sex: F
 
@@ -789,9 +778,10 @@ buri_plac: Chewalla Baptist, Marshall Co., MS
 refn: Clinton-34
 
 note: The earliest record of Moses Baum is in Rutherford
-note_cont: 'County, Tennessee in 1827: indictments for "riot" were'
-note_cont_2: found against Samuel Green, Samuel Wilson, Moses Baum
-note_cont_3: and Thomas Baum who were fined $10 apiece.
+note_cont:
+  - "County, Tennessee in 1827: indictments for \\\\"riot\\\\" were"
+  - found against Samuel Green, Samuel Wilson, Moses Baum
+  - and Thomas Baum who were fined $10 apiece.
 ---
 id: "@I44@"
 type: Individual
@@ -840,7 +830,7 @@ refn: Clinton-37
 id: "@I47@"
 type: Individual
 
-name: "? LOCKHART"
+name: ? LOCKHART
 
 sex: M
 
@@ -867,7 +857,7 @@ note: Martha was listed as living in Tippah Co., MS in the 1880 U.S. census.
 id: "@I49@"
 type: Individual
 
-name: "? AYERS"
+name: ? AYERS
 
 sex: M
 
@@ -1023,7 +1013,7 @@ refn: Clinton-57
 id: "@I60@"
 type: Individual
 
-name: "? MITCHELL"
+name: ? MITCHELL
 
 sex: M
 
@@ -1415,12 +1405,13 @@ birt_quay: 2
 refn: Reagan-1
 
 note: Won the 1980 election over president Jimmy Carter and John Anderson by a
-note_cont: popular vote of 43,899,248 to 35,481,435 and 5,719,437, and an electoral vote
-note_cont_2: of 489 to 49 and 0. Was reelected in 1984 over Walter F. Mondale by a popular
-note_cont_3: vote of 54,450,603 to 37,573,671 and an electoral vote of 525 to 13. His
-note_cont_4: successor George Bush was his vice-president during both terms. Was an actor
-note_cont_5: before he became a public official. Was shot on March 30, 1981 by John W.
-note_cont_6: Hinckley Jr., but recovered within two months.
+note_cont:
+  - popular vote of 43,899,248 to 35,481,435 and 5,719,437, and an electoral vote
+  - of 489 to 49 and 0. Was reelected in 1984 over Walter F. Mondale by a popular
+  - vote of 54,450,603 to 37,573,671 and an electoral vote of 525 to 13. His
+  - successor George Bush was his vice-president during both terms. Was an actor
+  - before he became a public official. Was shot on March 30, 1981 by John W.
+  - Hinckley Jr., but recovered within two months.
 ---
 id: "@I90@"
 type: Individual
@@ -1870,7 +1861,7 @@ birt_quay: 2
 id: "@I134@"
 type: Individual
 
-name: "? (Girl) REAGAN"
+name: ? (Girl) REAGAN
 
 sex: F
 
@@ -2532,12 +2523,13 @@ buri_plac: Yorba Linda, California
 refn: Nixon-1
 
 note: Graduated Whittier College 1934, graduated Duke Law School 1937, Congressman,
-note_cont: Senator, Vice-President. Was elected over Hubert Humphrey and George C.
-note_cont_2: Wallace in 1968 by a popular vote of 31,785,480 to 31,275,166 and 9,906,473,
-note_cont_3: and an electoral vote of 301 to 191 and 46. Spiro T. Agnew was his vice-
-note_cont_4: president during his first term. Reelected in 1972 over George S. McGovern
-note_cont_5: and John J. Schmitz by votes of 47,170,179 to 29,171,791 and 1,090,673, and
-note_cont_6: 520 to 17 and 0. Now his successor Gerald R. Ford became vice-president.
+note_cont:
+  - Senator, Vice-President. Was elected over Hubert Humphrey and George C.
+  - Wallace in 1968 by a popular vote of 31,785,480 to 31,275,166 and 9,906,473,
+  - and an electoral vote of 301 to 191 and 46. Spiro T. Agnew was his vice-
+  - president during his first term. Reelected in 1972 over George S. McGovern
+  - and John J. Schmitz by votes of 47,170,179 to 29,171,791 and 1,090,673, and
+  - 520 to 17 and 0. Now his successor Gerald R. Ford became vice-president.
 ---
 id: "@I186@"
 type: Individual
@@ -4279,12 +4271,13 @@ buri_plac: Oak Ridge Cemetary,Springfield, Illinois
 refn: Lincoln-1
 
 note: Won the 1860 election over the two democratic candidates Stephen A. Douglas
-note_cont: and John C. Breckinridge by a popular vote of 1,865,593 to 1,382,713 and
-note_cont_2: 848,356 and an electoral vote of 180 to 12 and 72. Was reelected in 1864 over
-note_cont_3: George B. McClellan by votes of 2,206,938 to 1,803,787 and 212 to 21. Hannibal
-note_cont_4: Hamlin served as vice-president during his first term 1861-1865, Andrew
-note_cont_5: Johnson during his second term until his assassination by John Wilkes Booth
-note_cont_6: on Good Friday, April 14, 1865 at Ford's Theater. Called "Honest Abe".
+note_cont:
+  - and John C. Breckinridge by a popular vote of 1,865,593 to 1,382,713 and
+  - 848,356 and an electoral vote of 180 to 12 and 72. Was reelected in 1864 over
+  - George B. McClellan by votes of 2,206,938 to 1,803,787 and 212 to 21. Hannibal
+  - Hamlin served as vice-president during his first term 1861-1865, Andrew
+  - Johnson during his second term until his assassination by John Wilkes Booth
+  - on Good Friday, April 14, 1865 at Ford's Theater. Called "Honest Abe".
 ---
 id: "@I328@"
 type: Individual
@@ -5070,9 +5063,10 @@ deat_quay: 2
 refn: Lincoln-130
 
 note: Rev. John Lyford was a graduate of Magdalen College (A.B. 1597, A.M. 1602) and
-note_cont: was first a minister at Leverlegkish, near Laughgaid, Armagh, Ireland. He
-note_cont_2: later preached at Plymouth, Massachusetts and even later at Hull, Cape Ann and
-note_cont_3: Salem, Massachusetts and finally in Virginia.
+note_cont:
+  - was first a minister at Leverlegkish, near Laughgaid, Armagh, Ireland. He
+  - later preached at Plymouth, Massachusetts and even later at Hull, Cape Ann and
+  - Salem, Massachusetts and finally in Virginia.
 ---
 id: "@I383@"
 type: Individual
@@ -5264,7 +5258,7 @@ refn: Lincoln-1024
 id: "@I398@"
 type: Individual
 
-name: "? Bawdiven"
+name: ? Bawdiven
 
 sex: F
 
@@ -5374,10 +5368,11 @@ buri_plac: Mount Vernon, Fairfax Co., Virginia
 refn: Washington-1
 
 note: Was elected without opponent by 69 electoral votes. Was in office from
-note_cont: 1789 to 1797 (two terms). His vice-president was his successor John Adams.
-note_cont_2: Refused to run for a third term and - thereby - inofficially instituted the
-note_cont_3: 2-term rule for american presidents, the only exception being Franklin Delano
-note_cont_4: Roosevelt.
+note_cont:
+  - 1789 to 1797 (two terms). His vice-president was his successor John Adams.
+  - Refused to run for a third term and - thereby - inofficially instituted the
+  - 2-term rule for american presidents, the only exception being Franklin Delano
+  - Roosevelt.
 ---
 id: "@I407@"
 type: Individual
@@ -5960,7 +5955,7 @@ refn: Washington-68
 id: "@I444@"
 type: Individual
 
-name: "? Watts"
+name: ? Watts
 
 sex: F
 
@@ -6092,8 +6087,9 @@ buri_quay: 2
 refn: Washington-90
 
 note: Of Haines Hill, Hurst, Berkshire & Westminster.
-note_cont: Clerk of the Signet & Deputy Clerk of the Privy Council,
-note_cont_2: knighted 23 July 1603
+note_cont:
+  - Clerk of the Signet & Deputy Clerk of the Privy Council,
+  - knighted 23 July 1603
 ---
 id: "@I454@"
 type: Individual
@@ -7130,7 +7126,7 @@ deat_quay: 2
 id: "@I545@"
 type: Individual
 
-name: "?"
+name: ?
 
 sex: M
 
@@ -8635,7 +8631,7 @@ refn: Washington-266
 id: "@I667@"
 type: Individual
 
-name: "? Charroll"
+name: ? Charroll
 
 sex: F
 
@@ -8945,11 +8941,12 @@ birt_quay: 2
 refn: Bush-1
 
 note: Was vice-president under Ronald Reagan and won the 1988 Election over Michael
-note_cont: S. Dukakis by a popular vote of 47,917,341 to 41,013,030 and an electoral vote
-note_cont_2: of 426 to 112. J. Danforth Quayle was his vice-president. Lost the 1992
-note_cont_3: election to Bill Clinton. Had served as US Representative to the United
-note_cont_4: Nations under Richard Nixon. Became director of the Central Intelligence
-note_cont_5: Agency in 1976 and vice-president in 1980.
+note_cont:
+  - S. Dukakis by a popular vote of 47,917,341 to 41,013,030 and an electoral vote
+  - of 426 to 112. J. Danforth Quayle was his vice-president. Lost the 1992
+  - election to Bill Clinton. Had served as US Representative to the United
+  - Nations under Richard Nixon. Became director of the Central Intelligence
+  - Agency in 1976 and vice-president in 1980.
 ---
 id: "@I699@"
 type: Individual
@@ -9371,7 +9368,7 @@ refn: Bush-236
 id: "@I728@"
 type: Individual
 
-name: "? Green"
+name: ? Green
 
 sex: F
 
@@ -9942,7 +9939,7 @@ refn: Bush-408
 id: "@I774@"
 type: Individual
 
-name: "? Angell"
+name: ? Angell
 
 sex: F
 
@@ -10081,7 +10078,7 @@ refn: Bush-381
 id: "@I786@"
 type: Individual
 
-name: "? Horton"
+name: ? Horton
 
 sex: M
 
@@ -10982,7 +10979,7 @@ refn: Bush-597
 id: "@I850@"
 type: Individual
 
-name: "? Goffe"
+name: ? Goffe
 
 sex: M
 
@@ -11856,7 +11853,7 @@ refn: Bush-252
 id: "@I908@"
 type: Individual
 
-name: "? Sandford"
+name: ? Sandford
 
 sex: F
 
@@ -11874,7 +11871,7 @@ refn: Bush-126
 id: "@I910@"
 type: Individual
 
-name: "? Montjoy"
+name: ? Montjoy
 
 sex: F
 
@@ -11926,7 +11923,7 @@ refn: Bush-117
 id: "@I915@"
 type: Individual
 
-name: "? Wood"
+name: ? Wood
 
 sex: M
 
@@ -13776,7 +13773,7 @@ refn: Bush-1478004593
 id: "@I1119@"
 type: Individual
 
-name: "? Fergus"
+name: ? Fergus
 
 sex: M
 
@@ -13830,7 +13827,7 @@ refn: Bush-184750574
 id: "@I1125@"
 type: Individual
 
-name: "? de Lacey"
+name: ? de Lacey
 
 sex: F
 
@@ -14656,7 +14653,7 @@ refn: Bush-184398
 id: "@I1216@"
 type: Individual
 
-name: "? Abernathy"
+name: ? Abernathy
 
 sex: F
 
@@ -16872,10 +16869,11 @@ buri_plac: Harrison Tomb, North Bend, Ohio
 refn: Harrison-4
 
 note: Was elected in 1840 over his predecessor Martin Van Buren by a popular vote of
-note_cont: 1,274,624 to 1,127,781 and an electoral vote of 234 to 60. Chose as vice-
-note_cont_2: president John Tyler, who succeeded him after a single month in office. Was
-note_cont_3: the oldest man to be elected president, the first to die in office, and served
-note_cont_4: the shortest time as president.
+note_cont:
+  - 1,274,624 to 1,127,781 and an electoral vote of 234 to 60. Chose as vice-
+  - president John Tyler, who succeeded him after a single month in office. Was
+  - the oldest man to be elected president, the first to die in office, and served
+  - the shortest time as president.
 ---
 id: "@I1476@"
 type: Individual
@@ -16897,9 +16895,10 @@ buri_plac: Crown Hill Cem., Indianapolis, Indiana
 refn: Harrison-1
 
 note: Won the 1888 electoral vote by 233 to 168 for his predecessor and successor
-note_cont: Grover Cleveland, even though Cleveland had won the popular vote by 5,537,857
-note_cont_2: to 5,447,129. Lost the 1892 election to Cleveland. Chose Levi P. Morton to
-note_cont_3: be his vice-president.
+note_cont:
+  - Grover Cleveland, even though Cleveland had won the popular vote by 5,537,857
+  - to 5,447,129. Lost the 1892 election to Cleveland. Chose Levi P. Morton to
+  - be his vice-president.
 ---
 id: "@I1477@"
 type: Individual
@@ -17267,7 +17266,7 @@ sex: M
 id: "@I1508@"
 type: Individual
 
-name: "? Edmonson"
+name: ? Edmonson
 
 sex: M
 ---
@@ -17371,7 +17370,7 @@ deat_plac: Greenwich, Connecticut
 id: "@I1520@"
 type: Individual
 
-name: "? (unnamed daughter)Harrison"
+name: ? (unnamed daughter)Harrison
 
 sex: F
 
@@ -17639,11 +17638,12 @@ buri_plac: Greenville, Tennessee
 refn: AJohnson-1
 
 note: Was never elected; became president upon the assassination of Abraham Lincoln.
-note_cont: Was in office 1865-1869. Is the only man in american history to attain all 4
-note_cont_2: kinds of public office - legislative, judicial, military, and executive - and
-note_cont_3: was both Vice-President and President, yet he had no formal schooling. He was
-note_cont_4: a tailor by trade, and his wife taught him to read and write. Only president
-note_cont_5: to be impeached, but acquitted.
+note_cont:
+  - Was in office 1865-1869. Is the only man in american history to attain all 4
+  - kinds of public office - legislative, judicial, military, and executive - and
+  - was both Vice-President and President, yet he had no formal schooling. He was
+  - a tailor by trade, and his wife taught him to read and write. Only president
+  - to be impeached, but acquitted.
 ---
 id: "@I1545@"
 type: Individual
@@ -17843,12 +17843,13 @@ buri_plac: Youngs Mem. Cem.,Oyster Bay,Long Island,
 refn: Roosevelt-1
 
 note: Ascended to the presidency through the death of William McKinley. Won the
-note_cont: 1904 election over Alton B. Parker by a popular vote of 7,628,461 to
-note_cont_2: 5,084,223 and an electoral vote of 336 to 140. Nickname "Teddy"; a cartoon
-note_cont_3: of Roosevelt in The Washington Post depicting the tenderhearted President
-note_cont_4: refusing to shoot a bear cub inspiring the "teddy bear". Became the first
-note_cont_5: American to receive the Nobel Piece Prize. Made another bid for the high
-note_cont_6: office in 1912, because he was dissatisfied with William Taft's performance.
+note_cont:
+  - 1904 election over Alton B. Parker by a popular vote of 7,628,461 to
+  - 5,084,223 and an electoral vote of 336 to 140. Nickname "Teddy"; a cartoon
+  - of Roosevelt in The Washington Post depicting the tenderhearted President
+  - refusing to shoot a bear cub inspiring the "teddy bear". Became the first
+  - American to receive the Nobel Piece Prize. Made another bid for the high
+  - office in 1912, because he was dissatisfied with William Taft's performance.
 ---
 id: "@I1561@"
 type: Individual
@@ -18126,12 +18127,13 @@ buri_plac: Abilene, Kansas
 refn: Eisenhower-1
 
 note: Defeated Adlai E. Stevenson in the 1952 and 1956 elections. The 1952 popular
-note_cont: vote was 33,936,234 to 27,314,992, the electoral vote 442 to 89. The 1956
-note_cont_2: votes were 35,590,472 to 26,022,752 and 457 to 73 (one democratic elector
-note_cont_3: voted for Walter B. Jones of Alabama). His vice-president was the 37th
-note_cont_4: president, Richard M. Nixon, who lost the close 1960 election to John F.
-note_cont_5: Kennedy. Eisenhower was Supreme Allied Commander to Europe during WW II.
-note_cont_6: Called "Ike".
+note_cont:
+  - vote was 33,936,234 to 27,314,992, the electoral vote 442 to 89. The 1956
+  - votes were 35,590,472 to 26,022,752 and 457 to 73 (one democratic elector
+  - voted for Walter B. Jones of Alabama). His vice-president was the 37th
+  - president, Richard M. Nixon, who lost the close 1960 election to John F.
+  - Kennedy. Eisenhower was Supreme Allied Commander to Europe during WW II.
+  - Called "Ike".
 ---
 id: "@I1584@"
 type: Individual
@@ -18346,11 +18348,12 @@ birt_plac: Brookline, Massachusetts
 refn: Kennedy-1
 
 note: Won the close 1960 election over then vice-president Richard Nixon by a
-note_cont: popular vote of 34,226,731 to 34,108,157 and an electoral vote of 303 to 219
-note_cont_2: (14 democratic electors and one republican elector voted for Virginia Senator
-note_cont_3: Harry F. Byrd). Was succeeded by his vice-president Lyndon B. Johnson. Well
-note_cont_4: remembered is the sentence "... ask not what your country can do for you - ask
-note_cont_5: what you can do for your country" in his inaugural speech.
+note_cont:
+  - popular vote of 34,226,731 to 34,108,157 and an electoral vote of 303 to 219
+  - (14 democratic electors and one republican elector voted for Virginia Senator
+  - Harry F. Byrd). Was succeeded by his vice-president Lyndon B. Johnson. Well
+  - remembered is the sentence "... ask not what your country can do for you - ask
+  - what you can do for your country" in his inaugural speech.
 
 obje_file: data/usa-presidents/indi/Kennedy-John-1604/John_F._Kennedy,_White_House_color_photo_portrait.jpg
 obje_titl: John F Kennedy / Cecil Stoughton, White House / public domain
@@ -18379,7 +18382,7 @@ obje_file: https://upload.wikimedia.org/wikipedia/commons/d/d5/JFK_inaugural_add
 obje_file_form: ogg
 obje_file_form_type: audio
 
-text: "Quote:"
+text: Quote:
 text_cont: "And so, my fellow Americans: ask not what your country can do for you--ask what you can do for your country."
 
 www: https://en.wikipedia.org/wiki/File:JFK_inaugural_address.ogg
@@ -18411,7 +18414,7 @@ www: https://en.wikipedia.org/wiki/Jacqueline_Kennedy_Onassis
 id: "@I1606@"
 type: Individual
 
-name: "? (Stillborn) Kennedy"
+name: ? (Stillborn) Kennedy
 
 sex: F
 
@@ -18956,9 +18959,10 @@ birt_plac: Omaha, Nebraska
 refn: Ford-1
 
 note: Became President when Richard Nixon resigned on August 9, 1974 following the
-note_cont: Watergate scandal. The only man in the US history who has held the office
-note_cont_2: of president and vice-president without being elected to either office. Was
-note_cont_3: narrowly defeated in the 1976 election by Jimmy Carter.
+note_cont:
+  - Watergate scandal. The only man in the US history who has held the office
+  - of president and vice-president without being elected to either office. Was
+  - narrowly defeated in the 1976 election by Jimmy Carter.
 ---
 id: "@I1656@"
 type: Individual
@@ -19123,10 +19127,11 @@ birt_plac: Plains, Georgia
 refn: Carter-1
 
 note: Won the 1976 election over president Gerald Ford and Eugene J. McCarthy by a
-note_cont: popular vote of 41,426,405 to 39,147,402 and 749,400, and an electoral vote of
-note_cont_2: 297 to 240 and 0 (one republican elector voted for former California govenor
-note_cont_3: and later president Ronald W. Reagan). Walter Mondale was his vice-president.
-note_cont_4: Lost the 1980 election to Ronald Reagan.
+note_cont:
+  - popular vote of 41,426,405 to 39,147,402 and 749,400, and an electoral vote of
+  - 297 to 240 and 0 (one republican elector voted for former California govenor
+  - and later president Ronald W. Reagan). Walter Mondale was his vice-president.
+  - Lost the 1980 election to Ronald Reagan.
 ---
 id: "@I1672@"
 type: Individual
@@ -19274,8 +19279,9 @@ buri_plac: Hollywood Cemetary, Richmond, Virginia
 refn: Tyler-1
 
 note: Was never elected to office; attained the presidency through the death of his
-note_cont: predecessor William Henry Harrison, whose vice-president he was. Samuel L.
-note_cont_2: Southard, president pro tempore of the Senate served as his vice-president.
+note_cont:
+  - predecessor William Henry Harrison, whose vice-president he was. Samuel L.
+  - Southard, president pro tempore of the Senate served as his vice-president.
 ---
 id: "@I1686@"
 type: Individual
@@ -19816,11 +19822,12 @@ buri_plac: Princeton, New Jersey
 refn: Cleveland-1
 
 note: Won the 1884 election over James G. Blaine by a popular vote of 4,879,507 to
-note_cont: 4,850,293 and an electoral vote of 219 to 182. Lost the 1888 election to
-note_cont_2: Bejamin Harrison, but won again in 1892 over Harrison and James Weaver by
-note_cont_3: votes of 5,555,426 to 5,182,690 and 1,029,846, and 277 to 145 and 22. Was the
-note_cont_4: only president to married in the White House, and the only president to be
-note_cont_5: elected to non-consecutive terms.
+note_cont:
+  - 4,850,293 and an electoral vote of 219 to 182. Lost the 1888 election to
+  - Bejamin Harrison, but won again in 1892 over Harrison and James Weaver by
+  - votes of 5,555,426 to 5,182,690 and 1,029,846, and 277 to 145 and 22. Was the
+  - only president to married in the White House, and the only president to be
+  - elected to non-consecutive terms.
 ---
 id: "@I1736@"
 type: Individual
@@ -19836,9 +19843,10 @@ deat_date: 29 OCT 1947
 deat_plac: Baltimore, Maryland
 
 note: Benjamin Harrison won the 1888 election, but Mrs. Cleveland told the servants
-note_cont: to take good care of the White House. "I want everything just the way it is
-note_cont_2: now when we come back," she said. "That will be exactly four years from now."
-note_cont_3: She was right ...
+note_cont:
+  - to take good care of the White House. "I want everything just the way it is
+  - now when we come back," she said. "That will be exactly four years from now."
+  - She was right ...
 ---
 id: "@I1737@"
 type: Individual
@@ -20139,12 +20147,13 @@ buri_plac: Truman Library, Independence, Missouri
 refn: Truman-1
 
 note: Succeeded to the presidency upon the sudden death of Franklin D. Roosevelt on
-note_cont: April 12, 1945. Was reelected in 1948 over Thomas E. Dewey, Strom Thurmond,
-note_cont_2: and Henry A. Wallace by a popular vote of 24,179,345 to 21,991,291, 1,176,125,
-note_cont_3: and 1,157,326, and an electoral vote of 303 to 189, 39, and 0. Was sometimes
-note_cont_4: called "Give-'em-hell-Harry". Coined the phrases "If you can't stand the
-note_cont_5: heat, get out of the kitchen." and "The buck stops here." Gave the order to
-note_cont_6: drop the atomic bomb on Hiroshima.
+note_cont:
+  - April 12, 1945. Was reelected in 1948 over Thomas E. Dewey, Strom Thurmond,
+  - and Henry A. Wallace by a popular vote of 24,179,345 to 21,991,291, 1,176,125,
+  - and 1,157,326, and an electoral vote of 303 to 189, 39, and 0. Was sometimes
+  - called "Give-'em-hell-Harry". Coined the phrases "If you can't stand the
+  - heat, get out of the kitchen." and "The buck stops here." Gave the order to
+  - drop the atomic bomb on Hiroshima.
 ---
 id: "@I1764@"
 type: Individual
@@ -20277,7 +20286,7 @@ birt_date: 28 MAY 1966
 id: "@I1776@"
 type: Individual
 
-name: "? (Stillborn) Truman"
+name: ? (Stillborn) Truman
 
 sex: M
 
@@ -20403,12 +20412,13 @@ buri_plac: Hyde Park, New York
 refn: FDR-1
 
 note: Soundly defeated Herbert Hoover in the 1932 election by a popular vote of
-note_cont: 22,809,638 to 15,758,901 and an electoral vote of 472 to 59. Was reelected in
-note_cont_2: 1936 over Alfred Landon by votes of 27,752,869 to 16,674,665 and 523 to 8,
-note_cont_3: again in 1940 over Wendell L. Willkie by votes of 27,307,819 to 22,321,018 and
-note_cont_4: 449 to 82, and yet again in 1944 over Thomas E. Dewey by votes of 25,606,585
-note_cont_5: to 22,014,745 and 432 to 99; the only president elected 4 times. Since age 39
-note_cont_6: his legs were paralyzed. Garner, Wallace, and Truman were his vice-presidents.
+note_cont:
+  - 22,809,638 to 15,758,901 and an electoral vote of 472 to 59. Was reelected in
+  - 1936 over Alfred Landon by votes of 27,752,869 to 16,674,665 and 523 to 8,
+  - again in 1940 over Wendell L. Willkie by votes of 27,307,819 to 22,321,018 and
+  - 449 to 82, and yet again in 1944 over Thomas E. Dewey by votes of 25,606,585
+  - to 22,014,745 and 432 to 99; the only president elected 4 times. Since age 39
+  - his legs were paralyzed. Garner, Wallace, and Truman were his vice-presidents.
 ---
 id: "@I1788@"
 type: Individual
@@ -20424,8 +20434,9 @@ deat_date: 7 NOV 1962
 deat_plac: New York City, New York
 
 note: Niece of President Theodere Roosevelt and fifth cousin of her husband. After
-note_cont: FDRs death she was appointed the US representative to the United Nations,
-note_cont_2: where she served for 16 years.
+note_cont:
+  - FDRs death she was appointed the US representative to the United Nations,
+  - where she served for 16 years.
 ---
 id: "@I1789@"
 type: Individual
@@ -20743,10 +20754,11 @@ buri_plac: Hoover Cemetery, West Branch, Iowa
 refn: Hoover-1
 
 note: Won the 1928 election over Alfred E. Smith by a popular vote of 21,391,993 to
-note_cont: 15,016,169 and an electoral vote of 444 to 87, but lost the 1932 election to
-note_cont_2: Fraklin Roosevelt. Charles Curtis served as his vice-president. The first
-note_cont_3: president born west of the Mississippi River. During his term the great
-note_cont_4: depression of 1929 happened, and he was largely blamed for its consequences.
+note_cont:
+  - 15,016,169 and an electoral vote of 444 to 87, but lost the 1932 election to
+  - Fraklin Roosevelt. Charles Curtis served as his vice-president. The first
+  - president born west of the Mississippi River. During his term the great
+  - depression of 1929 happened, and he was largely blamed for its consequences.
 ---
 id: "@I1819@"
 type: Individual
@@ -20886,11 +20898,12 @@ buri_plac: Washington Cath., Washington D.C.
 refn: Wilson-1
 
 note: Because the Republikan Party was split Wilson won the 1912 election over both
-note_cont: Theodore Roosevelt and William Taft by a popular vote of 6,296,547 to
-note_cont_2: 4,118,571 and 3,486,720, and an electoral vote of 435 to 88 and 8. Won in
-note_cont_3: 1912 reelection over Charles E. Hughes by votes of 9, 127,695 to 8,533,507
-note_cont_4: and 277 to 254. Thomas R. Marshall served as his vice-president during both
-note_cont_5: terms. Tried to keep the USA out of World War I.
+note_cont:
+  - Theodore Roosevelt and William Taft by a popular vote of 6,296,547 to
+  - 4,118,571 and 3,486,720, and an electoral vote of 435 to 88 and 8. Won in
+  - 1912 reelection over Charles E. Hughes by votes of 9, 127,695 to 8,533,507
+  - and 277 to 254. Thomas R. Marshall served as his vice-president during both
+  - terms. Tried to keep the USA out of World War I.
 ---
 id: "@I1831@"
 type: Individual
@@ -21072,12 +21085,13 @@ buri_plac: Plymouth, Vermont
 refn: Coolidge-1
 
 note: Succeeded to the presidency upon the death of Warren Harding. Was reelected
-note_cont: in 1924 over John W. Davis and Robert M. LaFollette by a popular vote of
-note_cont_2: 15,718,211 to 8,385,283 and 4,831,289, and an electoral vot of 382 to 136 and
-note_cont_3: 13.Charles G. Dawes was his vice-president. On August 3, 1923 he was
-note_cont_4: administered the oath of office by his father, a notary public. This historic
-note_cont_5: event took place in the Vermont farmhouse home at 2:00 a.m., by the light of
-note_cont_6: kerosene lamps. Called "Silent Cal".
+note_cont:
+  - in 1924 over John W. Davis and Robert M. LaFollette by a popular vote of
+  - 15,718,211 to 8,385,283 and 4,831,289, and an electoral vot of 382 to 136 and
+  - 13.Charles G. Dawes was his vice-president. On August 3, 1923 he was
+  - administered the oath of office by his father, a notary public. This historic
+  - event took place in the Vermont farmhouse home at 2:00 a.m., by the light of
+  - kerosene lamps. Called "Silent Cal".
 ---
 id: "@I1845@"
 type: Individual
@@ -21203,12 +21217,13 @@ buri_plac: Nashville, Tennessee
 refn: Polk-1
 
 note: Was elected over Henry Clay by a popular vote of 1,338,464 to 1,300,097 and an
-note_cont: electoral vote of 170 to 105. George M. Dallas served as his vice-president.
-note_cont_2: Occasionally called "Little Hickory". During his presidency the USA grew by
-note_cont_3: 800,000 square miles, including California, New Mexico, Arizona and Texas;
-note_cont_4: the boundaries between Canada and the USA were set where they are today. Polk
-note_cont_5: did not seek a second term and, worn out from his hard work, died three months
-note_cont_6: after leaving office.
+note_cont:
+  - electoral vote of 170 to 105. George M. Dallas served as his vice-president.
+  - Occasionally called "Little Hickory". During his presidency the USA grew by
+  - 800,000 square miles, including California, New Mexico, Arizona and Texas;
+  - the boundaries between Canada and the USA were set where they are today. Polk
+  - did not seek a second term and, worn out from his hard work, died three months
+  - after leaving office.
 ---
 id: "@I1877@"
 type: Individual
@@ -21424,9 +21439,10 @@ buri_plac: Louisville, Jefferson Co., Kentucky
 refn: Taylor-1
 
 note: Elected in 1848 over Lewis Cass by a popular vote of 1,360,967 to 1,222,342
-note_cont: and an electoral vote of 163 to 127. Chose Millard Fillmore as vice-president.
-note_cont_2: Died in office, while Congress was in session.
-note_cont_3: Was a second cousin of James Madison.
+note_cont:
+  - and an electoral vote of 163 to 127. Chose Millard Fillmore as vice-president.
+  - Died in office, while Congress was in session.
+  - Was a second cousin of James Madison.
 ---
 id: "@I1898@"
 type: Individual
@@ -21747,12 +21763,13 @@ buri_plac: Lancaster, Pennsylvania
 refn: Buchanan-1
 
 note: Was elected in 1856 over John C. Fr�mont and Millard Fillmore by a popular
-note_cont: vote of 1,832,955 to 1,339,932 and 871,731 and an electoral vote of 174 to
-note_cont_2: 114 and 8. John C. Breckinridge served as his vice-president. In 1819, as a
-note_cont_3: young and successful lawyer, Buchanan fell in love with Anne Coleman, daughter
-note_cont_4: of a Lancaster millionaire. Her parents disapproved. Because of rumors Anne
-note_cont_5: broke the engagement. She died in December of that same year. Buchanan vowed
-note_cont_6: never to marry. Called "Old Buck".
+note_cont:
+  - vote of 1,832,955 to 1,339,932 and 871,731 and an electoral vote of 174 to
+  - 114 and 8. John C. Breckinridge served as his vice-president. In 1819, as a
+  - young and successful lawyer, Buchanan fell in love with Anne Coleman, daughter
+  - of a Lancaster millionaire. Her parents disapproved. Because of rumors Anne
+  - broke the engagement. She died in December of that same year. Buchanan vowed
+  - never to marry. Called "Old Buck".
 ---
 id: "@I1927@"
 type: Individual
@@ -21965,9 +21982,10 @@ buri_plac: North Cemetary, Concord, New Hampshire
 refn: Pierce-1
 
 note: Won the 1852 election over Winfield Scott by a popular vote of 1,601,117 to
-note_cont: 1,385,453 and an electoral vote of 254 to 42. William R. King was his vice-
-note_cont_2: president. Was the only president to complete his term without making any
-note_cont_3: changes in his Cabinet.
+note_cont:
+  - 1,385,453 and an electoral vote of 254 to 42. William R. King was his vice-
+  - president. Was the only president to complete his term without making any
+  - changes in his Cabinet.
 ---
 id: "@I1947@"
 type: Individual
@@ -22208,9 +22226,10 @@ buri_plac: Albany, New York
 refn: Arthur-1
 
 note: Was never elected; succeeded James A. Garfield after his death following
-note_cont: assassination 80 days earlier. His vice-presidents were Thomas F. Bayard,
-note_cont_2: David Davis, and George F. Edmunds, all Presidents per tempore of the Senat.
-note_cont_3: Was not nominated by his party in 1884.
+note_cont:
+  - assassination 80 days earlier. His vice-presidents were Thomas F. Bayard,
+  - David Davis, and George F. Edmunds, all Presidents per tempore of the Senat.
+  - Was not nominated by his party in 1884.
 ---
 id: "@I1968@"
 type: Individual
@@ -22435,10 +22454,11 @@ buri_plac: Grant's Tomb, Riverside Park, New York
 refn: Grant-1
 
 note: Was elected in 1868 over Horatio Seymour by a popular vote of 3,013,421 to
-note_cont: 2,706,829 and an electoral vote of 214 to 80. Won reelection in 1872 by votes
-note_cont_2: of 3,596,745 to 2,843,446 and 286 to 0 over Horace Greeley. Became known in
-note_cont_3: 1862 as "Unconditional Surrender Grant". In 1864, Lt. General Grant was given
-note_cont_4: command of the northern army; accepted General Lee's surrender at Appomattox.
+note_cont:
+  - 2,706,829 and an electoral vote of 214 to 80. Won reelection in 1872 by votes
+  - of 3,596,745 to 2,843,446 and 286 to 0 over Horace Greeley. Became known in
+  - 1862 as "Unconditional Surrender Grant". In 1864, Lt. General Grant was given
+  - command of the northern army; accepted General Lee's surrender at Appomattox.
 ---
 id: "@I1988@"
 type: Individual
@@ -22719,10 +22739,11 @@ buri_plac: Lakeview Cem., Cleveland, Ohio
 refn: Garfield-1
 
 note: Won the 1880 election over Winfield S. Hancock by a popular vote of 4,453,295
-note_cont: to 4,414,082 and an electoral vote of 214 to 155. Chester A. Arthur became
-note_cont_2: his vice-president and successor upon his murder. Was the last president to
-note_cont_3: have been born in a log cabin, the fourth president to die in office, and the
-note_cont_4: second to be assassinated (by Guiteau).
+note_cont:
+  - to 4,414,082 and an electoral vote of 214 to 155. Chester A. Arthur became
+  - his vice-president and successor upon his murder. Was the last president to
+  - have been born in a log cabin, the fourth president to die in office, and the
+  - second to be assassinated (by Guiteau).
 ---
 id: "@I2011@"
 type: Individual
@@ -23007,9 +23028,10 @@ buri_plac: Spiegel Grove, Fremont, Ohio
 refn: Hayes-1
 
 note: Won the most memorable and controversial election in 1876 over Samuel J.
-note_cont: Tilden. Tilden won the popular vote by 4,284,020 to 4,036,572, but Hayes won
-note_cont_2: the electoral vote by the smallest possible margin of 185 to 184. William A.
-note_cont_3: Wheeler was his vice-president. Hayes declined to run for a second term.
+note_cont:
+  - Tilden. Tilden won the popular vote by 4,284,020 to 4,036,572, but Hayes won
+  - the electoral vote by the smallest possible margin of 185 to 184. William A.
+  - Wheeler was his vice-president. Hayes declined to run for a second term.
 ---
 id: "@I2035@"
 type: Individual
@@ -23027,8 +23049,9 @@ deat_plac: Fremont, Ohio
 buri_plac: Spiegel Grove, Fremont, Ohio
 
 note: As First Lady prohibited the serving of liquor in the White House - a move
-note_cont: which subjected her and her family to considerable crticism and earned her
-note_cont_2: the nichname "lemonade Lucy".
+note_cont:
+  - which subjected her and her family to considerable crticism and earned her
+  - the nichname "lemonade Lucy".
 ---
 id: "@I2036@"
 type: Individual
@@ -23228,7 +23251,7 @@ refn: Hayes-3
 id: "@I2051@"
 type: Individual
 
-name: "? (Son) Hayes"
+name: ? (Son) Hayes
 
 sex: M
 
@@ -23296,10 +23319,11 @@ buri_plac: Canton, Ohio
 refn: McKinley-1
 
 note: Won the 1896 and 1900 elections over William J. Bryan by popular votes of
-note_cont: 7,102,246 to 6,492,559 and 7,218,491 to 6,356,734 and electoral votes of 271
-note_cont_2: to 176 and 292 to 155. Shortly after his second inauguration, he was assassi-
-note_cont_3: nated by Czolgosz. During his first term Garret A. Hobart served as his vice-
-note_cont_4: president, during his second his successor Theodor Roosevelt.
+note_cont:
+  - 7,102,246 to 6,492,559 and 7,218,491 to 6,356,734 and electoral votes of 271
+  - to 176 and 292 to 155. Shortly after his second inauguration, he was assassi-
+  - nated by Czolgosz. During his first term Garret A. Hobart served as his vice-
+  - president, during his second his successor Theodor Roosevelt.
 ---
 id: "@I2057@"
 type: Individual
@@ -23317,9 +23341,10 @@ deat_plac: Canton, Ohio
 buri_plac: Canton, Ohio
 
 note: Fragile and petite, she was a cashier in her father's bank when she met
-note_cont: McKinley, thus making her the first career woman to become First Lady.
-note_cont_2: Because she was nearly an invalid, Mrs. Garret A. Hobart, wife of the vice-
-note_cont_3: president, performed many of the duties in the White House as "Second Lady".
+note_cont:
+  - McKinley, thus making her the first career woman to become First Lady.
+  - Because she was nearly an invalid, Mrs. Garret A. Hobart, wife of the vice-
+  - president, performed many of the duties in the White House as "Second Lady".
 ---
 id: "@I2058@"
 type: Individual
@@ -23516,10 +23541,11 @@ buri_plac: Arlington Cem., Arlington, Virginia
 refn: Taft-1
 
 note: Won the Republican Nomination upon Roosevelts recommendation. Won the 1908
-note_cont: election over William J. Bryan by a popular vote of 7,675,320 to 6,412,294
-note_cont_2: and an electoral vote of 321 to 162. James S. Sherman was his vice-president.
-note_cont_3: On June 30, 1921 he became Chief Justice of the Supreme Court. Because of
-note_cont_4: his weight of 332 pounds he was nich-named "Big Bill".
+note_cont:
+  - election over William J. Bryan by a popular vote of 7,675,320 to 6,412,294
+  - and an electoral vote of 321 to 162. James S. Sherman was his vice-president.
+  - On June 30, 1921 he became Chief Justice of the Supreme Court. Because of
+  - his weight of 332 pounds he was nich-named "Big Bill".
 ---
 id: "@I2076@"
 type: Individual
@@ -23755,9 +23781,10 @@ buri_plac: Marion, Ohio
 refn: Harding-1
 
 note: Won the 1920 election - the first in which women participated - over James M.
-note_cont: Cox and Eugene V. Debs by a popular vote of 16,143,407 to 9,130,328 and
-note_cont_2: 919,799, and an electoral vote of 404 to 127 and 0. Chose as vice-president
-note_cont_3: his successor Calvin Coolidge.
+note_cont:
+  - Cox and Eugene V. Debs by a popular vote of 16,143,407 to 9,130,328 and
+  - 919,799, and an electoral vote of 404 to 127 and 0. Chose as vice-president
+  - his successor Calvin Coolidge.
 ---
 id: "@I2096@"
 type: Individual
@@ -23954,11 +23981,12 @@ buri_plac: Quincy Cong. Ch., Quincy, Massachusetts
 refn: Adams-2
 
 note: Was elected by the narrow margin of 71 to 68 over his vice-president and
-note_cont: successor Thomas Jefferson. Presided from 1797 to 1801. Was the first
-note_cont_2: president to live in Washington, D.C. Died on the same day a few hours
-note_cont_3: after Thomas Jefferson. Was responsible for appointing George Washington
-note_cont_4: Commander-in-Chief of the Army. Insisted that Thomas Jefferson write the
-note_cont_5: draft for the declaration of independence.
+note_cont:
+  - successor Thomas Jefferson. Presided from 1797 to 1801. Was the first
+  - president to live in Washington, D.C. Died on the same day a few hours
+  - after Thomas Jefferson. Was responsible for appointing George Washington
+  - Commander-in-Chief of the Army. Insisted that Thomas Jefferson write the
+  - draft for the declaration of independence.
 ---
 id: "@I2114@"
 type: Individual
@@ -23980,11 +24008,12 @@ buri_plac: Quincy, Massachusetts
 refn: Adams-1
 
 note: Was elected in 1824 by a popular vote of 108,740 and an electoral vote of 84.
-note_cont: Andrew Jackson - his successor - hat garnerd 153,544 popular and 99 electoral
-note_cont_2: votes. However, no candidate had a majority, and election was decided in the
-note_cont_3: House of Representatives. During his single term 1825-1829 John C. Calhoun
-note_cont_4: served as his vice-president. Was elected in 1830 as Representative for
-note_cont_5: Massachusetts ans served 17 years in Congress.
+note_cont:
+  - Andrew Jackson - his successor - hat garnerd 153,544 popular and 99 electoral
+  - votes. However, no candidate had a majority, and election was decided in the
+  - House of Representatives. During his single term 1825-1829 John C. Calhoun
+  - served as his vice-president. Was elected in 1830 as Representative for
+  - Massachusetts ans served 17 years in Congress.
 ---
 id: "@I2115@"
 type: Individual
@@ -24366,12 +24395,13 @@ buri_plac: Monticello, Charlottesville, Virginia
 refn: Jefferson-1
 
 note: Was elected in 1800 by 73 electoral votes versus 73 for Aaron Burr and 65 for
-note_cont: his predecessor John Adams. Electors had two votes back then. In 1804 he
-note_cont_2: defeated Charley Pinckney by 162 to 14 electoral votes. Served two terms
-note_cont_3: from 1801 to 1809. During his first term Aaron Burr served as vice-president,
-note_cont_4: during his second George Clinton. Under Jefferson the Louisiana Purchase was
-note_cont_5: made, the biggest land bargain in history; Congress approved it and transfer
-note_cont_6: of ownership from France completed at New Orleans on Dec. 20, 1803.
+note_cont:
+  - his predecessor John Adams. Electors had two votes back then. In 1804 he
+  - defeated Charley Pinckney by 162 to 14 electoral votes. Served two terms
+  - from 1801 to 1809. During his first term Aaron Burr served as vice-president,
+  - during his second George Clinton. Under Jefferson the Louisiana Purchase was
+  - made, the biggest land bargain in history; Congress approved it and transfer
+  - of ownership from France completed at New Orleans on Dec. 20, 1803.
 ---
 id: "@I2144@"
 type: Individual
@@ -24419,7 +24449,7 @@ deat_plac: Monticello,Charlottesville,Albemarle,VA
 id: "@I2147@"
 type: Individual
 
-name: "? (unnamed son)Jefferson"
+name: ? (unnamed son)Jefferson
 
 sex: M
 
@@ -24582,7 +24612,7 @@ deat_date: 1748
 id: "@I2160@"
 type: Individual
 
-name: "? (unnamed Son)Jefferson"
+name: ? (unnamed Son)Jefferson
 
 sex: M
 
@@ -24719,10 +24749,11 @@ buri_plac: Montpelier, Orange Co., Virginia
 refn: Madison-1
 
 note: Was elected in 1808 by 122 to 47 electoral votes over Charles Pinckney. Was
-note_cont: reelected in 1812 by 128 to 89 electoral votes over De Witt Clinton. During
-note_cont_2: his first term 1809-1812 George Clinton served as vice-president; during his
-note_cont_3: second 1813-1814 Elbridge Gerry. From 1814 to 1817 the speaker of the House
-note_cont_4: of Representatives served as vice-president.
+note_cont:
+  - reelected in 1812 by 128 to 89 electoral votes over De Witt Clinton. During
+  - his first term 1809-1812 George Clinton served as vice-president; during his
+  - second 1813-1814 Elbridge Gerry. From 1814 to 1817 the speaker of the House
+  - of Representatives served as vice-president.
 ---
 id: "@I2173@"
 type: Individual
@@ -24836,7 +24867,7 @@ deat_date: 1843
 id: "@I2182@"
 type: Individual
 
-name: "? (Son) Madison"
+name: ? (Son) Madison
 
 sex: M
 
@@ -24856,7 +24887,7 @@ deat_date: 1775
 id: "@I2184@"
 type: Individual
 
-name: "? (stillborn Son)Madison"
+name: ? (stillborn Son)Madison
 
 sex: M
 
@@ -24889,14 +24920,14 @@ deat_date: 1823
 id: "@I2187@"
 type: Individual
 
-name: "? Todd"
+name: ? Todd
 
 sex: M
 ---
 id: "@I2188@"
 type: Individual
 
-name: "? Todd"
+name: ? Todd
 
 sex: U
 ---
@@ -24920,11 +24951,12 @@ buri_plac: Hollywood Cem., Virginia
 refn: Monroe-1
 
 note: Was elected in 1816 by 183 to 34 electoral votes over Rufus King. Reelected
-note_cont: in 1820 by 231 to 1 electoral votes over John Quincy Adams, his successor.
-note_cont_2: During both terms Daniel D. Tompkins served as vice-president. Was the first
-note_cont_3: president to take the oath on a raised portico in front of the Capitol. The
-note_cont_4: dissenter in the 1820 election thought only George Washington deserved to be
-note_cont_5: unanimously elected. Was the third president to die on the Fourth of July.
+note_cont:
+  - in 1820 by 231 to 1 electoral votes over John Quincy Adams, his successor.
+  - During both terms Daniel D. Tompkins served as vice-president. Was the first
+  - president to take the oath on a raised portico in front of the Capitol. The
+  - dissenter in the 1820 election thought only George Washington deserved to be
+  - unanimously elected. Was the third president to die on the Fourth of July.
 ---
 id: "@I2190@"
 type: Individual
@@ -25116,10 +25148,11 @@ buri_plac: Hermitage Garden, Nashville, Tennessee
 refn: Jackson-1
 
 note: Was elected over John Quincy Adams by a popular vote of 647,286 to 508,064
-note_cont: and an electoral vote of 178 to 83. Was reelected 1832 over Henry Clay by a
-note_cont_2: popular vote of 687,502 to 530,189 and an electoral vote of 219 to 49. During
-note_cont_3: his first term 1829-1832 John C. Calhoun served as vice-president, during his
-note_cont_4: second 1833-1837 his successor Martin Van Buren. Called "Old Hickory".
+note_cont:
+  - and an electoral vote of 178 to 83. Was reelected 1832 over Henry Clay by a
+  - popular vote of 687,502 to 530,189 and an electoral vote of 219 to 49. During
+  - his first term 1829-1832 John C. Calhoun served as vice-president, during his
+  - second 1833-1837 his successor Martin Van Buren. Called "Old Hickory".
 ---
 id: "@I2208@"
 type: Individual
@@ -25261,7 +25294,7 @@ deat_plac: Paris, France
 id: "@I2218@"
 type: Individual
 
-name: "? (unnamed Son)Van Buren"
+name: ? (unnamed Son)Van Buren
 
 sex: M
 
@@ -25464,7 +25497,7 @@ sex: F
 id: "@I2237@"
 type: Individual
 
-name: "? Lane"
+name: ? Lane
 
 sex: F
 
@@ -25480,8 +25513,9 @@ sex: M
 birt_date: 1887
 
 note: Possibly was the best-advertised youngster ever in the White House. Because
-note_cont: he was the grandson of a President who was in turn the grandson of a President
-note_cont_2: the newspapers seized upon him.
+note_cont:
+  - he was the grandson of a President who was in turn the grandson of a President
+  - the newspapers seized upon him.
 ---
 id: "@I2239@"
 type: Individual
@@ -25510,10 +25544,11 @@ buri_plac: L.B.J. Ranch, Stonewall, Texas
 refn: Johnson-1
 
 note: The assassination of president John F. Kennedy on November 22, 1963, brought
-note_cont: him unexpectedly to the presidency. Took the oath of office in the same plane
-note_cont_2: which carried the body of JFK back to Washington. Was reelected in 1964 over
-note_cont_3: Barry Goldwater by a popular vote of 43,129,566 to 27,178,188 and an electoral
-note_cont_4: vote of 486 to 52. Hubert M. Humphrey was his vice-president.
+note_cont:
+  - him unexpectedly to the presidency. Took the oath of office in the same plane
+  - which carried the body of JFK back to Washington. Was reelected in 1964 over
+  - Barry Goldwater by a popular vote of 43,129,566 to 27,178,188 and an electoral
+  - vote of 486 to 52. Hubert M. Humphrey was his vice-president.
 ---
 id: "@I2241@"
 type: Individual
@@ -25677,7 +25712,7 @@ sex: M
 id: "@I2258@"
 type: Individual
 
-name: "? DeWolfe"
+name: ? DeWolfe
 
 sex: M
 ---
@@ -25862,9 +25897,9 @@ husb: "@I17@"
 
 wife: "@I18@"
 
-chil: "@I19@"
-
-chil_2: "@I10@"
+chil:
+  - "@I19@"
+  - "@I10@"
 
 marr: ""
 ---
@@ -26183,9 +26218,9 @@ husb: "@I71@"
 
 wife: "@I88@"
 
-chil: "@I122@"
-
-chil_2: "@I89@"
+chil:
+  - "@I122@"
+  - "@I89@"
 
 marr_date: 8 NOV 1904
 marr_quay: 2
@@ -26292,9 +26327,9 @@ husb: "@I89@"
 
 wife: "@I117@"
 
-chil: "@I119@"
-
-chil_2: "@I120@"
+chil:
+  - "@I119@"
+  - "@I120@"
 
 marr_date: 4 MAR 1952
 marr_quay: 2
@@ -26306,11 +26341,10 @@ husb: "@I89@"
 
 wife: "@I123@"
 
-chil: "@I124@"
-
-chil_2: "@I125@"
-
-chil_3: "@I134@"
+chil:
+  - "@I124@"
+  - "@I125@"
+  - "@I134@"
 
 marr_date: 26 JAN 1940
 marr_plac: Glendale, LA County, CA
@@ -26428,11 +26462,10 @@ husb: "@I109@"
 
 wife: "@I112@"
 
-chil: "@I113@"
-
-chil_2: "@I135@"
-
-chil_3: "@I140@"
+chil:
+  - "@I113@"
+  - "@I135@"
+  - "@I140@"
 
 marr: ""
 ---
@@ -26553,9 +26586,9 @@ husb: "@I127@"
 
 wife: "@I128@"
 
-chil: "@I129@"
-
-chil_2: "@I130@"
+chil:
+  - "@I129@"
+  - "@I130@"
 
 marr: ""
 ---
@@ -26586,9 +26619,9 @@ type: Family
 
 husb: "@I164@"
 
-chil: "@I145@"
-
-chil_2: "@I165@"
+chil:
+  - "@I145@"
+  - "@I165@"
 
 marr: ""
 ---
@@ -26927,9 +26960,9 @@ husb: "@I185@"
 
 wife: "@I186@"
 
-chil: "@I187@"
-
-chil_2: "@I188@"
+chil:
+  - "@I187@"
+  - "@I188@"
 
 marr_date: 21 JUN 1940
 marr_quay: 2
@@ -27718,13 +27751,11 @@ husb: "@I327@"
 
 wife: "@I399@"
 
-chil: "@I400@"
-
-chil_2: "@I401@"
-
-chil_3: "@I402@"
-
-chil_4: "@I403@"
+chil:
+  - "@I400@"
+  - "@I401@"
+  - "@I402@"
+  - "@I403@"
 
 marr_date: 4 NOV 1842
 marr_plac: Springfield, IL
@@ -28117,9 +28148,9 @@ husb: "@I394@"
 
 wife: "@I395@"
 
-chil: "@I392@"
-
-chil_2: "@I396@"
+chil:
+  - "@I392@"
+  - "@I396@"
 
 marr: ""
 ---
@@ -28141,17 +28172,13 @@ husb: "@I408@"
 
 wife: "@I409@"
 
-chil: "@I406@"
-
-chil_2: "@I500@"
-
-chil_3: "@I501@"
-
-chil_4: "@I502@"
-
-chil_5: "@I503@"
-
-chil_6: "@I504@"
+chil:
+  - "@I406@"
+  - "@I500@"
+  - "@I501@"
+  - "@I502@"
+  - "@I503@"
+  - "@I504@"
 
 marr_date: 6 MAR 1730/31
 marr_quay: 0
@@ -28173,13 +28200,11 @@ husb: "@I510@"
 
 wife: "@I407@"
 
-chil: "@I511@"
-
-chil_2: "@I512@"
-
-chil_3: "@I513@"
-
-chil_4: "@I514@"
+chil:
+  - "@I511@"
+  - "@I512@"
+  - "@I513@"
+  - "@I514@"
 
 marr: ""
 ---
@@ -28202,13 +28227,11 @@ husb: "@I408@"
 
 wife: "@I505@"
 
-chil: "@I506@"
-
-chil_2: "@I507@"
-
-chil_3: "@I508@"
-
-chil_4: "@I509@"
+chil:
+  - "@I506@"
+  - "@I507@"
+  - "@I508@"
+  - "@I509@"
 
 marr: ""
 ---
@@ -28244,9 +28267,9 @@ husb: "@I416@"
 
 wife: "@I417@"
 
-chil: "@I411@"
-
-chil_2: "@I573@"
+chil:
+  - "@I411@"
+  - "@I573@"
 
 marr_date: 1670/71
 marr_quay: 2
@@ -28295,9 +28318,9 @@ husb: "@I424@"
 
 wife: "@I425@"
 
-chil: "@I416@"
-
-chil_2: "@I516@"
+chil:
+  - "@I416@"
+  - "@I516@"
 
 marr: ""
 ---
@@ -28551,9 +28574,9 @@ type: Family
 
 husb: "@I527@"
 
-chil: "@I462@"
-
-chil_2: "@I528@"
+chil:
+  - "@I462@"
+  - "@I528@"
 
 marr: ""
 ---
@@ -28595,9 +28618,9 @@ husb: "@I496@"
 
 wife: "@I497@"
 
-chil: "@I471@"
-
-chil_2: "@I499@"
+chil:
+  - "@I471@"
+  - "@I499@"
 
 marr: ""
 ---
@@ -28608,9 +28631,9 @@ husb: "@I471@"
 
 wife: "@I491@"
 
-chil: "@I487@"
-
-chil_2: "@I492@"
+chil:
+  - "@I487@"
+  - "@I492@"
 
 marr: ""
 ---
@@ -28880,9 +28903,9 @@ husb: "@I541@"
 
 wife: "@I542@"
 
-chil: "@I543@"
-
-chil_2: "@I544@"
+chil:
+  - "@I543@"
+  - "@I544@"
 
 marr: ""
 ---
@@ -29248,9 +29271,9 @@ husb: "@I606@"
 
 wife: "@I691@"
 
-chil: "@I604@"
-
-chil_2: "@I694@"
+chil:
+  - "@I604@"
+  - "@I694@"
 
 marr: ""
 ---
@@ -29554,9 +29577,9 @@ husb: "@I654@"
 
 wife: "@I655@"
 
-chil: "@I653@"
-
-chil_2: "@I1055@"
+chil:
+  - "@I653@"
+  - "@I1055@"
 
 marr: ""
 ---
@@ -29768,15 +29791,12 @@ husb: "@I712@"
 
 wife: "@I713@"
 
-chil: "@I1259@"
-
-chil_2: "@I698@"
-
-chil_3: "@I1260@"
-
-chil_4: "@I1262@"
-
-chil_5: "@I1263@"
+chil:
+  - "@I1259@"
+  - "@I698@"
+  - "@I1260@"
+  - "@I1262@"
+  - "@I1263@"
 
 marr_date: 6 AUG 1921
 marr_plac: Kennebunkport, York Co., ME
@@ -29789,17 +29809,13 @@ husb: "@I698@"
 
 wife: "@I699@"
 
-chil: "@I1265@"
-
-chil_2: "@I1266@"
-
-chil_3: "@I1267@"
-
-chil_4: "@I1268@"
-
-chil_5: "@I1269@"
-
-chil_6: "@I1270@"
+chil:
+  - "@I1265@"
+  - "@I1266@"
+  - "@I1267@"
+  - "@I1268@"
+  - "@I1269@"
+  - "@I1270@"
 
 marr_date: 6 JAN 1945
 marr_plac: Rye, NY
@@ -30101,9 +30117,9 @@ husb: "@I923@"
 
 wife: "@I731@"
 
-chil: "@I924@"
-
-chil_2: "@I927@"
+chil:
+  - "@I924@"
+  - "@I927@"
 
 marr_date: 27 MAR 1815
 marr_plac: Albemarle Co., VA
@@ -30477,9 +30493,9 @@ type: Family
 
 husb: "@I786@"
 
-chil: "@I784@"
-
-chil_2: "@I788@"
+chil:
+  - "@I784@"
+  - "@I788@"
 
 marr: ""
 ---
@@ -31051,9 +31067,9 @@ husb: "@I863@"
 
 wife: "@I860@"
 
-chil: "@I864@"
-
-chil_2: "@I865@"
+chil:
+  - "@I864@"
+  - "@I865@"
 
 marr_date: ABT 1742
 marr_quay: 2
@@ -31574,9 +31590,9 @@ husb: "@I963@"
 
 wife: "@I964@"
 
-chil: "@I965@"
-
-chil_2: "@I1081@"
+chil:
+  - "@I965@"
+  - "@I1081@"
 
 marr: ""
 ---
@@ -31587,9 +31603,9 @@ husb: "@I966@"
 
 wife: "@I965@"
 
-chil: "@I967@"
-
-chil_2: "@I1178@"
+chil:
+  - "@I967@"
+  - "@I1178@"
 
 marr: ""
 ---
@@ -31600,9 +31616,9 @@ husb: "@I968@"
 
 wife: "@I967@"
 
-chil: "@I969@"
-
-chil_2: "@I1001@"
+chil:
+  - "@I969@"
+  - "@I1001@"
 
 marr: ""
 ---
@@ -31721,9 +31737,9 @@ husb: "@I1276@"
 
 wife: "@I1275@"
 
-chil: "@I986@"
-
-chil_2: "@I1277@"
+chil:
+  - "@I986@"
+  - "@I1277@"
 
 marr: ""
 ---
@@ -31789,9 +31805,9 @@ husb: "@I995@"
 
 wife: "@I996@"
 
-chil: "@I997@"
-
-chil_2: "@I1164@"
+chil:
+  - "@I997@"
+  - "@I1164@"
 
 marr: ""
 ---
@@ -32295,9 +32311,9 @@ husb: "@I1101@"
 
 wife: "@I1102@"
 
-chil: "@I1103@"
-
-chil_2: "@I1172@"
+chil:
+  - "@I1103@"
+  - "@I1172@"
 
 marr: ""
 ---
@@ -32493,9 +32509,9 @@ husb: "@I1137@"
 
 wife: "@I1136@"
 
-chil: "@I1138@"
-
-chil_2: "@I1149@"
+chil:
+  - "@I1138@"
+  - "@I1149@"
 
 marr: ""
 ---
@@ -33048,11 +33064,10 @@ type: Family
 
 husb: "@I1271@"
 
-chil: "@I1273@"
-
-chil_2: "@I1303@"
-
-chil_3: "@I1325@"
+chil:
+  - "@I1273@"
+  - "@I1303@"
+  - "@I1325@"
 
 marr: ""
 ---
@@ -33211,9 +33226,9 @@ husb: "@I1305@"
 
 wife: "@I1306@"
 
-chil: "@I1307@"
-
-chil_2: "@I1332@"
+chil:
+  - "@I1307@"
+  - "@I1332@"
 
 marr: ""
 ---
@@ -33618,9 +33633,9 @@ husb: "@I1413@"
 
 wife: "@I1414@"
 
-chil: "@I1415@"
-
-chil_2: "@I1416@"
+chil:
+  - "@I1415@"
+  - "@I1416@"
 
 marr: ""
 ---
@@ -33786,9 +33801,9 @@ husb: "@I1458@"
 
 wife: "@I1459@"
 
-chil: "@I1460@"
-
-chil_2: "@I1462@"
+chil:
+  - "@I1460@"
+  - "@I1462@"
 
 marr: ""
 ---
@@ -33834,25 +33849,17 @@ husb: "@I1475@"
 
 wife: "@I1477@"
 
-chil: "@I1478@"
-
-chil_2: "@I1479@"
-
-chil_3: "@I1480@"
-
-chil_4: "@I1481@"
-
-chil_5: "@I1482@"
-
-chil_6: "@I1483@"
-
-chil_7: "@I1484@"
-
-chil_8: "@I1485@"
-
-chil_9: "@I1486@"
-
-chil_10: "@I1487@"
+chil:
+  - "@I1478@"
+  - "@I1479@"
+  - "@I1480@"
+  - "@I1481@"
+  - "@I1482@"
+  - "@I1483@"
+  - "@I1484@"
+  - "@I1485@"
+  - "@I1486@"
+  - "@I1487@"
 
 marr_date: 22 NOV 1795
 marr_plac: North Bend, Ohio
@@ -33864,19 +33871,14 @@ husb: "@I1499@"
 
 wife: "@I1500@"
 
-chil: "@I1501@"
-
-chil_2: "@I1502@"
-
-chil_3: "@I1503@"
-
-chil_4: "@I1504@"
-
-chil_5: "@I1505@"
-
-chil_6: "@I1506@"
-
-chil_7: "@I1475@"
+chil:
+  - "@I1501@"
+  - "@I1502@"
+  - "@I1503@"
+  - "@I1504@"
+  - "@I1505@"
+  - "@I1506@"
+  - "@I1475@"
 
 marr: ""
 ---
@@ -33887,11 +33889,10 @@ husb: "@I1476@"
 
 wife: "@I1517@"
 
-chil: "@I1518@"
-
-chil_2: "@I1519@"
-
-chil_3: "@I1520@"
+chil:
+  - "@I1518@"
+  - "@I1519@"
+  - "@I1520@"
 
 marr_date: 20 OCT 1853
 marr_plac: Oxford, Ohio
@@ -33915,25 +33916,17 @@ husb: "@I1482@"
 
 wife: "@I1493@"
 
-chil: "@I1533@"
-
-chil_2: "@I1476@"
-
-chil_3: "@I1527@"
-
-chil_4: "@I1526@"
-
-chil_5: "@I1534@"
-
-chil_6: "@I1535@"
-
-chil_7: "@I1536@"
-
-chil_8: "@I1537@"
-
-chil_9: "@I1538@"
-
-chil_10: "@I1539@"
+chil:
+  - "@I1533@"
+  - "@I1476@"
+  - "@I1527@"
+  - "@I1526@"
+  - "@I1534@"
+  - "@I1535@"
+  - "@I1536@"
+  - "@I1537@"
+  - "@I1538@"
+  - "@I1539@"
 
 marr_date: 12 AUG 1831
 ---
@@ -33980,11 +33973,10 @@ husb: "@I1482@"
 
 wife: "@I1492@"
 
-chil: "@I1528@"
-
-chil_2: "@I1529@"
-
-chil_3: "@I1530@"
+chil:
+  - "@I1528@"
+  - "@I1529@"
+  - "@I1530@"
 
 marr_date: 1824
 ---
@@ -34140,9 +34132,9 @@ husb: "@I1524@"
 
 wife: "@I1519@"
 
-chil: "@I2239@"
-
-chil_2: "@I2238@"
+chil:
+  - "@I2239@"
+  - "@I2238@"
 
 marr_date: 5 NOV 1884
 marr_plac: Indianapolis, Indianapolis
@@ -34218,15 +34210,12 @@ husb: "@I1544@"
 
 wife: "@I1545@"
 
-chil: "@I1546@"
-
-chil_2: "@I1547@"
-
-chil_3: "@I1548@"
-
-chil_4: "@I1549@"
-
-chil_5: "@I1550@"
+chil:
+  - "@I1546@"
+  - "@I1547@"
+  - "@I1548@"
+  - "@I1549@"
+  - "@I1550@"
 
 marr_date: 17 MAY 1827
 marr_plac: Warrensburg, Greene County, Tennessee
@@ -34238,11 +34227,10 @@ husb: "@I1555@"
 
 wife: "@I1556@"
 
-chil: "@I1557@"
-
-chil_2: "@I1558@"
-
-chil_3: "@I1544@"
+chil:
+  - "@I1557@"
+  - "@I1558@"
+  - "@I1544@"
 
 marr: ""
 ---
@@ -34313,15 +34301,12 @@ husb: "@I1560@"
 
 wife: "@I1564@"
 
-chil: "@I1565@"
-
-chil_2: "@I1566@"
-
-chil_3: "@I1567@"
-
-chil_4: "@I1568@"
-
-chil_5: "@I1569@"
+chil:
+  - "@I1565@"
+  - "@I1566@"
+  - "@I1567@"
+  - "@I1568@"
+  - "@I1569@"
 
 marr_date: 2 DEC 1886
 marr_plac: London, England
@@ -34333,13 +34318,11 @@ husb: "@I1574@"
 
 wife: "@I1575@"
 
-chil: "@I1576@"
-
-chil_2: "@I1560@"
-
-chil_3: "@I1577@"
-
-chil_4: "@I1578@"
+chil:
+  - "@I1576@"
+  - "@I1560@"
+  - "@I1577@"
+  - "@I1578@"
 
 marr: ""
 ---
@@ -34429,9 +34412,9 @@ husb: "@I1583@"
 
 wife: "@I1584@"
 
-chil: "@I1585@"
-
-chil_2: "@I1586@"
+chil:
+  - "@I1585@"
+  - "@I1586@"
 
 marr_date: 1 JUL 1916
 marr_plac: Denver, Colorado
@@ -34443,19 +34426,14 @@ husb: "@I1588@"
 
 wife: "@I1589@"
 
-chil: "@I1590@"
-
-chil_2: "@I1591@"
-
-chil_3: "@I1583@"
-
-chil_4: "@I1592@"
-
-chil_5: "@I1593@"
-
-chil_6: "@I1594@"
-
-chil_7: "@I1595@"
+chil:
+  - "@I1590@"
+  - "@I1591@"
+  - "@I1583@"
+  - "@I1592@"
+  - "@I1593@"
+  - "@I1594@"
+  - "@I1595@"
 
 marr: ""
 ---
@@ -34548,13 +34526,11 @@ husb: "@I1604@"
 
 wife: "@I1605@"
 
-chil: "@I1606@"
-
-chil_2: "@I1607@"
-
-chil_3: "@I1608@"
-
-chil_4: "@I1609@"
+chil:
+  - "@I1606@"
+  - "@I1607@"
+  - "@I1608@"
+  - "@I1609@"
 
 marr_date: 12 SEP 1953
 marr_plac: Newport, Rhode Island
@@ -34569,23 +34545,16 @@ husb: "@I1612@"
 
 wife: "@I1613@"
 
-chil: "@I1614@"
-
-chil_2: "@I1604@"
-
-chil_3: "@I1615@"
-
-chil_4: "@I1616@"
-
-chil_5: "@I1617@"
-
-chil_6: "@I1618@"
-
-chil_7: "@I1619@"
-
-chil_8: "@I1620@"
-
-chil_9: "@I1621@"
+chil:
+  - "@I1614@"
+  - "@I1604@"
+  - "@I1615@"
+  - "@I1616@"
+  - "@I1617@"
+  - "@I1618@"
+  - "@I1619@"
+  - "@I1620@"
+  - "@I1621@"
 
 marr_date: 7 OCT 1914
 marr_plac: Boston, Suffolk Co., Massachusetts
@@ -34619,15 +34588,12 @@ husb: "@I1623@"
 
 wife: "@I1617@"
 
-chil: "@I1628@"
-
-chil_2: "@I1629@"
-
-chil_3: "@I1630@"
-
-chil_4: "@I1631@"
-
-chil_5: "@I1632@"
+chil:
+  - "@I1628@"
+  - "@I1629@"
+  - "@I1630@"
+  - "@I1631@"
+  - "@I1632@"
 
 marr_date: 23 MAY 1953
 marr_plac: New York City, New York
@@ -34639,13 +34605,11 @@ husb: "@I1624@"
 
 wife: "@I1618@"
 
-chil: "@I1633@"
-
-chil_2: "@I1634@"
-
-chil_3: "@I1635@"
-
-chil_4: "@I1636@"
+chil:
+  - "@I1633@"
+  - "@I1634@"
+  - "@I1635@"
+  - "@I1636@"
 
 marr_date: 24 APR 1954
 marr_plac: New York City, New York
@@ -34657,27 +34621,18 @@ husb: "@I1619@"
 
 wife: "@I1625@"
 
-chil: "@I1637@"
-
-chil_2: "@I1638@"
-
-chil_3: "@I1639@"
-
-chil_4: "@I1640@"
-
-chil_5: "@I1641@"
-
-chil_6: "@I1642@"
-
-chil_7: "@I1643@"
-
-chil_8: "@I1644@"
-
-chil_9: "@I1645@"
-
-chil_10: "@I1646@"
-
-chil_11: "@I1647@"
+chil:
+  - "@I1637@"
+  - "@I1638@"
+  - "@I1639@"
+  - "@I1640@"
+  - "@I1641@"
+  - "@I1642@"
+  - "@I1643@"
+  - "@I1644@"
+  - "@I1645@"
+  - "@I1646@"
+  - "@I1647@"
 
 marr_date: 17 JUN 1950
 marr_plac: Greenwich, Fairfield Co., Connecticut
@@ -34689,13 +34644,11 @@ husb: "@I1626@"
 
 wife: "@I1620@"
 
-chil: "@I1648@"
-
-chil_2: "@I1649@"
-
-chil_3: "@I1650@"
-
-chil_4: "@I1651@"
+chil:
+  - "@I1648@"
+  - "@I1649@"
+  - "@I1650@"
+  - "@I1651@"
 
 marr_date: 19 MAY 1956
 marr_plac: New York City, New York
@@ -34707,11 +34660,10 @@ husb: "@I1621@"
 
 wife: "@I1627@"
 
-chil: "@I1652@"
-
-chil_2: "@I1653@"
-
-chil_3: "@I1654@"
+chil:
+  - "@I1652@"
+  - "@I1653@"
+  - "@I1654@"
 
 marr_date: 30 NOV 1958
 marr_plac: Bronxville, Westchester Co., New York
@@ -34723,13 +34675,11 @@ husb: "@I1655@"
 
 wife: "@I1656@"
 
-chil: "@I1657@"
-
-chil_2: "@I1658@"
-
-chil_3: "@I1659@"
-
-chil_4: "@I1660@"
+chil:
+  - "@I1657@"
+  - "@I1658@"
+  - "@I1659@"
+  - "@I1660@"
 
 marr_date: 15 OCT 1948
 marr_plac: Grand Rapids, Michigan
@@ -34752,11 +34702,10 @@ husb: "@I1661@"
 
 wife: "@I1663@"
 
-chil: "@I1664@"
-
-chil_2: "@I1665@"
-
-chil_3: "@I1666@"
+chil:
+  - "@I1664@"
+  - "@I1665@"
+  - "@I1666@"
 
 marr: ""
 ---
@@ -34767,11 +34716,10 @@ husb: "@I1667@"
 
 wife: "@I1662@"
 
-chil: "@I1668@"
-
-chil_2: "@I1669@"
-
-chil_3: "@I1670@"
+chil:
+  - "@I1668@"
+  - "@I1669@"
+  - "@I1670@"
 
 marr: ""
 ---
@@ -34782,13 +34730,11 @@ husb: "@I1671@"
 
 wife: "@I1672@"
 
-chil: "@I1673@"
-
-chil_2: "@I1674@"
-
-chil_3: "@I1675@"
-
-chil_4: "@I1676@"
+chil:
+  - "@I1673@"
+  - "@I1674@"
+  - "@I1675@"
+  - "@I1676@"
 
 marr_date: 7 JUL 1946
 marr_plac: Plains, Georgia
@@ -34800,13 +34746,11 @@ husb: "@I1677@"
 
 wife: "@I1678@"
 
-chil: "@I1671@"
-
-chil_2: "@I1679@"
-
-chil_3: "@I1680@"
-
-chil_4: "@I1681@"
+chil:
+  - "@I1671@"
+  - "@I1679@"
+  - "@I1680@"
+  - "@I1681@"
 
 marr: ""
 ---
@@ -34844,21 +34788,15 @@ husb: "@I1685@"
 
 wife: "@I1686@"
 
-chil: "@I1687@"
-
-chil_2: "@I1688@"
-
-chil_3: "@I1689@"
-
-chil_4: "@I1690@"
-
-chil_5: "@I1691@"
-
-chil_6: "@I1692@"
-
-chil_7: "@I1693@"
-
-chil_8: "@I1694@"
+chil:
+  - "@I1687@"
+  - "@I1688@"
+  - "@I1689@"
+  - "@I1690@"
+  - "@I1691@"
+  - "@I1692@"
+  - "@I1693@"
+  - "@I1694@"
 
 marr_date: 29 MAR 1813
 marr_plac: Cedar Grove, New Kent Co., Virginia
@@ -34870,19 +34808,14 @@ husb: "@I1685@"
 
 wife: "@I1695@"
 
-chil: "@I1696@"
-
-chil_2: "@I1697@"
-
-chil_3: "@I1698@"
-
-chil_4: "@I1699@"
-
-chil_5: "@I1700@"
-
-chil_6: "@I1701@"
-
-chil_7: "@I1702@"
+chil:
+  - "@I1696@"
+  - "@I1697@"
+  - "@I1698@"
+  - "@I1699@"
+  - "@I1700@"
+  - "@I1701@"
+  - "@I1702@"
 
 marr_date: 26 JUN 1844
 marr_plac: Ch of Ascension, New York City, New York
@@ -34894,21 +34827,15 @@ husb: "@I1703@"
 
 wife: "@I1704@"
 
-chil: "@I1705@"
-
-chil_2: "@I1706@"
-
-chil_3: "@I1707@"
-
-chil_4: "@I1708@"
-
-chil_5: "@I1709@"
-
-chil_6: "@I1685@"
-
-chil_7: "@I1710@"
-
-chil_8: "@I1711@"
+chil:
+  - "@I1705@"
+  - "@I1706@"
+  - "@I1707@"
+  - "@I1708@"
+  - "@I1709@"
+  - "@I1685@"
+  - "@I1710@"
+  - "@I1711@"
 
 marr: ""
 ---
@@ -35131,15 +35058,12 @@ husb: "@I1735@"
 
 wife: "@I1736@"
 
-chil: "@I1737@"
-
-chil_2: "@I1738@"
-
-chil_3: "@I1739@"
-
-chil_4: "@I1740@"
-
-chil_5: "@I1741@"
+chil:
+  - "@I1737@"
+  - "@I1738@"
+  - "@I1739@"
+  - "@I1740@"
+  - "@I1741@"
 
 marr_date: 2 JUN 1886
 marr_plac: White House, Washington D.C.
@@ -35151,23 +35075,16 @@ husb: "@I1748@"
 
 wife: "@I1749@"
 
-chil: "@I1750@"
-
-chil_2: "@I1751@"
-
-chil_3: "@I1752@"
-
-chil_4: "@I1753@"
-
-chil_5: "@I1735@"
-
-chil_6: "@I1754@"
-
-chil_7: "@I1755@"
-
-chil_8: "@I1756@"
-
-chil_9: "@I1757@"
+chil:
+  - "@I1750@"
+  - "@I1751@"
+  - "@I1752@"
+  - "@I1753@"
+  - "@I1735@"
+  - "@I1754@"
+  - "@I1755@"
+  - "@I1756@"
+  - "@I1757@"
 
 marr: ""
 ---
@@ -35290,13 +35207,11 @@ husb: "@I1767@"
 
 wife: "@I1768@"
 
-chil: "@I1776@"
-
-chil_2: "@I1763@"
-
-chil_3: "@I1769@"
-
-chil_4: "@I1770@"
+chil:
+  - "@I1776@"
+  - "@I1763@"
+  - "@I1769@"
+  - "@I1770@"
 
 marr: ""
 ---
@@ -35307,13 +35222,11 @@ husb: "@I1766@"
 
 wife: "@I1765@"
 
-chil: "@I1772@"
-
-chil_2: "@I1773@"
-
-chil_3: "@I1774@"
-
-chil_4: "@I1775@"
+chil:
+  - "@I1772@"
+  - "@I1773@"
+  - "@I1774@"
+  - "@I1775@"
 
 marr_date: 21 APR 1956
 marr_plac: Independence, Missouri
@@ -35325,15 +35238,12 @@ husb: "@I1777@"
 
 wife: "@I1778@"
 
-chil: "@I1779@"
-
-chil_2: "@I1780@"
-
-chil_3: "@I1767@"
-
-chil_4: "@I1781@"
-
-chil_5: "@I1782@"
+chil:
+  - "@I1779@"
+  - "@I1780@"
+  - "@I1767@"
+  - "@I1781@"
+  - "@I1782@"
 
 marr_date: 13 AUG 1846
 ---
@@ -35389,17 +35299,13 @@ husb: "@I1787@"
 
 wife: "@I1788@"
 
-chil: "@I1789@"
-
-chil_2: "@I1790@"
-
-chil_3: "@I1791@"
-
-chil_4: "@I1792@"
-
-chil_5: "@I1793@"
-
-chil_6: "@I1794@"
+chil:
+  - "@I1789@"
+  - "@I1790@"
+  - "@I1791@"
+  - "@I1792@"
+  - "@I1793@"
+  - "@I1794@"
 
 marr_date: 17 MAR 1905
 marr_plac: New York
@@ -35620,9 +35526,9 @@ husb: "@I1818@"
 
 wife: "@I1819@"
 
-chil: "@I1820@"
-
-chil_2: "@I1821@"
+chil:
+  - "@I1820@"
+  - "@I1821@"
 
 marr_date: 10 FEB 1899
 marr_plac: Monterey, California
@@ -35634,11 +35540,10 @@ husb: "@I1824@"
 
 wife: "@I1825@"
 
-chil: "@I1826@"
-
-chil_2: "@I1818@"
-
-chil_3: "@I1827@"
+chil:
+  - "@I1826@"
+  - "@I1818@"
+  - "@I1827@"
 
 marr: ""
 ---
@@ -35687,11 +35592,10 @@ husb: "@I1830@"
 
 wife: "@I1831@"
 
-chil: "@I1832@"
-
-chil_2: "@I1833@"
-
-chil_3: "@I1834@"
+chil:
+  - "@I1832@"
+  - "@I1833@"
+  - "@I1834@"
 
 marr_date: 24 JUN 1885
 marr_plac: Savannah, Georgia
@@ -35713,13 +35617,11 @@ husb: "@I1838@"
 
 wife: "@I1839@"
 
-chil: "@I1840@"
-
-chil_2: "@I1841@"
-
-chil_3: "@I1830@"
-
-chil_4: "@I1842@"
+chil:
+  - "@I1840@"
+  - "@I1841@"
+  - "@I1830@"
+  - "@I1842@"
 
 marr: ""
 ---
@@ -35759,9 +35661,9 @@ husb: "@I1844@"
 
 wife: "@I1845@"
 
-chil: "@I1846@"
-
-chil_2: "@I1847@"
+chil:
+  - "@I1846@"
+  - "@I1847@"
 
 marr_date: 4 OCT 1905
 marr_plac: Burlington, Chittenden Co., Vermont
@@ -35773,9 +35675,9 @@ husb: "@I1849@"
 
 wife: "@I1850@"
 
-chil: "@I1844@"
-
-chil_2: "@I1851@"
+chil:
+  - "@I1844@"
+  - "@I1851@"
 
 marr_date: 6 MAY 1868
 marr_plac: Plymouth, Vermont
@@ -35816,25 +35718,17 @@ husb: "@I1878@"
 
 wife: "@I1879@"
 
-chil: "@I1876@"
-
-chil_2: "@I1880@"
-
-chil_3: "@I1889@"
-
-chil_4: "@I1881@"
-
-chil_5: "@I1885@"
-
-chil_6: "@I1882@"
-
-chil_7: "@I1886@"
-
-chil_8: "@I1883@"
-
-chil_9: "@I1887@"
-
-chil_10: "@I1884@"
+chil:
+  - "@I1876@"
+  - "@I1880@"
+  - "@I1889@"
+  - "@I1881@"
+  - "@I1885@"
+  - "@I1882@"
+  - "@I1886@"
+  - "@I1883@"
+  - "@I1887@"
+  - "@I1884@"
 
 marr: ""
 ---
@@ -35917,17 +35811,13 @@ husb: "@I1897@"
 
 wife: "@I1898@"
 
-chil: "@I1899@"
-
-chil_2: "@I1900@"
-
-chil_3: "@I1901@"
-
-chil_4: "@I1902@"
-
-chil_5: "@I1903@"
-
-chil_6: "@I1904@"
+chil:
+  - "@I1899@"
+  - "@I1900@"
+  - "@I1901@"
+  - "@I1902@"
+  - "@I1903@"
+  - "@I1904@"
 
 marr_date: 21 JUN 1810
 marr_plac: Jefferson Co., Kentucky
@@ -35939,23 +35829,16 @@ husb: "@I1910@"
 
 wife: "@I1911@"
 
-chil: "@I1912@"
-
-chil_2: "@I1913@"
-
-chil_3: "@I1897@"
-
-chil_4: "@I1914@"
-
-chil_5: "@I1915@"
-
-chil_6: "@I1916@"
-
-chil_7: "@I1917@"
-
-chil_8: "@I1918@"
-
-chil_9: "@I1919@"
+chil:
+  - "@I1912@"
+  - "@I1913@"
+  - "@I1897@"
+  - "@I1914@"
+  - "@I1915@"
+  - "@I1916@"
+  - "@I1917@"
+  - "@I1918@"
+  - "@I1919@"
 
 marr: ""
 ---
@@ -36067,27 +35950,18 @@ husb: "@I1927@"
 
 wife: "@I1928@"
 
-chil: "@I1929@"
-
-chil_2: "@I1926@"
-
-chil_3: "@I1930@"
-
-chil_4: "@I1931@"
-
-chil_5: "@I1932@"
-
-chil_6: "@I1933@"
-
-chil_7: "@I1934@"
-
-chil_8: "@I1935@"
-
-chil_9: "@I1936@"
-
-chil_10: "@I1937@"
-
-chil_11: "@I1938@"
+chil:
+  - "@I1929@"
+  - "@I1926@"
+  - "@I1930@"
+  - "@I1931@"
+  - "@I1932@"
+  - "@I1933@"
+  - "@I1934@"
+  - "@I1935@"
+  - "@I1936@"
+  - "@I1937@"
+  - "@I1938@"
 
 marr: ""
 ---
@@ -36163,11 +36037,10 @@ husb: "@I1946@"
 
 wife: "@I1947@"
 
-chil: "@I1948@"
-
-chil_2: "@I1949@"
-
-chil_3: "@I1950@"
+chil:
+  - "@I1948@"
+  - "@I1949@"
+  - "@I1950@"
 
 marr_date: 19 NOV 1834
 marr_plac: Amherst, New Hampshire
@@ -36179,21 +36052,15 @@ husb: "@I1951@"
 
 wife: "@I1954@"
 
-chil: "@I1955@"
-
-chil_2: "@I1956@"
-
-chil_3: "@I1957@"
-
-chil_4: "@I1958@"
-
-chil_5: "@I1959@"
-
-chil_6: "@I1946@"
-
-chil_7: "@I1960@"
-
-chil_8: "@I1961@"
+chil:
+  - "@I1955@"
+  - "@I1956@"
+  - "@I1957@"
+  - "@I1958@"
+  - "@I1959@"
+  - "@I1946@"
+  - "@I1960@"
+  - "@I1961@"
 
 marr: ""
 ---
@@ -36260,11 +36127,10 @@ husb: "@I1967@"
 
 wife: "@I1968@"
 
-chil: "@I1969@"
-
-chil_2: "@I1970@"
-
-chil_3: "@I1971@"
+chil:
+  - "@I1969@"
+  - "@I1970@"
+  - "@I1971@"
 
 marr_date: 25 OCT 1859
 marr_plac: Calvary Church, New York City, New York
@@ -36276,23 +36142,16 @@ husb: "@I1975@"
 
 wife: "@I1976@"
 
-chil: "@I1977@"
-
-chil_2: "@I1978@"
-
-chil_3: "@I1979@"
-
-chil_4: "@I1980@"
-
-chil_5: "@I1967@"
-
-chil_6: "@I1981@"
-
-chil_7: "@I1982@"
-
-chil_8: "@I1983@"
-
-chil_9: "@I1984@"
+chil:
+  - "@I1977@"
+  - "@I1978@"
+  - "@I1979@"
+  - "@I1980@"
+  - "@I1967@"
+  - "@I1981@"
+  - "@I1982@"
+  - "@I1983@"
+  - "@I1984@"
 
 marr: ""
 ---
@@ -36348,13 +36207,11 @@ husb: "@I1987@"
 
 wife: "@I1988@"
 
-chil: "@I1989@"
-
-chil_2: "@I1990@"
-
-chil_3: "@I1991@"
-
-chil_4: "@I1992@"
+chil:
+  - "@I1989@"
+  - "@I1990@"
+  - "@I1991@"
+  - "@I1992@"
 
 marr_date: 22 AUG 1848
 marr_plac: St Louis, Missouri
@@ -36366,17 +36223,13 @@ husb: "@I2000@"
 
 wife: "@I2001@"
 
-chil: "@I1987@"
-
-chil_2: "@I2002@"
-
-chil_3: "@I2003@"
-
-chil_4: "@I2004@"
-
-chil_5: "@I2005@"
-
-chil_6: "@I2006@"
+chil:
+  - "@I1987@"
+  - "@I2002@"
+  - "@I2003@"
+  - "@I2004@"
+  - "@I2005@"
+  - "@I2006@"
 
 marr: ""
 ---
@@ -36481,19 +36334,14 @@ husb: "@I2010@"
 
 wife: "@I2011@"
 
-chil: "@I2012@"
-
-chil_2: "@I2013@"
-
-chil_3: "@I2014@"
-
-chil_4: "@I2015@"
-
-chil_5: "@I2016@"
-
-chil_6: "@I2017@"
-
-chil_7: "@I2018@"
+chil:
+  - "@I2012@"
+  - "@I2013@"
+  - "@I2014@"
+  - "@I2015@"
+  - "@I2016@"
+  - "@I2017@"
+  - "@I2018@"
 
 marr_date: 11 NOV 1858
 marr_plac: Hiram, Portage Co., Ohio
@@ -36505,15 +36353,12 @@ husb: "@I2025@"
 
 wife: "@I2026@"
 
-chil: "@I2027@"
-
-chil_2: "@I2028@"
-
-chil_3: "@I2029@"
-
-chil_4: "@I2030@"
-
-chil_5: "@I2010@"
+chil:
+  - "@I2027@"
+  - "@I2028@"
+  - "@I2029@"
+  - "@I2030@"
+  - "@I2010@"
 
 marr: ""
 ---
@@ -36610,21 +36455,15 @@ husb: "@I2034@"
 
 wife: "@I2035@"
 
-chil: "@I2036@"
-
-chil_2: "@I2037@"
-
-chil_3: "@I2038@"
-
-chil_4: "@I2039@"
-
-chil_5: "@I2040@"
-
-chil_6: "@I2041@"
-
-chil_7: "@I2042@"
-
-chil_8: "@I2043@"
+chil:
+  - "@I2036@"
+  - "@I2037@"
+  - "@I2038@"
+  - "@I2039@"
+  - "@I2040@"
+  - "@I2041@"
+  - "@I2042@"
+  - "@I2043@"
 
 marr_date: 30 DEC 1852
 marr_plac: Cincinnati, Ohio
@@ -36636,15 +36475,12 @@ husb: "@I2049@"
 
 wife: "@I2050@"
 
-chil: "@I2051@"
-
-chil_2: "@I2052@"
-
-chil_3: "@I2053@"
-
-chil_4: "@I2054@"
-
-chil_5: "@I2034@"
+chil:
+  - "@I2051@"
+  - "@I2052@"
+  - "@I2053@"
+  - "@I2054@"
+  - "@I2034@"
 
 marr: ""
 ---
@@ -36709,9 +36545,9 @@ husb: "@I2056@"
 
 wife: "@I2057@"
 
-chil: "@I2058@"
-
-chil_2: "@I2059@"
+chil:
+  - "@I2058@"
+  - "@I2059@"
 
 marr_date: 25 JAN 1871
 marr_plac: 1st Presby Chur., Canton, Ohio
@@ -36723,23 +36559,16 @@ husb: "@I2060@"
 
 wife: "@I2061@"
 
-chil: "@I2062@"
-
-chil_2: "@I2063@"
-
-chil_3: "@I2064@"
-
-chil_4: "@I2065@"
-
-chil_5: "@I2066@"
-
-chil_6: "@I2067@"
-
-chil_7: "@I2056@"
-
-chil_8: "@I2068@"
-
-chil_9: "@I2069@"
+chil:
+  - "@I2062@"
+  - "@I2063@"
+  - "@I2064@"
+  - "@I2065@"
+  - "@I2066@"
+  - "@I2067@"
+  - "@I2056@"
+  - "@I2068@"
+  - "@I2069@"
 
 marr: ""
 ---
@@ -36795,11 +36624,10 @@ husb: "@I2075@"
 
 wife: "@I2076@"
 
-chil: "@I2077@"
-
-chil_2: "@I2078@"
-
-chil_3: "@I2079@"
+chil:
+  - "@I2077@"
+  - "@I2078@"
+  - "@I2079@"
 
 marr_date: 19 JUN 1886
 marr_plac: Cincinnati, Ohio
@@ -36811,15 +36639,12 @@ husb: "@I2083@"
 
 wife: "@I2087@"
 
-chil: "@I2088@"
-
-chil_2: "@I2075@"
-
-chil_3: "@I2089@"
-
-chil_4: "@I2090@"
-
-chil_5: "@I2091@"
+chil:
+  - "@I2088@"
+  - "@I2075@"
+  - "@I2089@"
+  - "@I2090@"
+  - "@I2091@"
 
 marr: ""
 ---
@@ -36859,9 +36684,9 @@ husb: "@I2083@"
 
 wife: "@I2084@"
 
-chil: "@I2085@"
-
-chil_2: "@I2086@"
+chil:
+  - "@I2085@"
+  - "@I2086@"
 
 marr: ""
 ---
@@ -36920,21 +36745,15 @@ husb: "@I2097@"
 
 wife: "@I2098@"
 
-chil: "@I2095@"
-
-chil_2: "@I2099@"
-
-chil_3: "@I2100@"
-
-chil_4: "@I2101@"
-
-chil_5: "@I2102@"
-
-chil_6: "@I2103@"
-
-chil_7: "@I2104@"
-
-chil_8: "@I2105@"
+chil:
+  - "@I2095@"
+  - "@I2099@"
+  - "@I2100@"
+  - "@I2101@"
+  - "@I2102@"
+  - "@I2103@"
+  - "@I2104@"
+  - "@I2105@"
 
 marr: ""
 ---
@@ -37001,15 +36820,12 @@ husb: "@I2113@"
 
 wife: "@I2115@"
 
-chil: "@I2116@"
-
-chil_2: "@I2114@"
-
-chil_3: "@I2117@"
-
-chil_4: "@I2118@"
-
-chil_5: "@I2119@"
+chil:
+  - "@I2116@"
+  - "@I2114@"
+  - "@I2117@"
+  - "@I2118@"
+  - "@I2119@"
 
 marr_date: 25 OCT 1764
 marr_plac: Weymouth, Massachusetts
@@ -37021,11 +36837,10 @@ husb: "@I2126@"
 
 wife: "@I2127@"
 
-chil: "@I2113@"
-
-chil_2: "@I2134@"
-
-chil_3: "@I2135@"
+chil:
+  - "@I2113@"
+  - "@I2134@"
+  - "@I2135@"
 
 marr: ""
 ---
@@ -37036,13 +36851,11 @@ husb: "@I2114@"
 
 wife: "@I2136@"
 
-chil: "@I2137@"
-
-chil_2: "@I2138@"
-
-chil_3: "@I2139@"
-
-chil_4: "@I2140@"
+chil:
+  - "@I2137@"
+  - "@I2138@"
+  - "@I2139@"
+  - "@I2140@"
 
 marr_date: 26 JUL 1797
 marr_plac: London, England
@@ -37093,9 +36906,9 @@ husb: "@I2132@"
 
 wife: "@I2133@"
 
-chil: "@I2125@"
-
-chil_2: "@I2130@"
+chil:
+  - "@I2125@"
+  - "@I2130@"
 
 marr: ""
 ---
@@ -37148,17 +36961,13 @@ husb: "@I2143@"
 
 wife: "@I2144@"
 
-chil: "@I2145@"
-
-chil_2: "@I2146@"
-
-chil_3: "@I2147@"
-
-chil_4: "@I2148@"
-
-chil_5: "@I2149@"
-
-chil_6: "@I2150@"
+chil:
+  - "@I2145@"
+  - "@I2146@"
+  - "@I2147@"
+  - "@I2148@"
+  - "@I2149@"
+  - "@I2150@"
 
 marr_date: JAN 1772
 marr_plac: The Forest, Charles City Co., Virginia
@@ -37170,25 +36979,17 @@ husb: "@I2153@"
 
 wife: "@I2154@"
 
-chil: "@I2155@"
-
-chil_2: "@I2156@"
-
-chil_3: "@I2143@"
-
-chil_4: "@I2157@"
-
-chil_5: "@I2158@"
-
-chil_6: "@I2159@"
-
-chil_7: "@I2160@"
-
-chil_8: "@I2161@"
-
-chil_9: "@I2162@"
-
-chil_10: "@I2163@"
+chil:
+  - "@I2155@"
+  - "@I2156@"
+  - "@I2143@"
+  - "@I2157@"
+  - "@I2158@"
+  - "@I2159@"
+  - "@I2160@"
+  - "@I2161@"
+  - "@I2162@"
+  - "@I2163@"
 
 marr: ""
 ---
@@ -37294,29 +37095,19 @@ husb: "@I2174@"
 
 wife: "@I2175@"
 
-chil: "@I2172@"
-
-chil_2: "@I2176@"
-
-chil_3: "@I2177@"
-
-chil_4: "@I2178@"
-
-chil_5: "@I2179@"
-
-chil_6: "@I2180@"
-
-chil_7: "@I2181@"
-
-chil_8: "@I2182@"
-
-chil_9: "@I2183@"
-
-chil_10: "@I2184@"
-
-chil_11: "@I2185@"
-
-chil_12: "@I2186@"
+chil:
+  - "@I2172@"
+  - "@I2176@"
+  - "@I2177@"
+  - "@I2178@"
+  - "@I2179@"
+  - "@I2180@"
+  - "@I2181@"
+  - "@I2182@"
+  - "@I2183@"
+  - "@I2184@"
+  - "@I2185@"
+  - "@I2186@"
 
 marr: ""
 ---
@@ -37338,11 +37129,10 @@ husb: "@I2189@"
 
 wife: "@I2190@"
 
-chil: "@I2191@"
-
-chil_2: "@I2192@"
-
-chil_3: "@I2193@"
+chil:
+  - "@I2191@"
+  - "@I2192@"
+  - "@I2193@"
 
 marr_date: 16 FEB 1786
 marr_plac: Trinity E Church, New York City,New York
@@ -37354,15 +37144,12 @@ husb: "@I2196@"
 
 wife: "@I2197@"
 
-chil: "@I2198@"
-
-chil_2: "@I2189@"
-
-chil_3: "@I2199@"
-
-chil_4: "@I2200@"
-
-chil_5: "@I2201@"
+chil:
+  - "@I2198@"
+  - "@I2189@"
+  - "@I2199@"
+  - "@I2200@"
+  - "@I2201@"
 
 marr: ""
 ---
@@ -37448,11 +37235,10 @@ husb: "@I2209@"
 
 wife: "@I2210@"
 
-chil: "@I2211@"
-
-chil_2: "@I2212@"
-
-chil_3: "@I2207@"
+chil:
+  - "@I2211@"
+  - "@I2212@"
+  - "@I2207@"
 
 marr: ""
 ---
@@ -37463,15 +37249,12 @@ husb: "@I2213@"
 
 wife: "@I2214@"
 
-chil: "@I2215@"
-
-chil_2: "@I2216@"
-
-chil_3: "@I2217@"
-
-chil_4: "@I2218@"
-
-chil_5: "@I2219@"
+chil:
+  - "@I2215@"
+  - "@I2216@"
+  - "@I2217@"
+  - "@I2218@"
+  - "@I2219@"
 
 marr_date: 21 FEB 1807
 marr_plac: Catskill, New York
@@ -37483,15 +37266,12 @@ husb: "@I2224@"
 
 wife: "@I2225@"
 
-chil: "@I2226@"
-
-chil_2: "@I2227@"
-
-chil_3: "@I2213@"
-
-chil_4: "@I2228@"
-
-chil_5: "@I2229@"
+chil:
+  - "@I2226@"
+  - "@I2227@"
+  - "@I2213@"
+  - "@I2228@"
+  - "@I2229@"
 
 marr: ""
 ---
@@ -37538,11 +37318,10 @@ husb: "@I2230@"
 
 wife: "@I2225@"
 
-chil: "@I2231@"
-
-chil_2: "@I2232@"
-
-chil_3: "@I2233@"
+chil:
+  - "@I2231@"
+  - "@I2232@"
+  - "@I2233@"
 
 marr: ""
 ---
@@ -37580,9 +37359,9 @@ husb: "@I2240@"
 
 wife: "@I2241@"
 
-chil: "@I2242@"
-
-chil_2: "@I2243@"
+chil:
+  - "@I2242@"
+  - "@I2243@"
 
 marr_date: 17 NOV 1934
 marr_plac: San Antonio, Texas
@@ -37594,15 +37373,12 @@ husb: "@I2246@"
 
 wife: "@I2247@"
 
-chil: "@I2240@"
-
-chil_2: "@I2248@"
-
-chil_3: "@I2249@"
-
-chil_4: "@I2250@"
-
-chil_5: "@I2251@"
+chil:
+  - "@I2240@"
+  - "@I2248@"
+  - "@I2249@"
+  - "@I2250@"
+  - "@I2251@"
 
 marr: ""
 ---
