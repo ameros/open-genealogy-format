@@ -1,7 +1,10 @@
 # Open Genealogy Format (OGF)
 
-OGF is a human-readable, self-describing format for genealogical data. It uses
-YAML multi-document files and keeps records, metadata and presentation separate.
+OGF is a human-readable, self-describing format for genealogical data. 
+
+_>> You can read it - you can write it <<_
+
+It uses YAML multi-document files and keeps records, metadata and presentation separate.
 
 The format has an open field vocabulary: applications must preserve fields they
 do not recognize. Records are connected by stable identifiers, not by copied
@@ -88,6 +91,10 @@ See the [licensing guide](licensing/README.md) for the full breakdown,
 
 **Keep the data authoritative. Applications may interpret and display it, but
 must not silently change its stored values or meaning.**
+
+---
+
+_>> You wrote it - you read it <<_
 
 ---
 The tool is listed @ https://www.cyndislist.com
