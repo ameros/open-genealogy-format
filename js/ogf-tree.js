@@ -333,7 +333,8 @@
         const portrait=group.append('image').attr('class','ogf-tree-family-image')
           .attr('x',-42).attr('y',-114).attr('width',84).attr('height',84)
           .attr('preserveAspectRatio','xMidYMid slice').attr('clip-path',`url(#${clipId})`)
-          .attr('href',displayUrl).attr('xlink:href',displayUrl);
+          .attr('href',displayUrl).attr('xlink:href',displayUrl)
+          .attr('data-ogf-original-src',label.imageUrl);
         if(app.configureImageRequest)app.configureImageRequest(portrait.node(),label.imageUrl);
         portrait.on('error',function(){
           const element=d3.select(this);
@@ -373,7 +374,8 @@
       image=portrait.append('image').attr('class','ogf-tree-person-image')
         .attr('x',ix).attr('y',iy).attr('width',iw).attr('height',ih)
         .attr('preserveAspectRatio','xMidYMid slice')
-        .attr('href',displayUrl).attr('xlink:href',displayUrl);
+        .attr('href',displayUrl).attr('xlink:href',displayUrl)
+        .attr('data-ogf-original-src',label.imageUrl);
       image.on('error',function(){
         const element=d3.select(this);
         if(displayUrl!==label.imageUrl && !element.attr('data-direct-fallback')){
@@ -715,12 +717,310 @@
   // Public navigation bridge used by reference links in the details card.
   // It updates the selected record and rebuilds the tree around that record,
   // while leaving the current tree/details screen state unchanged.
+  async function exportCurrentTreeSvg(filename = 'family-tree.svg', options = {}) {
+    if (!graph || !graph.nodeCount() || !inner.node()?.childElementCount) {
+      throw new Error('There is no rendered tree to export. Open the tree view first.');
+    }
+
+    // Export the currently rendered graph (the active generation controls),
+    // not the entire genealogy and not just the browser viewport.
+    const sourceSvg = svgElement;
+    const sourceInner = inner.node();
+    const bounds = sourceInner.getBBox();
+    if (!bounds || !Number.isFinite(bounds.x) || !Number.isFinite(bounds.y) ||
+        !Number.isFinite(bounds.width) || !Number.isFinite(bounds.height) ||
+        bounds.width <= 0 || bounds.height <= 0) {
+      throw new Error('The current tree has no exportable visible content.');
+    }
+
+    const padding = 36;
+    const autoWidth = bounds.width + padding * 2;
+    const autoHeight = bounds.height + padding * 2;
+    const pageDimensions = {
+      A4: [297, 210], A3: [420, 297], A2: [594, 420],
+      A1: [841, 594], A0: [1189, 841]
+    };
+    const requestedPage = String(options.pageSize || 'auto').toUpperCase();
+    let width, height, viewBox;
+    if (pageDimensions[requestedPage]) {
+      let [pageWidth, pageHeight] = pageDimensions[requestedPage];
+      if (options.orientation === 'portrait' && pageWidth > pageHeight) {
+        [pageWidth, pageHeight] = [pageHeight, pageWidth];
+      } else if (options.orientation !== 'portrait' && pageHeight > pageWidth) {
+        [pageWidth, pageHeight] = [pageHeight, pageWidth];
+      }
+      const marginMm = 10;
+      const scale = Math.min(
+        (pageWidth - marginMm * 2) / bounds.width,
+        (pageHeight - marginMm * 2) / bounds.height
+      );
+      const viewWidth = pageWidth / scale;
+      const viewHeight = pageHeight / scale;
+      viewBox = `${bounds.x + bounds.width / 2 - viewWidth / 2} ${bounds.y + bounds.height / 2 - viewHeight / 2} ${viewWidth} ${viewHeight}`;
+      width = `${pageWidth}mm`;
+      height = `${pageHeight}mm`;
+    } else {
+      // CSS pixels at 96 DPI converted to physical millimetres for print.
+      width = `${(autoWidth * 25.4 / 96).toFixed(2)}mm`;
+      height = `${(autoHeight * 25.4 / 96).toFixed(2)}mm`;
+      viewBox = `${bounds.x - padding} ${bounds.y - padding} ${autoWidth} ${autoHeight}`;
+    }
+    const clone = sourceSvg.cloneNode(false);
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+    clone.setAttribute('width', String(width));
+    clone.setAttribute('height', String(height));
+    clone.setAttribute('viewBox', viewBox);
+    clone.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    clone.removeAttribute('role');
+    clone.removeAttribute('aria-label');
+
+    // SVG styles in the application depend on CSS variables and selectors.
+    // Inline the resolved presentation properties so the file is portable.
+    const presentationProperties = [
+      'fill', 'fill-opacity', 'fill-rule', 'stroke', 'stroke-width',
+      'stroke-opacity', 'stroke-linecap', 'stroke-linejoin', 'stroke-dasharray',
+      'opacity', 'color', 'font-family', 'font-size', 'font-style', 'font-weight',
+      'text-anchor', 'dominant-baseline', 'alignment-baseline', 'paint-order',
+      'filter', 'clip-path', 'stop-color', 'stop-opacity', 'display', 'visibility',
+      'shape-rendering', 'vector-effect'
+    ];
+    function inlinePresentation(source, target) {
+      if (source.nodeType === Node.ELEMENT_NODE) {
+        const computed = getComputedStyle(source);
+        const declarations = presentationProperties
+          .map(property => {
+            const value = computed.getPropertyValue(property);
+            return value ? `${property}:${value}` : '';
+          })
+          .filter(Boolean);
+        if (declarations.length) target.setAttribute('style', declarations.join(';'));
+      }
+      const sourceChildren = Array.from(source.children || []);
+      const targetChildren = Array.from(target.children || []);
+      sourceChildren.forEach((child, index) => {
+        if (targetChildren[index]) inlinePresentation(child, targetChildren[index]);
+      });
+    }
+
+    const sourceDefs = sourceSvg.querySelector('defs');
+    if (sourceDefs) {
+      const defsClone = sourceDefs.cloneNode(true);
+      inlinePresentation(sourceDefs, defsClone);
+      clone.appendChild(defsClone);
+    }
+
+    const background = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    background.setAttribute('x', String(bounds.x - padding));
+    background.setAttribute('y', String(bounds.y - padding));
+    background.setAttribute('width', String(width));
+    background.setAttribute('height', String(height));
+    background.setAttribute('fill', '#ffffff');
+    clone.appendChild(background);
+
+    const treeClone = sourceInner.cloneNode(true);
+    treeClone.removeAttribute('transform'); // Fit the whole rendered graph, not the current pan/zoom.
+    inlinePresentation(sourceInner, treeClone);
+
+    // Embed image assets when the browser is allowed to read them (including
+    // local blob URLs). If a remote host disallows CORS, retain its URL so the
+    // SVG can still display that image when opened online.
+    const imageNodes = Array.from(treeClone.querySelectorAll('image'));
+    let embeddedImageCount = 0;
+    let unembeddedImageCount = 0;
+    if (options.printWindow) {
+      // The print document is opened at about:blank. Relative image URLs that
+      // worked in the OGF page would otherwise resolve against about:blank and
+      // disappear in the print preview. Resolve them against the source page
+      // before serializing the inline SVG. Keep data:, blob: and fragment URLs.
+      imageNodes.forEach(imageNode => {
+        const displayHref = imageNode.getAttribute('href') ||
+          imageNode.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
+        const originalHref = imageNode.getAttribute('data-ogf-original-src');
+        if (!displayHref && !originalHref) return;
+        try {
+          // Remote images in the live tree may use OGF's service-worker cache
+          // endpoint. A newly opened about:blank print window is not guaranteed
+          // to be controlled by that service worker, so its proxy URLs can fail.
+          // Use the original remote URL in the print document instead. Browsers
+          // can display cross-origin images without CORS; CORS is only needed
+          // when JavaScript tries to read the image bytes.
+          const candidate = originalHref && /^https?:/i.test(originalHref)
+            ? originalHref
+            : (displayHref || originalHref);
+          const absoluteHref = new URL(candidate, document.baseURI).href;
+          imageNode.setAttribute('href', absoluteHref);
+          imageNode.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', absoluteHref);
+          if (/^https?:/i.test(absoluteHref) && new URL(absoluteHref).origin !== location.origin) {
+            // OGF intentionally requests remote photos without a Referer.
+            // Preserve that behaviour in the standalone print document.
+            imageNode.setAttribute('referrerpolicy', 'no-referrer');
+          }
+        } catch (_) {
+          // Preserve the original value; the print window's base URL is also set below.
+        }
+      });
+    }
+    if (options.includeImages === false) {
+      // The SVG sharing/editing export is intentionally photo-free.
+      imageNodes.forEach(imageNode => imageNode.remove());
+    } else if (!options.printWindow) await Promise.all(imageNodes.map(async imageNode => {
+      const displayUrl = imageNode.getAttribute('href') ||
+        imageNode.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
+      const originalUrl = imageNode.getAttribute('data-ogf-original-src');
+      const candidates = [...new Set([displayUrl, originalUrl].filter(Boolean))];
+      if (!candidates.length || candidates.some(url => /^(?:data:|#)/i.test(url))) return;
+
+      let embedded = false;
+      const toDataUrl = blob => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error || new Error('Could not embed image'));
+        reader.readAsDataURL(blob);
+      });
+      const applyEmbeddedBlob = async blob => {
+        if (!blob || (!blob.type.startsWith('image/') && blob.type !== 'application/octet-stream')) return false;
+        const dataUrl = await toDataUrl(blob);
+        // SVG2 and legacy SVG 1.1 references maximize compatibility with
+        // browsers and vector editors such as Inkscape.
+        imageNode.setAttribute('href', dataUrl);
+        imageNode.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', dataUrl);
+        imageNode.removeAttribute('data-ogf-original-src');
+        return true;
+      };
+
+      for (const imageUrl of candidates) {
+        try {
+          // First try the rendered URL. This includes same-origin service-worker
+          // cache URLs and local blob URLs. The service worker can return a
+          // cached CORS-readable remote image without contacting its host again.
+          const response = await fetch(imageUrl, {
+            mode: 'cors',
+            credentials: 'same-origin',
+            cache: 'force-cache'
+          });
+          if (!response.ok) throw new Error(`Image request failed: ${response.status}`);
+          if (await applyEmbeddedBlob(await response.blob())) {
+            embedded = true;
+            break;
+          }
+        } catch (_) {
+          // Try Cache Storage below, then the next candidate.
+        }
+      }
+
+      // If the image was displayed through OGF's remote-media service worker,
+      // read its Cache Storage entry directly. This is distinct from the
+      // browser's private HTTP cache, which page scripts cannot inspect.
+      if (!embedded && originalUrl && app.getCachedImageBlob) {
+        try {
+          const cachedBlob = await app.getCachedImageBlob(originalUrl);
+          embedded = await applyEmbeddedBlob(cachedBlob);
+        } catch (_) {
+          // Keep the external reference if the cached response is unavailable.
+        }
+      }
+
+      if (embedded) embeddedImageCount += 1;
+      else unembeddedImageCount += 1;
+    }));
+
+    // Font Awesome glyphs are rendered by a webfont loaded by the application.
+    // A standalone SVG cannot rely on that external font. The tree's tspan also
+    // contains a trailing separator, so normalize whitespace before matching.
+    // Use actual Unicode code points (not literal backslash-u strings).
+    const portableIcons = new Map([
+      ['\uf004', '♥'], // birth
+      ['\uf4ba', '☠'], // death
+      ['\uf720', '⚰']  // burial
+    ]);
+    treeClone.querySelectorAll('.ogf-tree-event-icon').forEach(iconNode => {
+      const glyph = iconNode.textContent.trim();
+      if (portableIcons.has(glyph)) {
+        iconNode.textContent = portableIcons.get(glyph) + ' ';
+      }
+      iconNode.style.fontFamily = 'DejaVu Sans, Arial, sans-serif';
+      iconNode.style.fontWeight = 'normal';
+    });
+    treeClone.querySelectorAll('.ogf-tree-gender-symbol').forEach(iconNode => {
+      iconNode.style.fontFamily = 'Arial, sans-serif';
+    });
+
+    clone.appendChild(treeClone);
+
+    // Record whether this SVG is photo-free or contains embedded assets.
+    clone.setAttribute('data-ogf-embedded-images', String(embeddedImageCount));
+    clone.setAttribute('data-ogf-unembedded-images', String(unembeddedImageCount));
+    const serialized = new XMLSerializer().serializeToString(clone);
+
+    if (options.printWindow) {
+      const printWindow = options.printWindow;
+      const pageSize = String(options.pageSize || 'A1').toUpperCase();
+      const pageMm = { A4: [297, 210], A3: [420, 297], A2: [594, 420], A1: [841, 594], A0: [1189, 841] };
+      let [pageW, pageH] = pageMm[pageSize] || [841, 594];
+      if (options.orientation === 'portrait' && pageW > pageH) [pageW, pageH] = [pageH, pageW];
+      if (options.orientation !== 'portrait' && pageH > pageW) [pageW, pageH] = [pageH, pageW];
+      const actualSize = options.scaleMode === 'actual';
+      const pageWidthUnits = pageW * 96 / 25.4;
+      const pageHeightUnits = pageH * 96 / 25.4;
+      const marginUnits = 10 * 96 / 25.4;
+      let pageMarkup = serialized;
+      let pageCount = 1;
+
+      if (actualSize) {
+        // In actual-size mode, one SVG is tiled into physical sheets. Each
+        // sheet has the selected paper dimensions and a viewBox window that
+        // advances at 1 CSS px per 1 CSS px (96 CSS px = 1 inch).
+        const usableWidth = pageWidthUnits - marginUnits * 2;
+        const usableHeight = pageHeightUnits - marginUnits * 2;
+        const columns = Math.max(1, Math.ceil(bounds.width / usableWidth));
+        const rows = Math.max(1, Math.ceil(bounds.height / usableHeight));
+        pageCount = columns * rows;
+        const defsMarkup = sourceDefs ? new XMLSerializer().serializeToString(sourceDefs) : '';
+        const treeMarkup = new XMLSerializer().serializeToString(treeClone);
+        const pages = [];
+        for (let row = 0; row < rows; row++) {
+          for (let column = 0; column < columns; column++) {
+            const viewX = bounds.x - marginUnits + column * usableWidth;
+            const viewY = bounds.y - marginUnits + row * usableHeight;
+            const pageSvg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${pageW}mm" height="${pageH}mm" viewBox="${viewX} ${viewY} ${pageWidthUnits} ${pageHeightUnits}" preserveAspectRatio="xMinYMin meet">${defsMarkup}<rect x="${viewX}" y="${viewY}" width="${pageWidthUnits}" height="${pageHeightUnits}" fill="#fff"/>${treeMarkup}</svg>`;
+            pages.push(`<section class="ogf-print-page">${pageSvg}</section>`);
+          }
+        }
+        pageMarkup = pages.join('');
+      }
+
+      printWindow.document.open();
+      const baseHref = String(document.baseURI).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+      const pageCss = actualSize
+        ? `.ogf-print-page{width:${pageW}mm;height:${pageH}mm;page-break-after:always;break-after:page;overflow:hidden}.ogf-print-page:last-child{page-break-after:auto;break-after:auto}.ogf-print-page svg{display:block;width:100%;height:100%}`
+        : `body{display:flex;align-items:center;justify-content:center}body>svg{display:block;width:100%;height:100%;max-width:100%;max-height:100%}`;
+      printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><base href="${baseHref}"><title>${String(filename).replace(/[&<>"']/g, '')}</title><style>@page{size:${pageW}mm ${pageH}mm;margin:0}html,body{margin:0;padding:0;width:100%;min-height:100%;background:#fff}${pageCss}#ogf-print-status{position:fixed;z-index:99999;top:12px;left:12px;padding:10px 14px;border-radius:6px;background:#20242a;color:#fff;font:14px/1.4 Arial,sans-serif;box-shadow:0 2px 8px #0004}@media print{#ogf-print-status{display:none}}@media screen{body{padding:12px;box-sizing:border-box;background:#ddd}.ogf-print-page,body>svg{background:white;box-shadow:0 2px 12px #777;margin:0 auto 12px}}</style></head><body><div id="ogf-print-status">Preparing photos for print…</div>${pageMarkup}<script>(()=>{const status=document.getElementById('ogf-print-status');const nodes=[...(document.querySelectorAll('svg image'))];const total=nodes.length;let loaded=0,failed=0,finished=false;const update=()=>{if(status)status.textContent=total?('Preparing photos: '+loaded+' / '+total+' loaded'+(failed?' · '+failed+' failed':'')):'Preparing print…'};const finish=()=>{if(finished)return;finished=true;if(status)status.textContent=failed?(loaded+' photos loaded; '+failed+' could not be loaded. Opening print…'):'All '+loaded+' photos ready. Opening print…';setTimeout(()=>window.print(),900)};if(!total){finish();return;}update();let next=0,active=0,settled=0;const concurrency=8;const timeoutMs=45000;const timer=setTimeout(()=>finish(),timeoutMs);const settle=(ok)=>{if(ok)loaded++;else failed++;settled++;active--;update();if(settled>=total){clearTimeout(timer);finish();}else pump();};const readUrl=node=>node.getAttribute('href')||node.getAttributeNS('http://www.w3.org/1999/xlink','href');const pump=()=>{while(active<concurrency&&next<total){const node=nodes[next++];const url=readUrl(node);active++;if(!url){settle(false);continue;}const probe=new Image();probe.referrerPolicy=node.getAttribute('referrerpolicy')||'no-referrer';let complete=false;const done=ok=>{if(complete)return;complete=true;probe.onload=probe.onerror=null;settle(ok);};probe.onload=()=>{if(typeof probe.decode==='function')probe.decode().then(()=>done(true),()=>done(true));else done(true);};probe.onerror=()=>done(false);probe.src=url;if(probe.complete){if(probe.naturalWidth>0){if(typeof probe.decode==='function')probe.decode().then(()=>done(true),()=>done(true));else done(true);}else done(false);}}};pump();})();</script></body></html>`);
+      printWindow.document.close();
+      return { printOpened: true, pageCount, scaleMode: actualSize ? 'actual' : 'fit', embeddedImageCount: 0, unembeddedImageCount: 0 };
+    }
+
+    const blob = new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return { embeddedImageCount, unembeddedImageCount };
+  }
+
   window.OGFTree = {
     navigateTo(id) {
       if (!mainElement?.classList.contains('tree-mode')) return false;
       return navigateToRecord(id);
     },
-    getSelectedId: () => selectedId
+    getSelectedId: () => selectedId,
+    isAvailable: () => !pane.hidden && !!graph && graph.nodeCount() > 0 && !!inner.node()?.childElementCount,
+    exportSvg: (filename, options = {}) => exportCurrentTreeSvg(filename, { ...options, includeImages: false }),
+    exportPrintPdf: (filename, options = {}) => exportCurrentTreeSvg(filename, { ...options, includeImages: true })
   };
 
   function closeTreeView() {

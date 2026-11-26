@@ -72,3 +72,14 @@ if (errors.length) {
 } else {
   console.log('Version consistency check passed.');
 }
+
+// Save / Export dialog must expose both native YAML and SVG options.
+const saveUi = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+for (const token of ['save-project-btn', 'save-modal', 'save-file-format', 'export-svg-advanced-btn', 'value="pdf"', 'value="actual"']) {
+  if (!saveUi.includes(token)) throw new Error(`Missing Save / Export UI token: ${token}`);
+}
+
+if (!saveUi.includes('id="tree-save-export-btn"')) throw new Error('Missing tree toolbar Save / Export button');
+const treeModule = read('js/ogf-tree.js');
+if (!treeModule.includes('exportPrintPdf:')) throw new Error('Missing print PDF export bridge');
+if (!treeModule.includes('imageNodes.forEach(imageNode => imageNode.remove())')) throw new Error('SVG export must omit photographs');

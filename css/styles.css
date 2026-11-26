@@ -769,3 +769,18 @@ a:hover,
 @media (prefers-color-scheme: dark) {
   .field-group { background: rgba(210, 225, 205, .055); }
 }
+
+/* Unified project save / export dialog. */
+.save-modal { width:min(480px,100%); }
+.save-form-field { display:flex; flex-direction:column; gap:6px; margin:0 0 16px; }
+.save-form-field[hidden] { display:none !important; }
+.advanced-export { margin:12px 0 16px; padding:10px 12px; border:1px solid var(--accentOutline); border-radius:10px; }
+.advanced-export summary { cursor:pointer; color:var(--text); font-size:13px; font-weight:600; }
+.advanced-export button { margin-top:12px; }
+.field-help { margin:4px 0 0; color:var(--muted); font-size:11px; line-height:1.45; }
+.save-form-field label { color:var(--muted); font-size:12px; font-weight:500; }
+.save-form-field input, .save-form-field select {
+  width:100%; min-width:0; padding:10px 11px; border:1px solid var(--accentOutline);
+  border-radius:9px; background:var(--auraData); color:var(--text); font:inherit; font-size:13px;
+}
+.save-format-help { margin:2px 0 0; color:var(--muted); font-size:12px; line-height:1.5; }
