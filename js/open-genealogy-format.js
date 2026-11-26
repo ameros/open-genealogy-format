@@ -134,6 +134,33 @@ function getRemoteMediaDisplayUrl(url) {
   }
 }
 
+// The service worker stores CORS-readable remote images in Cache Storage.
+// The page can read those cached Response objects directly even when the
+// original image host would no longer allow a fresh cross-origin request.
+// This deliberately does not attempt to read the browser's private HTTP cache:
+// browsers do not expose that cache to page JavaScript.
+async function getCachedRemoteImageBlob(url) {
+  try {
+    if (!('caches' in window) || !('serviceWorker' in navigator)) return null;
+    const remoteUrl = new URL(url, document.baseURI);
+    if (!/^https?:$/.test(remoteUrl.protocol) || remoteUrl.origin === location.origin) return null;
+
+    const registration = await navigator.serviceWorker.getRegistration(new URL('.', document.baseURI));
+    const scope = registration?.scope || new URL('./', document.baseURI).href;
+    const cacheKeyUrl = new URL(`${'__ogf_media_cache__'}?url=${encodeURIComponent(remoteUrl.href)}`, scope);
+    const cache = await caches.open('ogf-remote-media-v3');
+    const response = await cache.match(new Request(cacheKeyUrl.href));
+    if (!response || !response.ok) return null;
+
+    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+    if (!contentType.startsWith('image/')) return null;
+    return await response.blob();
+  } catch (error) {
+    console.debug('Could not read cached OGF image:', error);
+    return null;
+  }
+}
+
 function normalizeMediaPath(value) {
   return String(value ?? "")
     .trim()
@@ -2208,12 +2235,121 @@ document.getElementById("yaml-input").addEventListener("change", e => {
   e.target.value = "";
 });
 
-document.getElementById("download-yaml-btn").addEventListener("click", () => {
-  const blob = new Blob([document.getElementById("yaml-editor").value], { type: "text/yaml;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "family-tree.ogf.yaml";
-  a.click();
+const saveModal = document.getElementById("save-modal");
+const saveFileName = document.getElementById("save-file-name");
+const saveFileFormat = document.getElementById("save-file-format");
+const saveFormatHelp = document.getElementById("save-format-help");
+const svgPrintOptions = document.getElementById("svg-print-options");
+const svgPageSize = document.getElementById("svg-page-size");
+const svgPageOrientation = document.getElementById("svg-page-orientation");
+const pdfScaleMode = document.getElementById("pdf-scale-mode");
+const advancedSvgButton = document.getElementById("export-svg-advanced-btn");
+const confirmSaveButton = document.getElementById("confirm-save-btn");
+
+function closeSaveModal() {
+  saveModal?.classList.remove("open");
+}
+
+function normalizedExportName(rawName, extension) {
+  let name = String(rawName || "").trim();
+  name = name.replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ");
+  name = name.replace(/\.(?:ogf\.)?ya?ml$|\.svg$/i, "");
+  return (name || "family-tree") + extension;
+}
+
+function updateSaveFormatHelp() {
+  const format = saveFileFormat.value;
+  const isPdf = format === "pdf";
+  if (svgPrintOptions) svgPrintOptions.hidden = !isPdf;
+  saveFormatHelp.textContent = isPdf
+    ? (window.OGFTree?.isAvailable?.()
+      ? "Opens a print layout with the rendered tree and photographs. Choose Fit to one page or Actual size; the browser print dialog saves the PDF."
+      : "PDF export is available when the tree view is open and a tree has been rendered. Open the tree view first.")
+    : "Saves the complete OGF project, including records, dictionary and metadata.";
+  if (isPdf) saveFileName.placeholder = "family-tree";
+}
+
+function openSaveModal() {
+  // Keep the primary dialog focused on YAML and PDF. SVG remains available
+  // under Advanced export formats.
+  saveFileFormat.value = "yaml";
+  updateSaveFormatHelp();
+  saveModal?.classList.add("open");
+  saveFileName?.focus();
+  saveFileName?.select();
+}
+
+document.getElementById("save-project-btn")?.addEventListener("click", openSaveModal);
+document.getElementById("tree-save-export-btn")?.addEventListener("click", openSaveModal);
+
+saveFileFormat?.addEventListener("change", updateSaveFormatHelp);
+document.getElementById("close-save-modal-btn")?.addEventListener("click", closeSaveModal);
+document.getElementById("cancel-save-btn")?.addEventListener("click", closeSaveModal);
+saveModal?.addEventListener("click", event => {
+  if (event.target === saveModal) closeSaveModal();
+});
+
+async function runTreeExport(format) {
+  if (!window.OGFTree?.isAvailable?.()) {
+    saveFormatHelp.textContent = "Open the tree view and render a tree before exporting.";
+    return;
+  }
+  const isPdf = format === "pdf";
+  const filename = normalizedExportName(saveFileName.value, isPdf ? ".pdf" : ".svg");
+  // Open synchronously from the click handler so popup blockers do not
+  // prevent the browser's native print-to-PDF workflow.
+  const printWindow = isPdf ? window.open("about:blank", "_blank") : null;
+  if (isPdf && !printWindow) {
+    saveFormatHelp.textContent = "The print window was blocked. Allow pop-ups for this OGF site and try again.";
+    return;
+  }
+  const trigger = isPdf ? confirmSaveButton : advancedSvgButton;
+  try {
+    if (trigger) trigger.disabled = true;
+    const exportOptions = {
+      pageSize: svgPageSize?.value || "A1",
+      orientation: svgPageOrientation?.value || "landscape",
+      scaleMode: pdfScaleMode?.value || "fit"
+    };
+    const exportPromise = isPdf
+      ? window.OGFTree.exportPrintPdf(filename, { ...exportOptions, printWindow })
+      : window.OGFTree.exportSvg(filename, exportOptions);
+    const result = await exportPromise;
+    if (result?.printOpened || !isPdf) closeSaveModal();
+  } catch (error) {
+    console.error("Tree export failed:", error);
+    saveFormatHelp.textContent = error?.message || "The current tree could not be exported.";
+    if (printWindow && !printWindow.closed) printWindow.close();
+  } finally {
+    if (trigger) trigger.disabled = false;
+  }
+}
+
+advancedSvgButton?.addEventListener("click", () => runTreeExport("svg"));
+
+confirmSaveButton?.addEventListener("click", () => {
+  const format = saveFileFormat.value;
+  if (format === "pdf") {
+    runTreeExport("pdf");
+    return;
+  }
+
+  const filename = normalizedExportName(saveFileName.value, ".ogf.yaml");
+  const yaml = document.getElementById("yaml-editor").value;
+  const blob = new Blob([yaml], { type: "text/yaml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  closeSaveModal();
+});
+
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && saveModal?.classList.contains("open")) closeSaveModal();
 });
 
 // Narrow public bridge for the optional OGF tree module. The tree reads the
@@ -2238,6 +2374,7 @@ window.OGFApp = {
   getRecordTitle: doc => getRecordTitle(doc, Object.fromEntries(state.docs.map(item => [item.id, item]))),
   getImageUrl: doc => getImageCandidates(doc)[0] || null,
   getImageDisplayUrl: url => getRemoteMediaDisplayUrl(url),
+  getCachedImageBlob: url => getCachedRemoteImageBlob(url),
   configureImageRequest: (img,url) => configureRemoteImageRequest(img,url),
   selectRecord: id => {
     const doc = state.docs.find(item => item.id === id);

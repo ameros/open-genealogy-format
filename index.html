@@ -140,7 +140,7 @@
   <input type="file" id="media-folder-input" webkitdirectory directory multiple style="display:none">
   <button id="open-yaml-btn" class="toolbar-icon" type="button" title="Open YAML file" aria-label="Open YAML file"><i class="fa-solid fa-file-lines" aria-hidden="true"></i></button>
   <input type="file" id="yaml-input" accept=".yaml,.yml,.txt" style="display:none">
-  <button class="primary toolbar-icon" id="download-yaml-btn" type="button" title="Download YAML" aria-label="Download YAML"><i class="fa-solid fa-download" aria-hidden="true"></i></button>
+  <button class="primary toolbar-icon" id="save-project-btn" type="button" title="Save / Export" aria-label="Save / Export"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i></button>
 </header>
 
 <main>
@@ -162,6 +162,7 @@
       <button id="tree-zoom-out" type="button" aria-label="Zoom out" title="Zoom out">−</button>
       <button id="tree-zoom-in" type="button" aria-label="Zoom in" title="Zoom in">+</button>
       <button id="tree-reset" type="button" title="Focus selected person and immediate family">Focus</button>
+      <button id="tree-save-export-btn" type="button" title="Save / Export the currently displayed tree"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save / Export</button>
       <button id="tree-show-details" type="button" title="Show details for the selected record">Show details</button>
       <button id="tree-close-btn" class="tree-close-btn" type="button" title="Close tree view" aria-label="Close tree view"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     </div>
@@ -263,6 +264,60 @@
       <button id="add-metadata-row-btn" type="button" class="secondary"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add metadata field</button>
     </div>
     <div class="modal-footer"><button id="cancel-metadata-btn" type="button">Cancel</button><button class="primary" id="save-metadata-btn" type="button">Save Metadata</button></div>
+  </div>
+</div>
+
+<!-- Unified project save / export dialog. -->
+<div class="modal-backdrop" id="save-modal" role="dialog" aria-modal="true" aria-labelledby="save-modal-title">
+  <div class="modal save-modal">
+    <div class="modal-header">
+      <span id="save-modal-title">Save / Export</span>
+      <button id="close-save-modal-btn" class="icon-button" type="button" title="Close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="save-form-field">
+        <label for="save-file-name">File name</label>
+        <input id="save-file-name" type="text" value="family-tree" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="save-form-field">
+        <label for="save-file-format">Format</label>
+        <select id="save-file-format">
+          <option value="yaml">OGF YAML (.ogf.yaml)</option>
+          <option value="pdf">PDF — print with photos</option>
+        </select>
+      </div>
+      <div class="save-form-field" id="svg-print-options" hidden>
+        <label for="svg-page-size">Paper size</label>
+        <select id="svg-page-size">
+          <option value="A4">A4</option>
+          <option value="A3">A3</option>
+          <option value="A2">A2</option>
+          <option value="A1" selected>A1</option>
+          <option value="A0">A0 — plotter</option>
+        </select>
+        <label for="svg-page-orientation" style="margin-top:8px">Orientation</label>
+        <select id="svg-page-orientation">
+          <option value="landscape" selected>Landscape</option>
+          <option value="portrait">Portrait</option>
+        </select>
+        <label for="pdf-scale-mode" style="margin-top:8px">Scaling</label>
+        <select id="pdf-scale-mode">
+          <option value="fit" selected>Fit to one page</option>
+          <option value="actual">Actual size — split across pages if needed</option>
+        </select>
+        <p class="field-help">Actual size preserves the tree's on-screen SVG scale. Large trees may span multiple sheets; assemble them after printing.</p>
+      </div>
+      <details class="advanced-export" id="advanced-export-options">
+        <summary>Advanced export formats</summary>
+        <button id="export-svg-advanced-btn" class="secondary" type="button"><i class="fa-solid fa-file-code" aria-hidden="true"></i> Export SVG without photos</button>
+        <p class="field-help">SVG is intended for editing in Inkscape or web publishing. Photographs are omitted.</p>
+      </details>
+      <p class="save-format-help" id="save-format-help">Saves the complete OGF project, including records, dictionary and metadata.</p>
+    </div>
+    <div class="modal-footer">
+      <button id="cancel-save-btn" type="button">Cancel</button>
+      <button class="primary" id="confirm-save-btn" type="button"><i class="fa-solid fa-download" aria-hidden="true"></i> Save</button>
+    </div>
   </div>
 </div>
 

@@ -1,3 +1,32 @@
+## [1.1.0] - 2026-11-26
+
+### Added
+- Added PDF print scaling modes: fit the complete rendered tree onto one selected sheet, or preserve the tree's native 96-DPI SVG scale and tile it across multiple sheets when necessary.
+- Actual-size PDF output uses the selected A-series paper size and orientation, with 10 mm page margins. Tree lines and text remain vector artwork in the browser's Save as PDF output.
+- Moved SVG export into a collapsed Advanced export formats section; SVG remains available for Inkscape editing and web publishing, without photographs.
+- Retained A4, A3, A2, A1 and A0 paper sizes, with landscape and portrait orientation.
+
+### Notes
+- This is a project release only. The OGF format version remains 1 and the metadata contract remains 2; the specification revision remains 1.0.4.
+
+## [1.0.4] - 2026-11-26
+
+### Fixed
+- SVG tree export uses portable Unicode event symbols instead of depending on the application's Font Awesome webfont.
+
+### Added
+- SVG export intentionally omits photographs, producing a clean, lightweight vector tree for editing and sharing.
+- Added a print-oriented PDF workflow using the browser's native print pipeline. It prints the currently rendered tree and retains the image URLs used by the visible tree, without requiring JavaScript to read cross-origin image bytes.
+- Added A4, A3, A2, A1 and A0 page sizing with landscape and portrait orientation for SVG and PDF exports.
+- PDF print layout uses explicit physical page dimensions and vector SVG artwork; users save the result through the browser's Print → Save as PDF command.
+
+## 1.0.4
+
+- Added a unified Save / Export dialog for OGF YAML and SVG.
+- SVG exports the currently rendered tree graph, respecting the active generation controls; it is fitted to the page and does not include unrelated records outside the rendered tree.
+- SVG export is self-contained with resolved SVG presentation styles and a white background.
+- YAML remains a complete native project export.
+
 # Changelog
 
 ### 1.0.4 — inline YAML metadata parsing, sample tree and version badge fixes
@@ -42,3 +71,5 @@ First stable release of Open Genealogy Format (OGF).
 5. **Mobile experience adjusted** — full-screen tree and details views,
    responsive to screen orientation, with synchronized navigation between
    tree nodes and record references.
+
+

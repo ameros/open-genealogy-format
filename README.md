@@ -106,3 +106,35 @@ _>> You wrote it - you read it <<_
 The tool is listed @ https://www.cyndislist.com
 
 Here you can add a link to the list: http://www.cyndislist.com/create-a-link-to-cyndis-list/
+
+
+## Saving and exporting
+
+Use **Save / Export** to choose one of three outputs:
+
+- **OGF YAML** downloads the complete editable project, including records,
+  dictionary and metadata.
+- **SVG** exports the currently rendered tree as clean vector artwork without
+  photographs. It follows the active generation controls and includes only
+  the currently displayed nodes and relationships. The complete tree is fitted
+  to the selected page independently of the browser's pan and zoom.
+- **PDF** opens a dedicated print layout containing the rendered tree and its
+  photographs. Use the browser print dialog and choose **Save as PDF**. The
+  PDF retains vector tree artwork while the browser loads the same image URLs
+  used by the visible tree. Select the same paper size in the print dialog and
+  disable browser headers and footers for a clean plotter file.
+
+SVG and PDF support A4, A3, A2, A1 and A0 paper sizes, in landscape or portrait
+orientation. The PDF route uses the browser's native print pipeline; it does
+not create a PDF download directly. The Save / Export dialog is also available
+from the tree toolbar while the full-screen tree workspace is open.
+
+
+### Printing large family trees
+
+Use **Save / Export → PDF** to open the print layout. Choose a paper size (A4–A0), orientation, and one of two scaling modes:
+
+- **Fit to one page** scales the complete currently rendered tree to a single sheet.
+- **Actual size** preserves the tree's native SVG scale (96 CSS pixels per inch). If the tree is larger than the selected sheet, the output is tiled across multiple pages with 10 mm margins. Assemble the sheets after printing.
+
+Choose **Print → Save as PDF** in the browser. For reliable dimensions, use the same paper size and orientation in the print dialog and disable browser headers and footers. SVG export remains available under **Advanced export formats**; it omits photographs and is intended for vector editing or web publishing.

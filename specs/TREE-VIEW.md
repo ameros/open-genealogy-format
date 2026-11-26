@@ -112,3 +112,19 @@ selected node. Mobile uses the same graph and selection logic with a responsive
 layout.
 
 Related: [OGF specification](SPECIFICATION.md) · [Project overview](../README.md)
+
+
+## Save and SVG export
+
+The unified Save / Export dialog offers the native OGF YAML project and SVG.
+YAML saves the complete project. SVG exports the graph currently rendered by
+the tree view, using the active ancestor, descendant and other-generation
+controls. It does not export records outside that rendered graph.
+
+SVG output is fitted to its page; the browser viewport's current pan and zoom
+are not included. The export includes the rendered nodes and relationship
+edges, resolved SVG presentation styles, a white background, and images that
+the browser is permitted to embed. Images whose hosts block cross-origin
+access may remain external references.
+\nThe tree toolbar provides its own Save / Export action while the tree workspace is open. SVG remains selectable in the dialog even when no tree is currently rendered; in that case, the dialog explains that the tree view must be opened and rendered first.\n
+SVG export embeds record photos when the browser can fetch their image sources. Event symbols are converted to portable Unicode glyphs so the SVG does not depend on the application's externally loaded Font Awesome font. Images hosted on servers that block cross-origin access may remain external references.
