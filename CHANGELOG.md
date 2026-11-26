@@ -1,5 +1,17 @@
 # Changelog
 
+### 1.0.4 — inline YAML metadata parsing and sample tree fix
+
+- Fixed parsing of inline YAML collections in structured metadata. Inline lists
+  such as `partners: [husb, wife]` and inline maps such as
+  `birth: { date: birth_date, place: birth_place }` are now parsed as arrays and
+  objects rather than plain strings.
+- Restored tree rendering for the supplied sample files, whose relationship
+  configuration uses inline YAML collection syntax.
+- Retained the reusable `defaults/meta.yaml` and `defaults/dictionary.yaml`
+  files and the independent configuration behavior of existing projects and
+  GEDCOM imports.
+
 ### 1.0.3 — dictionary-driven card grouping
 
 - Removed per-card field move controls; record data no longer carries presentation ordering.

@@ -309,6 +309,55 @@ function unquote(val) {
   return s;
 }
 
+// Parse the JSON-like inline collection forms allowed by YAML metadata, e.g.
+// [husb, wife] and { date: birth_date, place: birth_place }. The OGF metadata
+// parser intentionally remains small and dependency-free, but these forms
+// must become real arrays/objects because the tree adapter consumes them.
+function splitInlineYamlItems(source) {
+  const items = [];
+  let start = 0;
+  let quote = null;
+  let depth = 0;
+  for (let i = 0; i < source.length; i++) {
+    const char = source[i];
+    if (quote) {
+      if (char === quote && source[i - 1] !== "\\\\") quote = null;
+      continue;
+    }
+    if (char === '"' || char === "'") { quote = char; continue; }
+    if (char === "[" || char === "{") depth++;
+    else if (char === "]" || char === "}") depth--;
+    else if (char === "," && depth === 0) {
+      items.push(source.slice(start, i).trim());
+      start = i + 1;
+    }
+  }
+  const tail = source.slice(start).trim();
+  if (tail) items.push(tail);
+  return items;
+}
+
+function parseInlineYamlValue(raw) {
+  const value = String(raw ?? "").trim();
+  if (value.startsWith("[") && value.endsWith("]")) {
+    const body = value.slice(1, -1).trim();
+    return body ? splitInlineYamlItems(body).map(parseInlineYamlValue) : [];
+  }
+  if (value.startsWith("{") && value.endsWith("}")) {
+    const body = value.slice(1, -1).trim();
+    const result = {};
+    if (!body) return result;
+    for (const item of splitInlineYamlItems(body)) {
+      const colon = item.indexOf(":");
+      if (colon <= 0) continue;
+      const key = unquote(item.slice(0, colon).trim());
+      result[key] = parseInlineYamlValue(item.slice(colon + 1));
+    }
+    return result;
+  }
+  return unquote(value);
+}
+
 // Optional selectable values use a plain dictionary companion key:
 // sex_values: "M=Male | F=Female | U=Unknown".
 // Codes remain the stored values; labels are presentation only.
@@ -366,7 +415,7 @@ function parseNestedYamlValue(lines, startIndex, parentIndent) {
       if (isList) {
         if (!trimmed.startsWith("- ")) break;
         const raw = trimmed.slice(2).trim();
-        if (raw) result.push(unquote(raw));
+        if (raw) result.push(parseInlineYamlValue(raw));
         else {
           const child = nextContent(i + 1);
           if (child < lines.length && (lines[child].match(/^\s*/) || [""])[0].length > indent) {
@@ -387,7 +436,7 @@ function parseNestedYamlValue(lines, startIndex, parentIndent) {
       const key = trimmed.slice(0, colon).trim();
       const raw = trimmed.slice(colon + 1).trim();
       if (raw !== "") {
-        result[key] = unquote(raw);
+        result[key] = parseInlineYamlValue(raw);
         i++;
       } else {
         const child = nextContent(i + 1);
