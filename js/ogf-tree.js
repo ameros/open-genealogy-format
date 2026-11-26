@@ -55,20 +55,37 @@
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[char]);
 
-  function configuredRelationships() {
+  function configuredTree() {
     const meta = app.getMeta() || {};
-    const config = (meta.tree && meta.tree.relationships) || meta.tree_relationships;
-    if (!config || typeof config !== 'object') return null;
+    const config = meta.tree || {};
     const family = config.family || {};
-    const partnerFields = Array.isArray(family.partner_fields) ? family.partner_fields : [];
-    const childFields = Array.isArray(family.child_fields) ? family.child_fields : [];
-    if (!partnerFields.length || !childFields.length) return null;
+    // Compatibility fallback for existing projects using the former schema.
+    const legacy = config.relationships || meta.tree_relationships || {};
+    const legacyFamily = legacy.family || {};
+    const partnerFields = Array.isArray(family.partners) ? family.partners
+      : (Array.isArray(legacyFamily.partner_fields) ? legacyFamily.partner_fields : []);
+    const childFields = Array.isArray(family.children) ? family.children
+      : (Array.isArray(legacyFamily.child_fields) ? legacyFamily.child_fields : []);
+    const individualType = config.individual_type || legacy.individual_type;
+    const familyType = config.family_type || legacy.family_type;
+    if (!individualType || !familyType || !partnerFields.length || !childFields.length) return null;
     return {
-      individualType: config.individual_type || 'Individual',
-      familyType: config.family_type || 'Family',
+      individualType,
+      familyType,
       partnerFields,
-      childFields
+      childFields,
+      individual: config.individual || {},
+      family
     };
+  }
+
+  function configuredEventValue(recordMap, eventConfig, part) {
+    if (!eventConfig || typeof eventConfig !== 'object') return '';
+    const key = eventConfig[part];
+    if (typeof key !== 'string' || !key) return '';
+    const value = recordMap?.[key];
+    if (Array.isArray(value)) return value.map(item => String(item ?? '').trim()).find(Boolean) || '';
+    return value === undefined || value === null ? '' : String(value).trim();
   }
 
   // Keep the order of fields, YAML list values, and Family documents exactly
@@ -95,7 +112,7 @@
 
   function buildAdapterData() {
     const docs = app.getDocs() || [];
-    const config = configuredRelationships();
+    const config = configuredTree();
     const records = new Map(docs.filter(doc => doc && doc.id).map(doc => [doc.id, doc]));
     const families = [];
     const byPartner = new Map();
@@ -256,14 +273,6 @@
     return lines.length ? lines : [''];
   }
 
-  function firstField(map, keys) {
-    for (const key of keys) {
-      const value = map?.[key];
-      if (Array.isArray(value)) { const found=value.map(item=>String(item??'').trim()).find(Boolean); if(found)return found; }
-      else if(value!==undefined && value!==null && String(value).trim()) return String(value).trim();
-    }
-    return '';
-  }
 
   function makeNodeLabel(record, adapter) {
     const title=getRecordTitle(record,adapter), map=record.map||{};
@@ -281,23 +290,29 @@
       } else {
         titleLines.push(...wrapSvgLabel(configuredTitle,20));
       }
-      const marriageDate=firstField(map,['marr_date','marriage_date']);
-      const marriagePlace=firstField(map,['marr_plac','marr_place','marriage_place']);
-      const divorce=firstField(map,['div_date','divorce_date','div']);
+      const treeConfig = configuredTree();
+      const marriageConfig = treeConfig?.family?.marriage || {};
+      const marriageDate = configuredEventValue(map, marriageConfig, 'date');
+      const marriagePlace = configuredEventValue(map, marriageConfig, 'place');
+      const divorceConfig = treeConfig?.family?.divorce || {};
+      const divorce = configuredEventValue(map, divorceConfig, 'date');
       const detailLines=[];
       if(marriageDate||marriagePlace)detailLines.push({icon:'⚭',kind:'marriage',text:[marriageDate,marriagePlace].filter(Boolean).join(', ')});
       if(divorce && !/^n$/i.test(divorce))detailLines.push({icon:'⚮',kind:'divorce',text:divorce==='Y'?'':divorce});
-      return {family:true,titleLines,detailLines};
+      return {family:true,recordId:record.id,titleLines,detailLines,imageUrl:app.getImageUrl?app.getImageUrl(record):null};
     }
-    const birthDate=firstField(map,['birt_date','birth_date','birthdate']);
-    const deathDate=firstField(map,['deat_date','death_date','deathdate']);
-    const birthPlace=firstField(map,['birt_plac','birt_place','birth_place']);
-    const deathPlace=firstField(map,['deat_plac','deat_place','death_place']);
-    const burialPlace=firstField(map,['buri_plac','buri_place','burial_place','bur_place']);
+    const treeConfig = configuredTree();
+    const individualConfig = treeConfig?.individual || {};
+    const birthDate = configuredEventValue(map, individualConfig.birth, 'date');
+    const deathDate = configuredEventValue(map, individualConfig.death, 'date');
+    const birthPlace = configuredEventValue(map, individualConfig.birth, 'place');
+    const deathPlace = configuredEventValue(map, individualConfig.death, 'place');
+    const burialDate = configuredEventValue(map, individualConfig.burial, 'date');
+    const burialPlace = configuredEventValue(map, individualConfig.burial, 'place');
     const detailLines=[];
     if(birthDate||birthPlace)detailLines.push({icon:'\uf004',kind:'birth',text:[birthDate,birthPlace].filter(Boolean).join(', ')});
     if(deathDate||deathPlace)detailLines.push({icon:'\uf4ba',kind:'death',text:[deathDate,deathPlace].filter(Boolean).join(', ')});
-    if(burialPlace)detailLines.push({icon:'\uf720',kind:'burial',text:burialPlace});
+    if(burialDate||burialPlace)detailLines.push({icon:'\uf720',kind:'burial',text:[burialDate,burialPlace].filter(Boolean).join(', ')});
     const genderClass = app.getGenderClass ? app.getGenderClass(record) : 'unknown';
     const genderIcon=genderClass==='male'?'♂':genderClass==='female'?'♀':'';
     return {family:false,titleLines:wrapSvgLabel(title,27).slice(0,3),detailLines,genderClass,genderIcon,imageUrl:app.getImageUrl?app.getImageUrl(record):null};
@@ -307,8 +322,30 @@
     nodeSelection.selectAll('g.label').remove();
     const group=nodeSelection.append('g').attr('class','ogf-svg-node-label').attr('pointer-events','none');
     if(label.family){
-      const lh=22,dh=22,total=label.titleLines.length*lh+(label.detailLines.length?label.detailLines.length*dh+7:0);
-      let y=-total/2+16;
+      const lh=22,dh=22,hasPhoto=!!label.imageUrl;
+      if(hasPhoto){
+        const clipId='ogf-family-photo-'+String(label.recordId || 'record').replace(/[^A-Za-z0-9_-]/g,'_');
+        const defs=svg.select('defs');
+        defs.select('#'+clipId).remove();
+        const clip=defs.append('clipPath').attr('id',clipId);
+        clip.append('circle').attr('cx',0).attr('cy',-72).attr('r',42);
+        const displayUrl=app.getImageDisplayUrl?app.getImageDisplayUrl(label.imageUrl):label.imageUrl;
+        const portrait=group.append('image').attr('class','ogf-tree-family-image')
+          .attr('x',-42).attr('y',-114).attr('width',84).attr('height',84)
+          .attr('preserveAspectRatio','xMidYMid slice').attr('clip-path',`url(#${clipId})`)
+          .attr('href',displayUrl).attr('xlink:href',displayUrl);
+        if(app.configureImageRequest)app.configureImageRequest(portrait.node(),label.imageUrl);
+        portrait.on('error',function(){
+          const element=d3.select(this);
+          if(displayUrl!==label.imageUrl && !element.attr('data-direct-fallback')){
+            element.attr('data-direct-fallback','1').attr('href',label.imageUrl).attr('xlink:href',label.imageUrl);
+            return;
+          }
+          element.remove();
+        });
+      }
+      const total=label.titleLines.length*lh+(label.detailLines.length?label.detailLines.length*dh+7:0);
+      let y=hasPhoto ? 28 : -total/2+16;
       const title=group.append('text').attr('class','ogf-svg-family-name').attr('text-anchor','middle');
       label.titleLines.forEach(line=>{title.append('tspan').attr('x',0).attr('y',y).text(line);y+=lh;});
       if(label.detailLines.length){
@@ -590,7 +627,7 @@
     const adapter = buildAdapterData();
     if (!adapter.config) {
       inner.selectAll('*').remove();
-      status.textContent = 'Configure tree.relationships in @meta@ (partner_fields and child_fields) to display the tree.';
+      status.textContent = 'Configure tree.family.partners and tree.family.children in @meta@ to display the tree.';
       return;
     }
 

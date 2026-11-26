@@ -7,7 +7,7 @@
 id: "@meta@"
 type: Meta
 format_version: 1
-version: 1
+version: 2
 language: en
 encoding: UTF-8
 gender_mapping:
@@ -15,15 +15,17 @@ gender_mapping:
   male: male
   female: female
 tree:
-  relationships:
-    individual_type: Individual
-    family_type: Family
-    family:
-      partner_fields:
-        - husband_id
-        - wife_id
-      child_fields:
-        - child_id
+  individual_type: Individual
+  family_type: Family
+  individual:
+    birth: { date: birth_date, place: birth_place }
+    death: { date: death_date, place: death_place }
+  family:
+    partners: [husband_id, wife_id]
+    children: [child_id]
+    marriage: { date: marriage_date, place: marriage_place }
+    divorce: { date: div }
+image_field: obje_file
 individual_display_field: full_name
 family_display_field: "{$wife_id.full_name} & {$husband_id.full_name}"
 date_approx: "About {date}"
@@ -68,6 +70,7 @@ publication: Publication
 text: Text
 website: Website
 reference_code: Reference Code
+photo_file: Portrait image
 ---
 id: "@I1@"
 type: Individual

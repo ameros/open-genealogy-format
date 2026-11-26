@@ -7,7 +7,7 @@
 id: "@meta@"
 type: Meta
 format_version: 1
-version: 1
+version: 2
 language: pl
 encoding: UTF-8
 gender_mapping:
@@ -15,15 +15,16 @@ gender_mapping:
   male: M
   female: F
 tree:
-  relationships:
-    individual_type: Individual
-    family_type: Family
-    family:
-      partner_fields:
-        - maz_id
-        - zona_id
-      child_fields:
-        - dziecko_id
+  individual_type: Individual
+  family_type: Family
+  individual:
+    birth: { date: urodzenie_data, place: urodzenie_miejsce }
+    death: { date: zgon_data, place: zgon_miejsce }
+  family:
+    partners: [maz_id, zona_id]
+    children: [dziecko_id]
+    marriage: { date: slub_data, place: slub_miejsce }
+image_field: obje_file
 individual_display_field: "{imie} {drugie_imie} {nazwisko}"
 family_display_field: "{$zona_id.imie} {$zona_id.nazwisko} & {$maz_id.imie} {$maz_id.nazwisko}"
 date_approx: "Około {date}"
@@ -64,6 +65,7 @@ autor: Autor
 publikacja: Publikacja
 tekst: Treść
 strona_www: Strona WWW
+zdjecie_plik: Plik zdjęcia
 ---
 id: "@I1@"
 type: Individual

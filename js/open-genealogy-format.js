@@ -1,5 +1,5 @@
 const SUPPORTED_OGF_FORMAT_VERSION = 1;
-const SUPPORTED_META_CONTRACT_VERSION = 1;
+const SUPPORTED_META_CONTRACT_VERSION = 2;
 
 const SAMPLE_FILES = {
   "en-gedcom": "samples/sample-en-from-gedcom.ogf.yaml",
@@ -31,6 +31,7 @@ function createDefaultProjectDocs() {
     ["title", "Personal title", "Recorded personal or formal title", 1],
     ["cause_of_death", "Cause of death", "Recorded cause of death", 1],
     ["source_reference", "Source reference", "Reference to a Source record", 1],
+    ["obje_file", "Image file", "Shared image/media field used for Individual, Family and Source records", 1],
     ["husb", "Husband", "", 2],
     ["wife", "Wife", "", 2],
     ["chil", "Child", "", 2],
@@ -50,13 +51,28 @@ function createDefaultProjectDocs() {
     { key: "id", value: "@meta@", group: 0 },
     { key: "type", value: "Meta", group: 0 },
     { key: "format_version", value: "1", group: 0 },
-    { key: "version", value: "1", group: 0 },
+    { key: "version", value: "2", group: 0 },
     { key: "language", value: "en", group: 0 },
     { key: "encoding", value: "UTF-8", group: 0 },
     { key: "individual_display_field", value: "name", group: 0 },
     { key: "family_display_field", value: "{$wife.name} & {$husb.name}", group: 0 },
     { key: "gender_mapping", value: { field: "sex", male: "M", female: "F" }, group: 0 },
-    { key: "tree", value: { relationships: { individual_type: "Individual", family_type: "Family", family: { partner_fields: ["husb", "wife"], child_fields: ["chil"] } } }, group: 0 },
+    { key: "image_field", value: "obje_file", group: 0 },
+    { key: "tree", value: {
+      individual_type: "Individual",
+      family_type: "Family",
+      individual: {
+        birth: { date: "birth_date", place: "birth_place" },
+        death: { date: "death_date", place: "death_place" },
+        burial: { date: "burial_date", place: "burial_place" }
+      },
+      family: {
+        partners: ["husb", "wife"],
+        children: ["chil"],
+        marriage: { date: "marriage_date", place: "marriage_place" },
+        divorce: { date: "div_date" }
+      }
+    }, group: 0 },
     { key: "date_approx", value: "About {date}", group: 1 },
     { key: "date_uncertain", value: "Possibly {date}", group: 1 },
     { key: "date_range", value: "Between {start} and {end}", group: 1 },
@@ -238,21 +254,22 @@ function resolveImageReference(value, allowUnknownExtension = false) {
   return null;
 }
 
+function getConfiguredImageFieldKeys() {
+  const configured = state.meta?.image_field;
+  const fields = Array.isArray(configured) ? configured : (typeof configured === "string" ? [configured] : []);
+  return fields.filter(field => typeof field === "string" && field.trim()).map(field => field.trim());
+}
+
 function getImageCandidates(doc) {
+  if (!doc || !doc.map) return [];
+  const configuredFields = getConfiguredImageFieldKeys();
+  if (!configuredFields.length) return [];
   const candidates = [];
-  // Prefer explicit GEDCOM OBJE.FILE paths. They may have no extension, so
-  // do not apply the extension-only filter used for arbitrary `*_file` keys.
-  const entries = [...(doc.entries || [])].sort((a, b) => {
-    const aObje = /^obje_file(?:_\d+)?$/i.test(a.key) ? 0 : 1;
-    const bObje = /^obje_file(?:_\d+)?$/i.test(b.key) ? 0 : 1;
-    return aObje - bObje;
-  });
-  for (const entry of entries) {
-    if (!/(?:^|_)file(?:_\d+)?$/i.test(entry.key)) continue;
-    const isObjeFile = /^obje_file(?:_\d+)?$/i.test(entry.key);
-    const vals = Array.isArray(entry.value) ? entry.value : [entry.value];
-    for (const value of vals) {
-      const resolved = resolveImageReference(value, isObjeFile);
+  for (const field of configuredFields) {
+    const value = doc.map[field];
+    const values = Array.isArray(value) ? value : [value];
+    for (const item of values) {
+      const resolved = resolveImageReference(item, true);
       if (resolved && !candidates.includes(resolved)) candidates.push(resolved);
     }
   }
@@ -678,16 +695,31 @@ function getRecordTitle(doc, docMap) {
   return m.title || doc.id || "Untitled";
 }
 
+function getConfiguredRecordSummaryValue(doc, part) {
+  const tree = state.meta?.tree || {};
+  let recordConfig = {};
+  if (doc?.type === tree.individual_type) recordConfig = tree.individual || {};
+  else if (doc?.type === tree.family_type) recordConfig = tree.family || {};
+  const eventNames = doc?.type === tree.individual_type
+    ? ["birth", "death", "burial"]
+    : (doc?.type === tree.family_type ? ["marriage", "divorce"] : []);
+  for (const eventName of eventNames) {
+    const field = recordConfig?.[eventName]?.[part];
+    if (typeof field !== "string" || !field) continue;
+    const value = doc.map?.[field];
+    const values = Array.isArray(value) ? value : [value];
+    const found = values.map(item => String(item ?? "").trim()).find(Boolean);
+    if (found) return found;
+  }
+  return "";
+}
+
 function getRecordDate(doc) {
-  const m = doc.map;
-  return m.birth_date || m.death_date || m.burial_date || m.marriage_date || m.event_date ||
-    m.urodzenie_data || m.birt_date || m.slub_data || m.marr_date || m.date || "";
+  return getConfiguredRecordSummaryValue(doc, "date");
 }
 
 function getRecordPlace(doc) {
-  const m = doc.map;
-  return m.birth_place || m.death_place || m.burial_place || m.marriage_place || m.event_place ||
-    m.urodzenie_miejsce || m.birt_place || m.slub_miejsce || m.marr_place || m.place || "";
+  return getConfiguredRecordSummaryValue(doc, "place");
 }
 
 function rebuildFromEditor() {
@@ -705,8 +737,14 @@ function rebuildFromEditor() {
         state.meta = d.map;
       } else if (d.id === "@dictionary@" || d.type === "Dictionary") {
         const dictionaryEntries = new Map(d.entries.map(entry => [entry.key, entry]));
+        state.dictGroups = {};
         for (const e of d.entries) {
           if (e.key === "id" || e.key === "type") continue;
+          const groupLabelMatch = e.key.match(/^__group_(\d+)$/);
+          if (groupLabelMatch) {
+            state.dictGroups[Number(groupLabelMatch[1])] = String(e.value ?? "");
+            continue;
+          }
           const companionBase = e.key.endsWith("_values") ? e.key.slice(0, -7) : "";
           // A *_values entry is metadata for its base field, not a field itself.
           if (companionBase && dictionaryEntries.has(companionBase)) continue;
@@ -737,9 +775,11 @@ function rebuildFromEditor() {
       if (!Number.isInteger(Number(metaVersion)) || Number(metaVersion) < 1) {
         throw new Error(`Invalid @meta@ contract version: ${metaVersion}. Expected a positive integer.`);
       }
-      if (Number(metaVersion) !== SUPPORTED_META_CONTRACT_VERSION) {
-        throw new Error(`Unsupported @meta@ contract version: ${metaVersion}. This viewer supports version ${SUPPORTED_META_CONTRACT_VERSION}.`);
+      if (Number(metaVersion) > SUPPORTED_META_CONTRACT_VERSION) {
+        throw new Error(`Unsupported @meta@ contract version: ${metaVersion}. This viewer supports versions up to ${SUPPORTED_META_CONTRACT_VERSION}.`);
       }
+      // Older metadata contracts remain readable. The tree renderer also
+      // understands the previous tree.relationships layout as a fallback.
     }
     const lang = (state.meta.language || "en").toUpperCase();
     status.textContent = "Valid · OGF format v" + (formatVersion || "legacy") + " · @meta@ v" + (metaVersion || "legacy") + " (" + docs.length + " docs)";
@@ -873,53 +913,23 @@ function renderInspectorDetailed() {
 
   const title = getRecordTitle(doc, docMap);
 
-  // Group entries either by dictionary group or YAML blank-line group
-  const groups = [];
-  let currentGroup = [];
-  let lastGroupKey = null;
-
-  for (const entry of doc.entries) {
-    if (entry.key === "id" || entry.key === "type") continue;
-    // YAML blank-line groups are the persisted card layout; dictionary groups
-    // are metadata for the field picker, not an override of user layout.
-    const gKey = "yaml_" + entry.group;
-    if (lastGroupKey !== null && gKey !== lastGroupKey && currentGroup.length > 0) {
-      groups.push({ key: lastGroupKey, entries: currentGroup });
-      currentGroup = [];
-    }
-    currentGroup.push(entry);
-    lastGroupKey = gKey;
+  // The dictionary is the sole source of card field order and grouping.
+  // Record-local YAML groups never define presentation. Unknown fields remain
+  // visible in a final fallback group so imported data is never hidden.
+  const recordFields = new Map(doc.entries
+    .filter(entry => entry.key !== "id" && entry.key !== "type")
+    .map(entry => [entry.key, entry]));
+  const groupedEntries = new Map();
+  for (const key of Object.keys(state.dict)) {
+    const entry = recordFields.get(key);
+    if (!entry) continue;
+    const groupKey = Number(state.dict[key].group) || 1;
+    if (!groupedEntries.has(groupKey)) groupedEntries.set(groupKey, []);
+    groupedEntries.get(groupKey).push(entry);
+    recordFields.delete(key);
   }
-  if (currentGroup.length > 0) groups.push({ key: lastGroupKey, entries: currentGroup });
-
-  // Reordering is a data operation: change doc.entries itself, then serialize
-  // the updated record back into the YAML editor. The blank-line group boundary
-  // is preserved when a field crosses it by exchanging the two fields' groups.
-  const visibleEntries = doc.entries.filter(e => e.key !== "id" && e.key !== "type");
-  function moveFieldInYaml(fromVisibleIndex, direction) {
-    const toVisibleIndex = fromVisibleIndex + direction;
-    if (toVisibleIndex < 0 || toVisibleIndex >= visibleEntries.length) return;
-
-    const movingEntry = visibleEntries[fromVisibleIndex];
-    const adjacentEntry = visibleEntries[toVisibleIndex];
-    const movingDocIndex = doc.entries.indexOf(movingEntry);
-    const adjacentDocIndex = doc.entries.indexOf(adjacentEntry);
-    if (movingDocIndex < 0 || adjacentDocIndex < 0) return;
-
-    // Swap both the YAML sequence position and, when crossing a blank-line
-    // boundary, the group membership so the existing section break stays put.
-    [doc.entries[movingDocIndex], doc.entries[adjacentDocIndex]] =
-      [doc.entries[adjacentDocIndex], doc.entries[movingDocIndex]];
-
-    if (movingEntry.group !== adjacentEntry.group) {
-      const oldGroup = movingEntry.group;
-      movingEntry.group = adjacentEntry.group;
-      adjacentEntry.group = oldGroup;
-    }
-
-    state.editMode = false;
-    syncDocsToEditor();
-  }
+  if (recordFields.size) groupedEntries.set("__ungrouped__", [...recordFields.values()]);
+  const groups = [...groupedEntries.entries()].map(([key, entries]) => ({ key, entries }));
 
   // Find incoming backlinks
   const backlinks = [];
@@ -1018,14 +1028,15 @@ function renderInspectorDetailed() {
     const grp = groups[groupIndex];
     const grpDiv = document.createElement("div");
     grpDiv.className = "field-group";
-
-    let visibleFieldIndex = 0;
-    for (let priorGroupIndex = 0; priorGroupIndex < groupIndex; priorGroupIndex++) {
-      visibleFieldIndex += groups[priorGroupIndex].entries.length;
+    const groupLabel = grp.key === "__ungrouped__" ? "" : String(state.dictGroups?.[Number(grp.key)] || "").trim();
+    if (groupLabel) {
+      const heading = document.createElement("h3");
+      heading.className = "field-group-heading";
+      heading.textContent = groupLabel;
+      grpDiv.appendChild(heading);
     }
 
-    for (let fieldIndex = 0; fieldIndex < grp.entries.length; fieldIndex++) {
-      const entry = grp.entries[fieldIndex];
+    for (const entry of grp.entries) {
       const row = document.createElement("div");
       row.className = "field-row";
 
@@ -1061,10 +1072,10 @@ function renderInspectorDetailed() {
 
         // Embed image files directly beneath their GEDCOM/OGF field value.
         // This creates a real <img src="..."> element, not merely a link.
-        const isObjeFile = /^obje_file(?:_\d+)?$/i.test(entry.key);
-        // OBJE.FILE is represented once as the card portrait above; keep its
-        // original path as text here, but never render a duplicate thumbnail.
-        if (!isObjeFile && isImageFileReference(v) && /(?:^|_)file(?:_\d+)?$/i.test(entry.key)) {
+        const isConfiguredRecordImage = getConfiguredImageFieldKeys().includes(entry.key);
+        // Configured record images are represented once in the portrait area;
+        // keep their original references in the field list without duplicating thumbnails.
+        if (!isConfiguredRecordImage && isImageFileReference(v) && /(?:^|_)file(?:_\d+)?$/i.test(entry.key)) {
           const embeddedImage = createEmbeddedImage(v, title, false);
           if (embeddedImage) valDiv.appendChild(embeddedImage);
         }
@@ -1088,30 +1099,6 @@ function renderInspectorDetailed() {
       }
       row.appendChild(labelDiv);
       row.appendChild(valDiv);
-      const fieldActions = document.createElement("div");
-      fieldActions.className = "field-actions";
-
-      const moveUpBtn = document.createElement("button");
-      moveUpBtn.type = "button";
-      moveUpBtn.className = "icon-button field-move-btn";
-      moveUpBtn.innerHTML = '<i class="fa-solid fa-chevron-up" aria-hidden="true"></i>';
-      moveUpBtn.setAttribute("aria-label", "Move field up in YAML");
-      moveUpBtn.title = "Move field up";
-      moveUpBtn.disabled = visibleFieldIndex === 0;
-      moveUpBtn.addEventListener("click", () => moveFieldInYaml(visibleFieldIndex, -1));
-
-      const moveDownBtn = document.createElement("button");
-      moveDownBtn.type = "button";
-      moveDownBtn.className = "icon-button field-move-btn";
-      moveDownBtn.innerHTML = '<i class="fa-solid fa-chevron-down" aria-hidden="true"></i>';
-      moveDownBtn.setAttribute("aria-label", "Move field down in YAML");
-      moveDownBtn.title = "Move field down";
-      moveDownBtn.disabled = visibleFieldIndex === visibleEntries.length - 1;
-      moveDownBtn.addEventListener("click", () => moveFieldInYaml(visibleFieldIndex, 1));
-
-      fieldActions.append(moveUpBtn, moveDownBtn);
-      row.appendChild(fieldActions);
-      visibleFieldIndex += 1;
       grpDiv.appendChild(row);
     }
     fieldsEl.appendChild(grpDiv);
@@ -1505,13 +1492,28 @@ function convertGedcomToOgf(gedText) {
         { key: "id", value: "@meta@", group: 0 },
         { key: "type", value: "Meta", group: 0 },
         { key: "format_version", value: "1", group: 0 },
-        { key: "version", value: "1", group: 0 },
+        { key: "version", value: "2", group: 0 },
         { key: "language", value: "en", group: 0 },
         { key: "encoding", value: "UTF-8", group: 0 },
         { key: "individual_display_field", value: "name", group: 0 },
         { key: "family_display_field", value: "{$wife.name} & {$husb.name}", group: 0 },
         { key: "gender_mapping", value: { field: "sex", male: "M", female: "F" }, group: 0 },
-        { key: "tree", value: { relationships: { individual_type: "Individual", family_type: "Family", family: { partner_fields: ["husb", "wife"], child_fields: ["chil"] } } }, group: 0 },
+        { key: "image_field", value: "obje_file", group: 0 },
+        { key: "tree", value: {
+          individual_type: "Individual",
+          family_type: "Family",
+          individual: {
+            birth: { date: "birt_date", place: "birt_plac" },
+            death: { date: "deat_date", place: "deat_plac" },
+            burial: { date: "buri_date", place: "buri_plac" }
+          },
+          family: {
+            partners: ["husb", "wife"],
+            children: ["chil"],
+            marriage: { date: "marr_date", place: "marr_plac" },
+            divorce: { date: "div_date" }
+          }
+        }, group: 0 },
         { key: "date_approx", value: "About {date}", group: 1 },
         { key: "date_uncertain", value: "Possibly {date}", group: 1 },
         { key: "date_range", value: "Between {start} and {end}", group: 1 },
@@ -1522,6 +1524,7 @@ function convertGedcomToOgf(gedText) {
   ];
 
   const emittedRecordDocs = [];
+  const gedcomGroupIds = new Map();
   const rawFamilyById = new Map(records.filter(r => r.tag === "FAM" && r.xref).map(r => [r.xref, r]));
 
   for (const rec of records) {
@@ -1579,11 +1582,11 @@ function convertGedcomToOgf(gedText) {
           (node.tag === "FAMC" || node.tag === "FAMS")) {
         const family = rawFamilyById.get(value);
         const individualId = rec.xref;
-        const relationshipConfig = (state.meta?.tree && state.meta.tree.relationships) || state.meta?.tree_relationships || {};
-        const familyConfig = relationshipConfig.family || {};
+        const treeConfig = state.meta?.tree || {};
+        const familyConfig = treeConfig.family || {};
         const configuredFields = node.tag === "FAMS"
-          ? (Array.isArray(familyConfig.partner_fields) ? familyConfig.partner_fields : [])
-          : (Array.isArray(familyConfig.child_fields) ? familyConfig.child_fields : []);
+          ? (Array.isArray(familyConfig.partners) ? familyConfig.partners : [])
+          : (Array.isArray(familyConfig.children) ? familyConfig.children : []);
         const configuredFieldSet = new Set(configuredFields.map(field => String(field).toLowerCase()));
         const reciprocal = family && family.children.some(child => {
           const familyField = cleanTag(child.tag);
@@ -1613,7 +1616,9 @@ function convertGedcomToOgf(gedText) {
     }
 
     for (const node of rec.children) {
-      group++;
+      const rootTag = cleanTag(node.tag);
+      if (!gedcomGroupIds.has(rootTag)) gedcomGroupIds.set(rootTag, gedcomGroupIds.size + 1);
+      group = gedcomGroupIds.get(rootTag);
       emitGedcomNode(node, "");
     }
 
@@ -1643,9 +1648,20 @@ function convertGedcomToOgf(gedText) {
       }
     }
   }
-  for (const key of [...importedKeys.keys()].sort()) {
+  for (const [key, importedGroup] of [...importedKeys.entries()].sort((a, b) => a[1] - b[1])) {
     const label = key.replace(/^_+/, "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-    dictionaryEntries.push({ key, value: label, group: importedKeys.get(key) + 10 });
+    dictionaryEntries.push({ key, value: label, group: importedGroup });
+  }
+  // Value-choice definitions are OGF presentation metadata, not GEDCOM facts.
+  // Keep standard sex labels only when imported records actually use GEDCOM SEX.
+  if (importedKeys.has("sex")) {
+    dictionaryEntries.push({ key: "sex_values", value: "M=Male | F=Female | U=Unknown", group: 11 });
+  } else {
+    const metaDoc = outDocs.find(doc => doc.id === "@meta@");
+    if (metaDoc) {
+      metaDoc.entries = metaDoc.entries.filter(entry => entry.key !== "gender_mapping");
+      metaDoc.map = Object.fromEntries(metaDoc.entries.map(entry => [entry.key, entry.value]));
+    }
   }
   outDocs.splice(1, 0, {
     id: "@dictionary@",
@@ -1727,7 +1743,7 @@ document.getElementById("apply-replacer-btn").addEventListener("click", () => {
 const dictionaryModal = document.getElementById("dictionary-modal");
 const dictionaryRowsEl = document.getElementById("dictionary-rows");
 
-function addDictionaryEditorRow(key = "", label = "", desc = "", group = 1, choices = "") {
+function addDictionaryEditorRow(key = "", label = "", desc = "", group = 1, choices = "", groupLabel = "") {
   const row = document.createElement("div");
   row.className = "dictionary-row";
   row.innerHTML = `
@@ -1735,10 +1751,48 @@ function addDictionaryEditorRow(key = "", label = "", desc = "", group = 1, choi
     <input class="dict-label" type="text" value="${escapeHtml(label)}" placeholder="Field label">
     <input class="dict-desc" type="text" value="${escapeHtml(desc)}" placeholder="Optional description">
     <input class="dict-choices" type="text" value="${escapeHtml(choices)}" placeholder="M=Male | F=Female" title="Optional code=label choices, separated by |">
-    <input class="dict-group" type="number" min="1" step="1" value="${Number(group) || 1}" title="Display group">
+    <input class="dict-group" type="number" min="1" step="1" value="${Number(group) || 1}" title="Display group number">
+    <input class="dict-group-label" type="text" value="${escapeHtml(groupLabel)}" placeholder="Group name" title="Card section heading">
+    <div class="dict-order-controls">
+      <button type="button" class="icon-button dict-move-up" title="Move field up" aria-label="Move field up"><i class="fa-solid fa-chevron-up" aria-hidden="true"></i></button>
+      <button type="button" class="icon-button dict-move-down" title="Move field down" aria-label="Move field down"><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>
+      <button type="button" class="icon-button dict-group-up" title="Move entire group up" aria-label="Move entire group up"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      <button type="button" class="icon-button dict-group-down" title="Move entire group down" aria-label="Move entire group down"><i class="fa-solid fa-arrow-down" aria-hidden="true"></i></button>
+    </div>
     <button type="button" class="icon-button delete-entry-btn" title="Remove dictionary entry" aria-label="Remove dictionary entry"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
   `;
   row.querySelector(".delete-entry-btn").addEventListener("click", () => row.remove());
+  row.querySelector(".dict-move-up").addEventListener("click", () => {
+    const previous = row.previousElementSibling;
+    if (previous) dictionaryRowsEl.insertBefore(row, previous);
+  });
+  row.querySelector(".dict-move-down").addEventListener("click", () => {
+    const next = row.nextElementSibling;
+    if (next) dictionaryRowsEl.insertBefore(next, row);
+  });
+  function shiftDictionaryGroup(delta) {
+    const currentGroup = Math.max(1, Number(row.querySelector(".dict-group").value) || 1);
+    const targetGroup = Math.max(1, currentGroup + delta);
+    if (targetGroup === currentGroup) return;
+    const rows = [...dictionaryRowsEl.querySelectorAll(".dictionary-row")];
+    const currentLabel = rows.find(item => Number(item.querySelector(".dict-group").value) === currentGroup)
+      ?.querySelector(".dict-group-label")?.value || "";
+    const targetLabel = rows.find(item => Number(item.querySelector(".dict-group").value) === targetGroup)
+      ?.querySelector(".dict-group-label")?.value || "";
+    rows.forEach(item => {
+      const input = item.querySelector(".dict-group");
+      const value = Math.max(1, Number(input.value) || 1);
+      if (value === currentGroup) {
+        input.value = targetGroup;
+        item.querySelector(".dict-group-label").value = targetLabel;
+      } else if (value === targetGroup) {
+        input.value = currentGroup;
+        item.querySelector(".dict-group-label").value = currentLabel;
+      }
+    });
+  }
+  row.querySelector(".dict-group-up").addEventListener("click", () => shiftDictionaryGroup(-1));
+  row.querySelector(".dict-group-down").addEventListener("click", () => shiftDictionaryGroup(1));
   dictionaryRowsEl.appendChild(row);
 }
 
@@ -1747,8 +1801,11 @@ function openDictionaryEditor() {
   const dictionaryDoc = state.docs.find(d => d.id === "@dictionary@" || d.type === "Dictionary");
   if (dictionaryDoc) {
     const entriesByKey = new Map(dictionaryDoc.entries.map(entry => [entry.key, entry]));
+    const groupLabels = new Map(dictionaryDoc.entries
+      .filter(entry => /^__group_\d+$/.test(entry.key))
+      .map(entry => [Number(entry.key.slice(8)), String(entry.value ?? "")]));
     for (const entry of dictionaryDoc.entries) {
-      if (entry.key === "id" || entry.key === "type") continue;
+      if (entry.key === "id" || entry.key === "type" || /^__group_\d+$/.test(entry.key)) continue;
       const baseKey = entry.key.endsWith("_values") ? entry.key.slice(0, -7) : "";
       if (baseKey && entriesByKey.has(baseKey)) continue;
       const raw = String(entry.value ?? "");
@@ -1756,7 +1813,8 @@ function openDictionaryEditor() {
       const choicesEntry = entriesByKey.get(entry.key + "_values");
       addDictionaryEditorRow(entry.key, parts.length > 1 ? parts[0].trim() : raw,
         parts.length > 1 ? parts.slice(1).join(" - ").trim() : "", entry.group,
-        choicesEntry ? String(choicesEntry.value ?? "") : "");
+        choicesEntry ? String(choicesEntry.value ?? "") : "",
+        groupLabels.get(Number(entry.group) || 1) || "");
     }
   }
   dictionaryModal.classList.add("open");
@@ -1774,6 +1832,7 @@ document.getElementById("save-dictionary-btn").addEventListener("click", () => {
     { key: "type", value: "Dictionary", group: 0 }
   ];
   const keys = new Set();
+  const groupLabels = new Map();
   let error = "";
   dictionaryRowsEl.querySelectorAll(".dictionary-row").forEach(row => {
     const key = row.querySelector(".dict-key").value.trim();
@@ -1781,6 +1840,8 @@ document.getElementById("save-dictionary-btn").addEventListener("click", () => {
     const desc = row.querySelector(".dict-desc").value.trim();
     const choicesRaw = row.querySelector(".dict-choices").value.trim();
     const group = Math.max(1, Number(row.querySelector(".dict-group").value) || 1);
+    const groupLabel = row.querySelector(".dict-group-label").value.trim();
+    if (groupLabel && !groupLabels.has(group)) groupLabels.set(group, groupLabel);
     if (!key) return;
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key) || key === "id" || key === "type") {
       error = `Invalid dictionary key: ${key}`;
@@ -1815,6 +1876,9 @@ document.getElementById("save-dictionary-btn").addEventListener("click", () => {
   if (error) {
     alert(error);
     return;
+  }
+  for (const [group, label] of [...groupLabels.entries()].sort((a,b) => a[0] - b[0])) {
+    entries.push({ key: `__group_${group}`, value: label, group: 0 });
   }
 
   let dictionaryDoc = state.docs.find(d => d.id === "@dictionary@" || d.type === "Dictionary");

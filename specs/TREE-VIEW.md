@@ -5,37 +5,61 @@ change genealogy facts. Family records define the relationships used by this
 viewer; Individual-side reverse references are not used. The shared metadata
 rules are defined in [the specification](SPECIFICATION.md).
 
-## Relationship configuration
+## Tree configuration
 
-Add `tree.relationships` to the `@meta@` document. Field names are examples,
-not reserved OGF vocabulary:
+The `@meta@.tree` object configures record types, family relationships and
+event fields used by the tree. These settings are grouped by record type; there
+is no separate `relationships` section.
 
 ```yaml
 tree:
-  relationships:
-    individual_type: Individual
-    family_type: Family
-    family:
-      partner_fields:
-        - husb
-        - wife
-      child_fields:
-        - chil
+  individual_type: Individual
+  family_type: Family
+
+  individual:
+    birth:
+      date: birth_date
+      place: birth_place
+    death:
+      date: death_date
+      place: death_place
+    burial:
+      date: burial_date
+      place: burial_place
+
+  family:
+    partners:
+      - husb
+      - wife
+    children:
+      - chil
+    marriage:
+      date: marriage_date
+      place: marriage_place
 ```
 
-- `partner_fields` lists Family fields whose values reference Individuals.
-- `child_fields` lists Family fields whose values reference child Individuals.
-- The `@dictionary@` should enumerate these configured field keys with
-  human-readable labels. It does not define their relationship behavior; this
-  configuration remains the source of truth for the tree and importer's
-  reciprocal-reference check.
-- Each configured field may contain one reference or a YAML list of references.
-- Multiple partner and child fields are supported.
-- A configured field may contain a YAML list of references. Repeated GEDCOM
-  occurrences are stored in that list under the same key, preserving source
-  order without generating numbered field names.
+- `individual_type` and `family_type` identify the record types rendered by
+  the tree.
+- `family.partners` lists Family fields whose values reference Individuals.
+- `family.children` lists Family fields whose values reference child Individuals.
+- `individual.birth`, `individual.death` and `individual.burial` configure
+  the date and place fields displayed on Individual nodes.
+- `family.marriage` configures the date and place fields displayed on Family
+  nodes.
+- Field names are open identifiers. They may use any language or naming
+  convention; the renderer uses the configured identifiers and does not infer
+  event meaning from field names or dictionary labels.
+- Relationship fields may contain one reference or an ordered YAML list of
+  references. Repeated occurrences are stored under one key, preserving
+  source order.
+- The `@dictionary@` should enumerate configured relationship field keys with
+  human-readable labels. It does not define their relationship behavior.
 - Unresolved references are reported in the tree status; they are not guessed.
-- Without this configuration, the tree does not infer relationships.
+- Without relationship field configuration, the tree does not infer family
+  relationships.
+- Portrait fields are configured separately through `@meta@.image_field`;
+  the same mapping is used by tree nodes and record details cards. See
+  [Images and media](SPECIFICATION.md#12-images-and-media).
 
 ## Shared gender interpretation
 
@@ -66,15 +90,16 @@ The renderer uses the same core mechanism as `gedcom-svg-tree`:
 - Individual and Family titles reuse the existing `individual_display_field`
   and `family_display_field` metadata; the tree does not define a parallel
   title configuration;
-- Individual nodes show birth and death dates and places, plus burial place,
-  when those values exist; the first resolved `obje_file` image is used as a
-  portrait, and no empty portrait placeholder is shown when an image is absent;
+- Individual nodes show the configured birth, death and burial dates and
+  places when those values exist. Individual and Family node portraits use the
+  shared `@meta@.image_field` mapping; no image field is inferred from its name,
+  and no empty portrait placeholder is shown when an image is absent;
 - the shared `@meta@.gender_mapping` setting classifies Individual nodes;
   exact configured male/female values select the corresponding blue and rose
   node borders, while missing or unrecognized values use the neutral
   pink-to-blue gradient border;
-- Family nodes show the configured Family title and marriage date/place when
-  present;
+- Family nodes show the configured Family title and configured marriage
+  date/place fields when present;
 - hover highlighting based on graph predecessors (ancestors) and successors
   (descendants), dimming unrelated branches;
 - D3 zoom/pan, fit-to-tree, and re-centering when another node is selected.

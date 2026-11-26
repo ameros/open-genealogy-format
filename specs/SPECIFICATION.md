@@ -1,7 +1,7 @@
 # Open Genealogy Format — Specification
 
 **Status:** Stable release  
-**Version:** 1.0.2
+**Version:** 1.0.3
 
 ## 1. Purpose
 
@@ -354,32 +354,60 @@ gender_mapping:
   female: female
 ```
 
-### 7.4 Tree relationship mapping
+### 7.4 Tree configuration
 
-An application may use the optional `tree.relationships` object in `@meta@` to
-configure how a tree view reads relationships from Family records. This is
-renderer-specific presentation configuration, not a required OGF vocabulary or
-a new relationship assertion.
+An application may use the optional `tree` object in `@meta@` to configure how
+the tree view identifies record types, reads Family relationships and displays
+event fields. This is renderer-specific presentation configuration, not a
+required OGF vocabulary or a new relationship assertion.
 
 ```yaml
 tree:
-  relationships:
-    individual_type: Individual
-    family_type: Family
-    family:
-      partner_fields:
-        - husb
-        - wife
-      child_fields:
-        - chil
+  individual_type: Individual
+  family_type: Family
+  individual:
+    birth:
+      date: birth_date
+      place: birth_place
+    death:
+      date: death_date
+      place: death_place
+    burial:
+      date: burial_date
+      place: burial_place
+  family:
+    partners:
+      - husb
+      - wife
+    children:
+      - chil
+    marriage:
+      date: marriage_date
+      place: marriage_place
+    divorce:
+      date: divorce_date
 ```
 
-- `individual_type` identifies the record type used for people.
-- `family_type` identifies the record type used for family/partnership records.
-- `family.partner_fields` lists Family fields containing references to Individual records.
-- `family.child_fields` lists Family fields containing references to child Individual records.
-- A configured field may contain a single reference or a list of references.
-- Field names are examples only; OGF does not reserve `husb`, `wife` or `chil`.
+- `individual_type` and `family_type` identify the record types rendered by
+  the tree.
+- `family.partners` lists Family fields containing references to Individual
+  records.
+- `family.children` lists Family fields containing references to child
+  Individual records.
+- `individual.birth`, `individual.death` and `individual.burial` configure the
+  date and place fields displayed on Individual nodes.
+- `family.marriage` configures the date and place fields displayed on Family
+  nodes.
+- `family.divorce.date` configures the optional divorce date field displayed
+  on Family nodes.
+- A configured relationship field may contain a single reference or a list of
+  references.
+- Field names are open identifiers; the tree renderer uses configured keys
+  and does not infer event meaning from field names or language.
+
+Portrait image fields are configured separately through `@meta@.image_field`;
+the mapping is shared by details cards and tree nodes. A viewer must not infer
+an image field from its name. See section 12.
 
 A viewer must not infer relationships from field names or reverse references
 when no mapping is supplied. It must preserve the underlying record values and
@@ -489,9 +517,14 @@ by the dictionary.
 
 ### 8.2 Grouping
 
-Blank lines separate groups of fields.
+Blank lines in `@dictionary@` separate field groups. Dictionary entry order
+sets field order within each group and group order on cards. Optional YAML
+comment lines may be placed above a group as human-readable visual notes, but
+comments are not parsed and do not create group names or affect rendering.
 
-The viewer may use these groups in the card layout and field-selection interface.
+Record-local blank lines do not control card layout. The viewer derives card
+field order and grouping from the dictionary. Fields absent from the dictionary
+remain visible in an ungrouped fallback section, in their record order.
 
 ### 8.3 Unknown fields
 
@@ -597,37 +630,17 @@ GEDCOM qualifiers such as `ABT`, `CAL`, `EST`, `BEF` and `AFT` must not be treat
 Any interpretation mapping must be explicit and must not alter the original stored expression.
 
 ## 10. Presentation and grouping
-### 10.1 Field order
+### 10.1 Field order and groups
 
-The order of fields in a record determines their order in the viewer.
+The dictionary is the single source of truth for card field order and grouping.
+Record entry order and record-local blank lines do not define card layout.
+Dictionary order determines field order; blank lines in the dictionary separate
+groups. Optional comment lines are human-readable notes only and are ignored by
+the parser and renderer. The viewer does not provide per-record field or group
+reordering controls.
 
-### 10.2 Visual groups
-
-Blank lines in a record separate visual groups of fields.
-
-Example:
-
-```yaml
-name: John Smith
-sex: M
-
-birth_date: "25 NOV 1976"
-birt_plac: London
-
-deat_date: "2020"
-```
-
-### 10.3 Group editing
-
-The viewer may allow users to:
-
-- Move groups up or down.
-- Merge adjacent groups.
-- Split a group at a selected field.
-
-These operations must change only field order and blank-line placement.
-
-They must not modify field names or values.
+Fields absent from the dictionary remain visible in a final ungrouped fallback
+section, preserving data that has not yet been added to the dictionary.
 
 ### 10.4 Field descriptions
 
@@ -665,15 +678,31 @@ The link is derived presentation data. The stored coordinates must remain unchan
 
 ## 12. Images and media
 
-Image references may be stored in fields such as `obje_file`.
+Image references may be stored in any field. A viewer must not assume that a
+field named `obje_file`, or any other field-name pattern, is the image field
+for a record type.
 
-A viewer may display the first usable image as a record portrait.
+The optional `@meta@.image_field` object maps exact record type names to the
+field or ordered list of fields containing portrait images. The same mapping
+is shared by details cards and tree nodes. For example:
 
-The image may be shown above or alongside the record fields, according to the viewer's layout.
+```yaml
+image_field:
+  Individual: obje_file
+  Family: family_photo
+  Source:
+    - scan_front
+    - scan_back
+```
 
-The original media reference must remain available in the record.
+A viewer displays the first usable image from the configured fields in its
+record portrait area. The mapping applies to all record types, including
+Individual, Family and Source. A record type without an entry has no configured
+portrait; the viewer must not guess one from field names.
 
-The same portrait image must not be redundantly rendered again as a second image inside its ordinary field row.
+The original media reference must remain available in the record. A configured
+portrait must not be redundantly rendered again as a second thumbnail in its
+ordinary field row.
 
 For local media paths, a browser application may require the user to select the media directory. It must not assume that a local path is a publicly accessible URL.
 
@@ -704,3 +733,13 @@ See [GEDCOM-IMPORT.md](GEDCOM-IMPORT.md) for the detailed GEDCOM 5.5.1 rules.
 When in doubt, preserve the original value.
 
 A viewer may interpret, link, format or present data, but must not silently rewrite the underlying genealogical record.
+
+
+## Tree metadata configuration
+
+The `@meta@.tree` object configures record types and record-specific tree
+fields. Family relationships are configured under `tree.family.partners` and
+`tree.family.children`; Individual event fields are configured under
+`tree.individual`; Family event fields are configured under `tree.family`.
+The renderer uses configured field identifiers and does not infer event fields
+from names or language. See [Tree view](TREE-VIEW.md) for the complete schema.

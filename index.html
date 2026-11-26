@@ -104,7 +104,7 @@
   <a class="brand" href="https://github.com/ameros/open-genealogy-format" target="_blank" rel="noopener noreferrer" aria-label="Open Genealogy Format project on GitHub">
     <img class="brand-logo" src="https://ameros.github.io/gedcom-svg-tree/apple-touch-icon.png" alt="" width="34" height="34">
     <span>Open Genealogy Viewer</span>
-    <span class="badge" id="version-badge">v1.0.2</span>
+    <span class="badge" id="version-badge">v1.0.3</span>
   </a>
   <button id="toggle-yaml-btn" class="toolbar-icon" type="button" title="Show YAML editor" aria-label="Show YAML editor"><i class="fa-solid fa-code" aria-hidden="true"></i></button>
   <button id="tree-view-btn" class="toolbar-icon" type="button" title="Open tree view" aria-label="Open tree view" aria-pressed="false"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i></button>
@@ -239,7 +239,7 @@
         Define available fields here first. Optional choices use code=label pairs separated by | (for example M=Male | F=Female). The viewer shows a dropdown and friendly labels; records continue to store the original codes. Unlisted values are preserved.
       </p>
       <div class="dictionary-grid" style="font-weight:600; color:var(--muted); border-bottom:1px solid var(--border); padding-bottom:6px;">
-        <span>Key</span><span>Label</span><span>Description</span><span>Choices (code=label)</span><span>Group</span><span></span>
+        <span>Key</span><span>Label</span><span>Description</span><span>Choices (code=label)</span><span>Group</span><span>Group name</span><span>Order</span><span></span>
       </div>
       <div id="dictionary-rows" style="display:flex; flex-direction:column; gap:8px;"></div>
       <button id="add-dictionary-row-btn" type="button" class="secondary"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add Dictionary Entry</button>

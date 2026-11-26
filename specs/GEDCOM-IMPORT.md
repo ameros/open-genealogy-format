@@ -240,7 +240,10 @@ These include:
 - Rendering internal `@id@` references as clickable links.
 - Rendering URLs as links.
 - Creating Google Maps links from recognized coordinate pairs.
-- Displaying images from `OBJE.FILE`.
+- Displaying images from `OBJE.FILE` when the corresponding record type has
+  an explicit entry in `@meta@.image_field`. The importer may provide the
+  default `obje_file` configuration for Individual, Family and Source records;
+  viewers must use the configured field names rather than guessing them.
 - Displaying dictionary descriptions beside field labels.
 - Organizing fields into visual groups.
 
@@ -248,19 +251,21 @@ These features must not alter the underlying imported values.
 
 ## 13. Field grouping and layout
 
-Blank lines in an OGF record separate visual groups.
+During GEDCOM import, each top-level GEDCOM tag and all of its descendants
+belong to one dictionary group. For example, `BIRT.DATE` and `BIRT.PLAC` are
+flattened to `birt_date` and `birt_plac` and placed in the same dictionary
+group. The group identity is based on the top-level source tag, consistently
+across records; it is not inferred from translated meanings.
 
-The viewer may allow users to:
+The importer preserves first-seen field order and writes dictionary blank lines
+between groups. Record fields themselves contain only data and do not carry
+presentation grouping. The viewer derives card order and grouping exclusively
+from the dictionary. Unknown fields remain visible in an ungrouped fallback
+section.
 
-- Move groups up or down.
-- Merge adjacent groups.
-- Split a group at a selected field.
-
-The operations must preserve field names and values.
-
-Only field order and blank-line placement may change.
-
-The resulting YAML must preserve the selected grouping when exported.
+Optional comments in the dictionary may visually annotate groups for people
+reading the YAML, but comments are not parsed and have no effect on grouping.
+The application does not offer per-record field/group move controls.
 
 ## Final rule
 
@@ -269,3 +274,15 @@ The resulting YAML must preserve the selected grouping when exported.
 When a value, relationship, date or reference cannot be interpreted safely, preserve it rather than guessing.
 
 Related: [OGF specification](SPECIFICATION.md) · [Project overview](../README.md)
+
+### 11.5 OGF presentation metadata retained during import
+
+GEDCOM import must not merge the starter project's genealogical field
+dictionary into the imported dictionary. It should, however, initialize OGF
+presentation metadata that GEDCOM does not supply, including display templates,
+tree relationship configuration, and date-description templates. The shared
+gender mapping is retained when imported records contain the GEDCOM `SEX`
+field. Its standard `sex_values` choices (`M`, `F`, `U`) are also included as
+dictionary value metadata in that case. These settings do not add genealogical
+facts or unused starter fields to imported records.
+

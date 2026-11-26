@@ -39,10 +39,13 @@ birth_date: "25 NOV 1976"
 ```
 
 `@meta@.format_version` identifies the OGF data-format contract;
-`@meta@.version` identifies the metadata contract. Both are independent and
-currently set to version `1`. Shared rules such as `gender_mapping` belong
-directly in `@meta@`; view-specific settings belong under their own key, such
-as `tree.relationships`. See [versioning and compatibility](VERSIONING.md).
+`@meta@.version` identifies the metadata contract. Both are independent:
+`format_version` is `1` and the metadata contract is `2` in this release.
+Shared rules such as `gender_mapping` and `image_field` belong directly in
+`@meta@`; tree-specific settings belong under `@meta@.tree`. Record portrait
+fields are configured in `@meta@.image_field` and shared by tree nodes and
+details cards. See
+[versioning and compatibility](VERSIONING.md).
 
 ## Project files
 
