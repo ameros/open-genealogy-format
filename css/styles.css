@@ -536,7 +536,11 @@ a:hover,
   font-family:"Font Awesome 6 Free";
   font-weight:900;
 }
-
+/* The requested burial mark is a Unicode symbol, not a Font Awesome glyph. */
+#ogf-tree-svg .ogf-tree-event-icon.ogf-tree-burial-icon {
+  font-family:Poppins,sans-serif;
+  font-weight:400;
+}
 
 /* Gender symbols follow GEDCOM SVG Tree 1.3.5: standard Unicode signs,
    deliberately rendered with the normal text font, not Font Awesome. */

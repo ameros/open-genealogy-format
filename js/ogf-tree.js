@@ -312,7 +312,7 @@
     const detailLines=[];
     if(birthDate||birthPlace)detailLines.push({icon:'\uf004',kind:'birth',text:[birthDate,birthPlace].filter(Boolean).join(', ')});
     if(deathDate||deathPlace)detailLines.push({icon:'\uf4ba',kind:'death',text:[deathDate,deathPlace].filter(Boolean).join(', ')});
-    if(burialDate||burialPlace)detailLines.push({icon:'\uf720',kind:'burial',text:[burialDate,burialPlace].filter(Boolean).join(', ')});
+    if(burialDate||burialPlace)detailLines.push({icon:'⩍',kind:'burial',text:[burialDate,burialPlace].filter(Boolean).join(', ')});
     const genderClass = app.getGenderClass ? app.getGenderClass(record) : 'unknown';
     const genderIcon=genderClass==='male'?'♂':genderClass==='female'?'♀':'';
     return {family:false,titleLines:wrapSvgLabel(title,27).slice(0,3),detailLines,genderClass,genderIcon,imageUrl:app.getImageUrl?app.getImageUrl(record):null};
@@ -932,7 +932,7 @@
     const portableIcons = new Map([
       ['\uf004', '♥'], // birth
       ['\uf4ba', '☠'], // death
-      ['\uf720', '⚰']  // burial
+      ['⩍', '⩍']  // burial
     ]);
     treeClone.querySelectorAll('.ogf-tree-event-icon').forEach(iconNode => {
       const glyph = iconNode.textContent.trim();
