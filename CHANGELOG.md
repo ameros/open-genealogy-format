@@ -6,6 +6,10 @@
 - Card field order and visual groups now come from `@dictionary@` order and blank-line group boundaries.
 - GEDCOM import groups every flattened descendant under its top-level source tag and writes those groups to the dictionary consistently across records.
 - Unknown record fields remain visible in an ungrouped fallback section.
+- Moved starter metadata and dictionary into reusable `defaults/meta.yaml` and
+  `defaults/dictionary.yaml` files; new projects load and embed these defaults.
+- Existing projects and GEDCOM imports keep their independent configuration
+  behavior; starter defaults are not merged into either.
 - Documented that YAML comments are optional human-readable notes only; they are not parsed as group metadata.
 
 ## 1.0.0 — 2026-11-25

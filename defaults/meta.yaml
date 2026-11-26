@@ -1,0 +1,48 @@
+---
+id: "@meta@"
+type: Meta
+format_version: 1
+version: 2
+language: en
+encoding: UTF-8
+individual_display_field: name
+family_display_field: "{$wife.name} & {$husb.name}"
+gender_mapping:
+  field: sex
+  male: M
+  female: F
+image_field: obje_file
+tree:
+  individual_type: Individual
+  family_type: Family
+  individual:
+    birth:
+      date: birth_date
+      place: birth_place
+    death:
+      date: death_date
+      place: death_place
+    burial:
+      date: burial_date
+      place: burial_place
+  family:
+    partners:
+      - husb
+      - wife
+    children:
+      - chil
+    marriage:
+      date: marriage_date
+      place: marriage_place
+    divorce:
+      date: div_date
+
+date_approx: "About {date}"
+
+date_uncertain: "Possibly {date}"
+
+date_range: "Between {start} and {end}"
+
+date_before: "On or before {date}"
+
+date_after: "On or after {date}"

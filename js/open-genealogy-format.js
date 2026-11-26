@@ -13,84 +13,20 @@ const SAMPLE_FILES = {
 // tag paths are flattened as-is; this dictionary supplies useful OGF fields
 // that users may choose to use or rename imported fields to.
 
-function createDefaultProjectDocs() {
-  const dictionaryFields = [
-    ["name", "Full name", "Name as recorded", 1],
-    ["given_name", "Given name", "Given or personal names", 1],
-    ["surname", "Surname", "Family name", 1],
-    ["nickname", "Nickname", "Informal or alternative name", 1],
-    ["sex", "Sex", "Recorded sex value", 1],
-    ["birth_date", "Date of birth", "Date associated with the birth event", 1],
-    ["birth_place", "Place of birth", "Place associated with the birth event", 1],
-    ["death_date", "Date of death", "Date associated with the death event", 1],
-    ["death_place", "Place of death", "Place associated with the death event", 1],
-    ["burial_date", "Date of burial", "Date associated with the burial event", 1],
-    ["burial_place", "Place of burial", "Place associated with the burial event", 1],
-    ["occupation", "Occupation", "Recorded occupation or profession", 1],
-    ["education", "Education", "Recorded education or qualification", 1],
-    ["title", "Personal title", "Recorded personal or formal title", 1],
-    ["cause_of_death", "Cause of death", "Recorded cause of death", 1],
-    ["source_reference", "Source reference", "Reference to a Source record", 1],
-    ["obje_file", "Image file", "Shared image/media field used for Individual, Family and Source records", 1],
-    ["husb", "Husband", "", 2],
-    ["wife", "Wife", "", 2],
-    ["chil", "Child", "", 2],
-    ["marriage_date", "Date of marriage", "Date associated with the marriage event", 2],
-    ["marriage_place", "Place of marriage", "Place associated with the marriage event", 2],
-    ["divorce", "Divorced", "A divorce event recorded for the family", 2],
-    ["source_title", "Source title", "Title of a source record", 3],
-    ["source_text", "Source text", "Text transcribed or associated with a source", 3],
-    ["repository_name", "Repository name", "Name of the institution holding a source", 4],
-    ["repository_website", "Repository website", "Website of the repository", 4],
-    ["event_type", "Event type", "Type of a general event; values may be displayed using the event-type choices", 5],
-    ["event_date", "Event date", "Date associated with a general event", 5],
-    ["event_place", "Event place", "Place associated with a general event", 5],
-    ["event_description", "Event description", "Description or note associated with a general event", 5]
-  ];
-  const metaEntries = [
-    { key: "id", value: "@meta@", group: 0 },
-    { key: "type", value: "Meta", group: 0 },
-    { key: "format_version", value: "1", group: 0 },
-    { key: "version", value: "2", group: 0 },
-    { key: "language", value: "en", group: 0 },
-    { key: "encoding", value: "UTF-8", group: 0 },
-    { key: "individual_display_field", value: "name", group: 0 },
-    { key: "family_display_field", value: "{$wife.name} & {$husb.name}", group: 0 },
-    { key: "gender_mapping", value: { field: "sex", male: "M", female: "F" }, group: 0 },
-    { key: "image_field", value: "obje_file", group: 0 },
-    { key: "tree", value: {
-      individual_type: "Individual",
-      family_type: "Family",
-      individual: {
-        birth: { date: "birth_date", place: "birth_place" },
-        death: { date: "death_date", place: "death_place" },
-        burial: { date: "burial_date", place: "burial_place" }
-      },
-      family: {
-        partners: ["husb", "wife"],
-        children: ["chil"],
-        marriage: { date: "marriage_date", place: "marriage_place" },
-        divorce: { date: "div_date" }
-      }
-    }, group: 0 },
-    { key: "date_approx", value: "About {date}", group: 1 },
-    { key: "date_uncertain", value: "Possibly {date}", group: 1 },
-    { key: "date_range", value: "Between {start} and {end}", group: 1 },
-    { key: "date_before", value: "On or before {date}", group: 1 },
-    { key: "date_after", value: "On or after {date}", group: 1 }
-  ];
-  const dictionaryEntries = [
-    { key: "id", value: "@dictionary@", group: 0 },
-    { key: "type", value: "Dictionary", group: 0 }
-  ];
-  for (const [key, label, description, group] of dictionaryFields) {
-    dictionaryEntries.push({ key, value: description ? `${label} — ${description}` : label, group });
-  }
-  dictionaryEntries.push({ key: "sex_values", value: "M=Male | F=Female | U=Unknown", group: 1 });
-  return [
-    { id: "@meta@", type: "Meta", entries: metaEntries, map: Object.fromEntries(metaEntries.map(e => [e.key, e.value])) },
-    { id: "@dictionary@", type: "Dictionary", entries: dictionaryEntries, map: Object.fromEntries(dictionaryEntries.map(e => [e.key, e.value])) }
-  ];
+async function loadDefaultProjectDocs() {
+  const files = ["defaults/meta.yaml", "defaults/dictionary.yaml"];
+  const loaded = await Promise.all(files.map(async filename => {
+    const response = await fetch(new URL(filename, document.baseURI), { cache: "no-store" });
+    if (!response.ok) throw new Error(`Could not load ${filename} (${response.status})`);
+    const docs = parseYamlStream(await response.text());
+    if (docs.length !== 1) throw new Error(`${filename} must contain exactly one YAML document`);
+    return docs[0];
+  }));
+  const byId = new Map(loaded.map(doc => [doc.id, doc]));
+  const meta = byId.get("@meta@");
+  const dictionary = byId.get("@dictionary@");
+  if (!meta || !dictionary) throw new Error("Default files must define @meta@ and @dictionary@ respectively.");
+  return [meta, dictionary];
 }
 
 const LINK_RE = /^@.+@$/;
@@ -1992,20 +1928,27 @@ document.getElementById("toggle-yaml-btn").addEventListener("click", () => {
   updateYamlToggleButton();
 });
 
-function loadNewProject() {
-  const docs = createDefaultProjectDocs();
-  const yaml = serializeYamlStream(docs);
-  const editor = document.getElementById("yaml-editor");
-  editor.value = yaml;
-  state.selectedId = null;
-  state.editMode = false;
-  state.activeTab = "Individual";
-  updateTabUI();
-  rebuildFromEditor();
+async function loadNewProject() {
   const status = document.getElementById("yaml-status");
-  status.textContent = "New empty project · default metadata and dictionary ready";
-  status.style.color = "#4ade80";
-  document.getElementById("sample-select").value = "";
+  status.textContent = "Loading reusable default configuration…";
+  status.style.color = "";
+  try {
+    const docs = await loadDefaultProjectDocs();
+    const editor = document.getElementById("yaml-editor");
+    editor.value = serializeYamlStream(docs);
+    state.selectedId = null;
+    state.editMode = false;
+    state.activeTab = "Individual";
+    updateTabUI();
+    rebuildFromEditor();
+    status.textContent = "New empty project · defaults loaded from defaults/meta.yaml and defaults/dictionary.yaml";
+    status.style.color = "#4ade80";
+    document.getElementById("sample-select").value = "";
+  } catch (error) {
+    status.textContent = `Could not create a new project: ${error.message}`;
+    status.style.color = "#f87171";
+    console.error(error);
+  }
 }
 
 async function loadSample(language) {

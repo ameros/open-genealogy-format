@@ -12,8 +12,10 @@ names. Import and display must not silently invent facts or change stored data.
 The dictionary defines useful OGF fields and labels; it does not translate tags
 from GEDCOM or other source formats. Importers preserve source tags as flattened
 field keys, and users may explicitly rename or reorganize those fields.
-The viewer starts with an empty project containing default metadata and a curated
-human-readable dictionary; example files are available from the Samples menu.
+The viewer starts with an empty project by loading its reusable default metadata
+and dictionary from `defaults/meta.yaml` and `defaults/dictionary.yaml`. These
+files are standalone YAML documents that can be copied and adapted for other
+OGF projects. Example files are available from the Samples menu.
 
 ## A small example
 
@@ -54,7 +56,7 @@ details cards. See
 
 - `index.html` — browser-based OGF viewer.
 - `js/` and `css/` — application source.
-- `samples/` — example OGF files.
+- `samples/` — example OGF files.\n- `defaults/meta.yaml` — reusable starter `@meta@` configuration.\n- `defaults/dictionary.yaml` — reusable starter `@dictionary@` vocabulary and labels.
 - `VERSION.json` — current project and data-contract release manifest.
 - `CHANGELOG.md` — notable changes by project release.
 - `VERSIONING.md` — versioning and compatibility policy.

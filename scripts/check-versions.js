@@ -34,6 +34,24 @@ if (!engine.includes(`{ key: "format_version", value: "${manifest.formatVersion}
 if (!engine.includes(`{ key: "version", value: "${manifest.metadataContractVersion}"`)) {
   errors.push('GEDCOM import defaults do not use the manifest metadata contract version');
 }
+
+for (const [file, id] of [
+  ['defaults/meta.yaml', '@meta@'],
+  ['defaults/dictionary.yaml', '@dictionary@']
+]) {
+  const content = read(file);
+  if (!content.split(/^---\s*$/m).slice(1, 2).join('---').includes(`id: "${id}"`)) {
+    errors.push(`${file} must define ${id}`);
+  }
+}
+const defaultMeta = read('defaults/meta.yaml');
+if (!new RegExp(`^format_version:\\s*${manifest.formatVersion}\\s*$`, 'm').test(defaultMeta)) {
+  errors.push('defaults/meta.yaml format_version does not match VERSION.json');
+}
+if (!new RegExp(`^version:\\s*${manifest.metadataContractVersion}\\s*$`, 'm').test(defaultMeta)) {
+  errors.push('defaults/meta.yaml metadata contract version does not match VERSION.json');
+}
+
 if (errors.length) {
   console.error('Version consistency check failed:\n- ' + errors.join('\n- '));
   process.exitCode = 1;

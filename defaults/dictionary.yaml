@@ -1,0 +1,40 @@
+---
+id: "@dictionary@"
+type: Dictionary
+name: "Full name — Name as recorded"
+given_name: "Given name — Given or personal names"
+surname: "Surname — Family name"
+nickname: "Nickname — Informal or alternative name"
+sex: "Sex — Recorded sex value"
+birth_date: "Date of birth — Date associated with the birth event"
+birth_place: "Place of birth — Place associated with the birth event"
+death_date: "Date of death — Date associated with the death event"
+death_place: "Place of death — Place associated with the death event"
+burial_date: "Date of burial — Date associated with the burial event"
+burial_place: "Place of burial — Place associated with the burial event"
+occupation: "Occupation — Recorded occupation or profession"
+education: "Education — Recorded education or qualification"
+title: "Personal title — Recorded personal or formal title"
+cause_of_death: "Cause of death — Recorded cause of death"
+source_reference: "Source reference — Reference to a Source record"
+obje_file: "Image file — Shared image/media field used for Individual, Family and Source records"
+
+husb: "Husband"
+wife: "Wife"
+chil: "Child"
+marriage_date: "Date of marriage — Date associated with the marriage event"
+marriage_place: "Place of marriage — Place associated with the marriage event"
+divorce: "Divorced — A divorce event recorded for the family"
+
+source_title: "Source title — Title of a source record"
+source_text: "Source text — Text transcribed or associated with a source"
+
+repository_name: "Repository name — Name of the institution holding a source"
+repository_website: "Repository website — Website of the repository"
+
+event_type: "Event type — Type of a general event; values may be displayed using the event-type choices"
+event_date: "Event date — Date associated with a general event"
+event_place: "Event place — Place associated with a general event"
+event_description: "Event description — Description or note associated with a general event"
+
+sex_values: "M=Male | F=Female | U=Unknown"
