@@ -13,6 +13,10 @@ gender:
     - M
     - F
     - U
+  labels:
+    M: Male
+    F: Female
+    U: Unknown
   male: M
   female: F
 id_counters:
@@ -20,7 +24,11 @@ id_counters:
   Family: 0
   Source: 0
   Repository: 0
-image_field: obje_file
+image_field:
+  Individual: obje_file
+  Family: obje_file
+  Source: obje_file
+  Repository: obje_file
 tree:
   individual_type: Individual
   family_type: Family

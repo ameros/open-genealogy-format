@@ -217,15 +217,20 @@ function resolveImageReference(value, allowUnknownExtension = false) {
   return null;
 }
 
-function getConfiguredImageFieldKeys() {
+function getConfiguredImageFieldKeys(recordType) {
   const configured = state.meta?.image_field;
-  const fields = Array.isArray(configured) ? configured : (typeof configured === "string" ? [configured] : []);
+  // Contract v3 defines a per-record-type mapping. Continue accepting the
+  // earlier shared string/array form for existing projects.
+  const selected = configured && typeof configured === "object" && !Array.isArray(configured)
+    ? configured[recordType]
+    : configured;
+  const fields = Array.isArray(selected) ? selected : (typeof selected === "string" ? [selected] : []);
   return fields.filter(field => typeof field === "string" && field.trim()).map(field => field.trim());
 }
 
 function getImageCandidates(doc) {
   if (!doc || !doc.map) return [];
-  const configuredFields = getConfiguredImageFieldKeys();
+  const configuredFields = getConfiguredImageFieldKeys(doc.type);
   if (!configuredFields.length) return [];
   const candidates = [];
   for (const field of configuredFields) {
@@ -390,9 +395,8 @@ function parseInlineYamlValue(raw) {
   return unquote(value);
 }
 
-// Optional selectable values use a plain dictionary companion key:
-// sex_values: "M=Male | F=Female | U=Unknown".
-// Codes remain the stored values; labels are presentation only.
+// Generic optional selectable values use a dictionary companion key
+// (<field>_values). Gender labels are configured separately in @meta@.gender.
 function parseDictionaryValues(raw) {
   const values = {};
   for (const part of String(raw ?? "").split("|")) {
@@ -409,10 +413,31 @@ function formatDictionaryValues(values) {
   return Object.entries(values).map(([code, label]) => `${code}=${label}`).join(" | ");
 }
 
-function dictionaryValueLabel(key, value) {
+function getConfiguredFieldChoices(key) {
+  const gender = state.meta?.gender || state.meta?.gender_mapping;
   const baseKey = String(key || "").replace(/_\d+$/, "");
-  const choices = state.dict[baseKey] && state.dict[baseKey].values;
+  if (gender && gender.field === baseKey) {
+    const labels = gender.labels && typeof gender.labels === "object" && !Array.isArray(gender.labels)
+      ? gender.labels : {};
+    if (Array.isArray(gender.values)) {
+      return Object.fromEntries(gender.values.map(value => {
+        const code = String(value);
+        return [code, Object.prototype.hasOwnProperty.call(labels, code) ? String(labels[code]) : code];
+      }));
+    }
+    if (Object.keys(labels).length) return labels;
+  }
+  return state.dict[baseKey] && state.dict[baseKey].values;
+}
+
+function dictionaryValueLabel(key, value) {
   const code = String(value ?? "");
+  const baseKey = String(key || "").replace(/_\d+$/, "");
+  const gender = state.meta?.gender || state.meta?.gender_mapping;
+  if (gender && gender.field === baseKey && gender.labels && Object.prototype.hasOwnProperty.call(gender.labels, code)) {
+    return String(gender.labels[code]);
+  }
+  const choices = getConfiguredFieldChoices(key);
   return choices && Object.prototype.hasOwnProperty.call(choices, code) ? choices[code] : code;
 }
 
@@ -544,10 +569,13 @@ function parseYamlStream(text) {
         const key = line.slice(0, kvIdx).trim();
         const rawVal = line.slice(kvIdx + 1).trim();
         currentKey = key;
-        if (rawVal === "" && ["gender", "gender_mapping", "tree", "tree_relationships"].includes(key)) {
-          // These metadata properties are structured objects. Parse their
-          // indentation-based YAML recursively while leaving ordinary records
-          // on the existing flat-field path.
+        const isMetaDocument = entries.some(entry =>
+          (entry.key === "id" && entry.value === "@meta@") ||
+          (entry.key === "type" && entry.value === "Meta")
+        );
+        if (rawVal === "" && (isMetaDocument || ["gender", "gender_mapping", "tree", "tree_relationships"].includes(key))) {
+          // Metadata may contain arbitrary nested objects and arrays. Parse
+          // these recursively while keeping ordinary record fields flat.
           const [nestedValue, nextIndex] = parseNestedYamlValue(lines, i + 1, (line.match(/^\s*/) || [""])[0].length);
           entries.push({ key, value: nestedValue, group: groupIndex });
           i = nextIndex - 1;
@@ -580,7 +608,7 @@ function serializeYamlStream(docs) {
       if (Array.isArray(entry.value)) {
         out.push(entry.key + ":");
         for (const item of entry.value) out.push("  - " + formatScalar(item));
-      } else if (["gender", "gender_mapping", "tree", "tree_relationships"].includes(entry.key) && entry.value && typeof entry.value === "object") {
+      } else if (doc.id === "@meta@" && entry.value && typeof entry.value === "object") {
         appendYamlNestedValue(out, entry.key, entry.value);
       } else {
         out.push(entry.key + ": " + formatScalar(entry.value));
@@ -1292,7 +1320,7 @@ function renderEditorCard(container, doc) {
     const isMultipleValue = Array.isArray(value);
     const initialValue = Array.isArray(value) ? value.map(item => String(item ?? "")).join("\n") : String(value ?? "");
     function makeValueControl(fieldKey, currentValue) {
-      const choices = state.dict[fieldKey] && state.dict[fieldKey].values;
+      const choices = getConfiguredFieldChoices(fieldKey);
       if (choices && !Array.isArray(value)) {
         const select = document.createElement("select");
         select.className = "eval";
@@ -1514,8 +1542,8 @@ function convertGedcomToOgf(gedText) {
         { key: "encoding", value: "UTF-8", group: 0 },
         { key: "individual_display_field", value: "name", group: 0 },
         { key: "family_display_field", value: "{$wife.name} & {$husb.name}", group: 0 },
-        { key: "gender", value: { field: "sex", values: ["M", "F", "U"], male: "M", female: "F" }, group: 0 },
-        { key: "image_field", value: "obje_file", group: 0 },
+        { key: "gender", value: { field: "sex", values: ["M", "F", "U"], labels: { M: "Male", F: "Female", U: "Unknown" }, male: "M", female: "F" }, group: 0 },
+        { key: "image_field", value: { Individual: "obje_file", Family: "obje_file", Source: "obje_file", Repository: "obje_file" }, group: 0 },
         { key: "tree", value: {
           individual_type: "Individual",
           family_type: "Family",
@@ -1748,6 +1776,32 @@ document.getElementById("apply-replacer-btn").addEventListener("click", () => {
       for (const e of doc.entries) {
         if (mapping[e.key]) e.key = mapping[e.key];
       }
+      // image_field stores field names as metadata values, not YAML keys.
+      // Keep those references aligned with the renamed record/dictionary keys.
+      if (doc.id === "@meta@" || doc.type === "Meta") {
+        const genderEntry = doc.entries.find(entry => entry.key === "gender");
+        if (genderEntry && genderEntry.value && typeof genderEntry.value === "object" && !Array.isArray(genderEntry.value)) {
+          if (typeof genderEntry.value.field === "string") {
+            genderEntry.value.field = mapping[genderEntry.value.field] || genderEntry.value.field;
+          }
+        }
+        const imageFieldEntry = doc.entries.find(entry => entry.key === "image_field");
+        if (imageFieldEntry) {
+          const configured = imageFieldEntry.value;
+          if (typeof configured === "string") {
+            imageFieldEntry.value = mapping[configured] || configured;
+          } else if (Array.isArray(configured)) {
+            imageFieldEntry.value = configured.map(field => typeof field === "string" ? (mapping[field] || field) : field);
+          } else if (configured && typeof configured === "object") {
+            imageFieldEntry.value = Object.fromEntries(Object.entries(configured).map(([recordType, fields]) => [
+              recordType,
+              Array.isArray(fields)
+                ? fields.map(field => typeof field === "string" ? (mapping[field] || field) : field)
+                : (typeof fields === "string" ? (mapping[fields] || fields) : fields)
+            ]));
+          }
+        }
+      }
     }
     syncDocsToEditor();
   }
@@ -1917,7 +1971,7 @@ function addMetadataEditorRow(key = "", value = "") {
   keyInput.className = "meta-key"; keyInput.type = "text"; keyInput.value = key; keyInput.placeholder = "metadata_key";
   const valueInput = document.createElement("input");
   valueInput.className = "meta-value"; valueInput.type = "text";
-  valueInput.value = value && typeof value === "object" ? JSON.stringify(value) : (Array.isArray(value) ? value.join(", ") : String(value ?? "")); valueInput.placeholder = ["gender", "gender_mapping", "tree", "tree_relationships"].includes(key) ? "JSON object" : "Value";
+  valueInput.value = Array.isArray(value) ? JSON.stringify(value) : (value && typeof value === "object" ? JSON.stringify(value) : String(value ?? "")); valueInput.placeholder = value && typeof value === "object" ? "JSON array or object" : (["gender", "gender_mapping", "tree", "tree_relationships"].includes(key) ? "JSON object" : "Value");
   const remove = document.createElement("button");
   remove.type = "button"; remove.className = "icon-button delete-entry-btn"; remove.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>'; remove.title = "Remove metadata field"; remove.setAttribute("aria-label", "Remove metadata field");
   remove.addEventListener("click", () => row.remove());
@@ -1959,10 +2013,28 @@ document.getElementById("save-metadata-btn").addEventListener("click", () => {
     if (keys.has(key)) { error = `Duplicate metadata key: ${key}`; return; }
     keys.add(key);
     let storedValue = value;
-    if (["gender", "gender_mapping", "tree", "tree_relationships"].includes(key)) {
-      try { storedValue = JSON.parse(value); }
-      catch (_) { error = `${key} must be a valid JSON object when edited here.`; return; }
-      if (!storedValue || typeof storedValue !== "object" || Array.isArray(storedValue)) { error = `${key} must be a JSON object.`; return; }
+    const trimmedValue = value.trim();
+    if (trimmedValue.startsWith("{") || trimmedValue.startsWith("[")) {
+      try { storedValue = JSON.parse(trimmedValue); }
+      catch (_) { error = `${key} must contain valid JSON when using an object or array value.`; return; }
+    }
+    if (["gender", "gender_mapping", "tree", "tree_relationships"].includes(key) &&
+        (!storedValue || typeof storedValue !== "object" || Array.isArray(storedValue))) {
+      error = `${key} must be a JSON object.`;
+      return;
+    }
+    if (key === "image_field") {
+      const validField = field => typeof field === "string" && field.trim().length > 0;
+      const validConfig = typeof storedValue === "string"
+        ? validField(storedValue)
+        : Array.isArray(storedValue)
+          ? storedValue.every(validField)
+          : !!storedValue && typeof storedValue === "object" && !Array.isArray(storedValue) &&
+            Object.values(storedValue).every(fields => Array.isArray(fields) ? fields.every(validField) : validField(fields));
+      if (!validConfig) {
+        error = "image_field must be a field name, an array of field names, or an object mapping record types to field names or arrays.";
+        return;
+      }
     }
     if (["format_version", "version"].includes(key) && (!Number.isInteger(Number(value)) || Number(value) < 1)) {
       error = `${key} must be a positive integer.`;

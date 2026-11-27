@@ -37,4 +37,3 @@ event_date: "Event date — Date associated with a general event"
 event_place: "Event place — Place associated with a general event"
 event_description: "Event description — Description or note associated with a general event"
 
-sex_values: "M=Male | F=Female | U=Unknown"

@@ -16,5 +16,9 @@ gender:
     - M
     - F
     - U
+  labels:
+    M: Mężczyzna
+    F: Kobieta
+    U: Nieznana
   male: M
   female: F

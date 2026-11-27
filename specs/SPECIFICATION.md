@@ -1,7 +1,7 @@
 # Open Genealogy Format — Specification
 
 **Status:** Stable release  
-**Version:** 1.2.0
+**Version:** 1.2.1
 
 ## 1. Purpose
 
@@ -348,6 +348,10 @@ gender:
     - M
     - F
     - U
+  labels:
+    M: Male
+    F: Female
+    U: Unknown
   male: M
   female: F
 ```
@@ -355,6 +359,11 @@ gender:
 - `field` is the exact record field to read.
 - `values` lists the values recognized by the project. It may include values
   beyond male and female, such as unknown or project-specific classifications.
+- `labels` is an optional mapping from each stored value to its human-readable
+  presentation label. Keys must be exact values from `values`; unlisted values
+  are displayed unchanged. Labels do not alter stored data or classification.
+  Applications should use these labels in record details and editing controls;
+  a value without a label is displayed using its stored code.
 - `male` and `female` identify the exact values representing those categories;
   when present, each must also occur in `values`.
 - Matching is exact. Applications must not guess field names, translate values,
@@ -363,6 +372,12 @@ gender:
   unclassified. Values outside `values` must be preserved in the record and
   treated as unclassified.
 - Applications must not modify the original record value.
+- When editing the configured field, applications should offer `values` as
+  selectable choices and use `labels` as their visible option text.
+- Gender presentation labels belong in `@meta@.gender.labels`, not in
+  dictionary companion keys such as `sex_values` or `gender_values`. The
+  generic dictionary `<field>_values` mechanism remains available for other
+  enumerated fields.
 
 For backward compatibility, readers should continue to recognize the legacy
 `gender_mapping` object (`field`, `male`, `female`). New files should use
@@ -698,7 +713,10 @@ for a record type.
 
 The optional `@meta@.image_field` object maps exact record type names to the
 field or ordered list of fields containing portrait images. The same mapping
-is shared by details cards and tree nodes. For example:
+is shared by details cards and tree nodes. A record type may map to one field
+name or an ordered list of field names. For backward compatibility, viewers
+may also accept the legacy shared string or list form, which applies to every
+record type. New projects should use the per-record-type mapping. For example:
 
 ```yaml
 image_field:

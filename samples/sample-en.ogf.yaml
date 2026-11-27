@@ -16,6 +16,10 @@ gender:
     - M
     - F
     - U
+  labels:
+    M: Male
+    F: Female
+    U: Unknown
   male: M
   female: F
 tree:
@@ -30,7 +34,11 @@ tree:
     children: [chil]
     marriage: { date: marr_date, place: marr_plac }
     divorce: { date: div_date }
-image_field: obje_file
+image_field:
+  Individual: obje_file
+  Family: obje_file
+  Source: obje_file
+  Repository: obje_file
 date_approx: "About {date}"
 date_uncertain: "Possibly {date}"
 date_range: "Between {start} and {end}"

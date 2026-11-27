@@ -13,9 +13,17 @@ gender:
     - M
     - F
     - U
+  labels:
+    M: Male
+    F: Female
+    U: Unknown
   male: M
   female: F
-image_field: obje_file
+image_field:
+  Individual: obje_file
+  Family: obje_file
+  Source: obje_file
+  Repository: obje_file
 tree:
   individual_type: Individual
   family_type: Family
@@ -56,7 +64,6 @@ name_givn: Name Givn
 name_surn: Name Surn
 
 sex: Sex
-sex_values: M=Male | F=Female | U=Unknown
 titl: Titl
 occu: Occu
 

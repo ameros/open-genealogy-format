@@ -1,3 +1,18 @@
+## [1.2.1] - 2026-11-27
+
+### Fixed
+- Moved gender value presentation labels into `@meta@.gender.labels`; the viewer now uses those labels in record display and editing while preserving stored gender codes.
+- Removed gender-specific `sex_values` entries from defaults and samples. Generic dictionary `<field>_values` choices remain supported for non-gender fields.
+- Fixed metadata editor handling of array-valued fields such as gender values. Arrays are now kept distinct from objects when displayed, edited and saved, preserving their original YAML data types.
+- Fixed portrait image-field configuration to support the documented per-record-type `image_field` mapping, while retaining compatibility with legacy shared string/list values.
+- Fixed Replace keys so renamed image fields are also updated inside `@meta@.image_field`, including nested per-record-type mappings and ordered field lists.
+- Updated default and sample projects to use the per-record-type image-field mapping.
+
+### Versioning
+- Project and specification version: 1.2.1.
+- OGF format version: 1.
+- Metadata contract version: 3.
+
 ## [1.2.0] - 2026-11-27
 
 ### Added

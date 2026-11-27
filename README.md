@@ -31,6 +31,7 @@ language: en
 gender:
   field: sex
   values: [M, F, U]
+  labels: { M: Male, F: Female, U: Unknown }
   male: M
   female: F
 ---

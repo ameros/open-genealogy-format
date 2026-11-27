@@ -16,5 +16,9 @@ gender:
     - male
     - female
     - nonbinary
+  labels:
+    male: Male
+    female: Female
+    nonbinary: Non-binary
   male: male
   female: female

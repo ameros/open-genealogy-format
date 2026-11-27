@@ -58,7 +58,8 @@ tree:
 - Without relationship field configuration, the tree does not infer family
   relationships.
 - Portrait fields are configured separately through `@meta@.image_field`;
-  the same mapping is used by tree nodes and record details cards. See
+  the per-record-type mapping is used by tree nodes and record details cards.
+  A record type may map to one field or an ordered list of fields. See
   [Images and media](SPECIFICATION.md#12-images-and-media).
 
 ## Shared gender interpretation
@@ -71,13 +72,16 @@ example:
 gender:
   field: sex
   values: [M, F, U]
+  labels: { M: Male, F: Female, U: Unknown }
   male: M
   female: F
 ```
 
 The tree calls the same shared interpretation rule available to other
 renderers. It uses exact value matching; absent or unrecognized values use the
-neutral unknown style. See [the shared gender mapping rules](SPECIFICATION.md#73-shared-gender-mapping).
+neutral unknown style. When displaying the configured field, the viewer uses
+`gender.labels` for human-readable values and falls back to the stored code.
+See [the shared gender mapping rules](SPECIFICATION.md#73-shared-gender-mapping).
 
 The renderer uses the same core mechanism as `gedcom-svg-tree`:
 

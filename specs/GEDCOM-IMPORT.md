@@ -281,7 +281,8 @@ GEDCOM import must not merge the starter project's genealogical field
 dictionary into the imported dictionary. It should, however, initialize OGF
 presentation metadata that GEDCOM does not supply, including display templates,
 tree relationship configuration, and date-description templates. The shared `gender` configuration is initialized when imported records contain
-the GEDCOM `SEX` field, using `M`, `F` and `U` as recognized values. New-record ID counters are runtime application state, initialized from existing OGF-style identifiers; original GEDCOM IDs
+the GEDCOM `SEX` field, using `M`, `F` and `U` as recognized values and standard English labels in `gender.labels`. Importers must not create a
+`sex_values` dictionary companion for gender presentation. New-record ID counters are runtime application state, initialized from existing OGF-style identifiers; original GEDCOM IDs
 and references remain unchanged. These settings do not add genealogical facts
 or unused starter fields to imported records.
 
