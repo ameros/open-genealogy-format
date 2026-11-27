@@ -110,7 +110,16 @@
 #viewer-help-content li { margin:4px 0; }
 #viewer-help-content a { color:var(--action); text-decoration:underline; }
 #viewer-help-content code { padding:1px 4px; border-radius:4px; background:var(--actionHover); }
+#viewer-help-content pre { overflow:auto; padding:10px; border-radius:6px; background:var(--actionHover); }
+#viewer-help-content pre code { padding:0; background:transparent; }
+#viewer-help-content h3, #viewer-help-content h4, #viewer-help-content h5, #viewer-help-content h6 { margin:14px 0 6px; font-size:14px; }
+#viewer-help-content .help-table-wrap { overflow-x:auto; margin:10px 0 14px; }
+#viewer-help-content table { border-collapse:collapse; width:100%; font-size:12px; }
+#viewer-help-content th, #viewer-help-content td { border:1px solid var(--accentOutline); padding:6px 8px; text-align:left; vertical-align:top; }
 #viewer-help-content .help-error { color:var(--muted); }
+#viewer-help-content .help-document-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 12px; }
+#viewer-help-content .help-document-heading h2 { font-size:16px; margin:0; }
+#viewer-help-content .help-back-to-guide { margin:0 0 10px; }
 
 </style>
 </head>
@@ -356,46 +365,98 @@
 <script src="js/ogf-tree.js"></script>
 
 <script>
-  // Render the Markdown viewer guide as accessible expandable help sections.
+  // Render project Markdown documentation inside the Help modal.
   (function setupViewerHelp() {
     const modal = document.getElementById("viewer-help-modal");
     const openButton = document.getElementById("viewer-help-btn");
     const closeButton = document.getElementById("close-viewer-help-btn");
     const content = document.getElementById("viewer-help-content");
     if (!modal || !openButton || !closeButton || !content) return;
-    let guideLoaded = false;
+
+    const guidePath = './VIEWER-GUIDE.md';
+    let currentDocument = guidePath;
+    let loadedDocuments = new Map();
 
     const escapeHtml = value => String(value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
-    function inlineMarkdown(value) {
+
+    function resolveDocumentPath(href, fromPath) {
+      try {
+        const base = new URL(fromPath, window.location.href);
+        const target = new URL(href, base);
+        if (target.origin !== window.location.origin || !/\.md$/i.test(target.pathname)) return null;
+        // Documentation links must stay inside the application directory.
+        const appRoot = new URL('./', window.location.href).pathname;
+        if (!target.pathname.startsWith(appRoot)) return null;
+        return target.pathname + target.search + target.hash;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function inlineMarkdown(value, sourcePath) {
       let s = escapeHtml(value);
       s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
       s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
       s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-      s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, href) => {
-        const safe = /^(https?:|mailto:|\.\.?\/|#)/i.test(href) ? href : '#';
-        return `<a href="${escapeHtml(safe)}"${/^https?:/i.test(safe) ? ' target="_blank" rel="noopener noreferrer"' : ''}>${label}</a>`;
+      s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, rawHref) => {
+        const href = rawHref.trim();
+        if (/^https?:\/\//i.test(href) || /^mailto:/i.test(href)) {
+          return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+        }
+        const internalPath = resolveDocumentPath(href, sourcePath);
+        if (internalPath) return `<a href="#" data-help-document="${escapeHtml(internalPath)}">${label}</a>`;
+        if (/^#/.test(href)) return `<a href="${escapeHtml(href)}">${label}</a>`;
+        return `<a>${label}</a>`;
       });
       return s;
     }
-    function renderMarkdownBody(lines) {
+
+    function renderMarkdownBody(lines, sourcePath) {
       let html = '', paragraph = [], list = [];
-      const flushParagraph = () => { if (paragraph.length) { html += `<p>${inlineMarkdown(paragraph.join(' '))}</p>`; paragraph = []; } };
-      const flushList = () => { if (list.length) { html += '<ul>' + list.map(x => `<li>${inlineMarkdown(x)}</li>`).join('') + '</ul>'; list = []; } };
-      for (const raw of lines) {
+      const flushParagraph = () => { if (paragraph.length) { html += `<p>${inlineMarkdown(paragraph.join(' '), sourcePath)}</p>`; paragraph = []; } };
+      const flushList = () => { if (list.length) { html += '<ul>' + list.map(x => `<li>${inlineMarkdown(x, sourcePath)}</li>`).join('') + '</ul>'; list = []; } };
+      let codeLines = null;
+      const tableCells = row => row.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(cell => cell.trim());
+      for (let i = 0; i < lines.length; i++) {
+        const raw = lines[i];
         const line = raw.trim();
+        if (line.startsWith('```')) {
+          flushParagraph(); flushList();
+          if (codeLines) { html += `<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`; codeLines = null; }
+          else codeLines = [];
+          continue;
+        }
+        if (codeLines) { codeLines.push(raw); continue; }
+        if (line.startsWith('|') && i + 1 < lines.length && /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(lines[i + 1].trim())) {
+          flushParagraph(); flushList();
+          const headers = tableCells(raw);
+          i += 1;
+          html += '<div class="help-table-wrap"><table><thead><tr>' + headers.map(cell => `<th>${inlineMarkdown(cell, sourcePath)}</th>`).join('') + '</tr></thead><tbody>';
+          while (i + 1 < lines.length && lines[i + 1].trim().startsWith('|')) {
+            const cells = tableCells(lines[++i]);
+            html += '<tr>' + headers.map((_, index) => `<td>${inlineMarkdown(cells[index] || '', sourcePath)}</td>`).join('') + '</tr>';
+          }
+          html += '</tbody></table></div>';
+          continue;
+        }
         if (!line) { flushParagraph(); flushList(); continue; }
         const item = line.match(/^[-*]\s+(.+)$/);
         if (item) { flushParagraph(); list.push(item[1]); continue; }
         flushList();
-        if (/^#{1,6}\s/.test(line)) { flushParagraph(); continue; }
+        const subheading = line.match(/^(#{3,6})\s+(.+)$/);
+        if (subheading) { flushParagraph(); html += `<h${subheading[1].length}>${inlineMarkdown(subheading[2], sourcePath)}</h${subheading[1].length}>`; continue; }
+        if (/^#{1,2}\s/.test(line)) { flushParagraph(); continue; }
         paragraph.push(line);
       }
+      if (codeLines) html += `<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`;
       flushParagraph(); flushList();
       return html;
     }
-    function renderGuide(markdown) {
+
+    function renderMarkdown(markdown, sourcePath) {
       const lines = markdown.replace(/^\uFEFF/, '').split(/\r?\n/);
       const titleIndex = lines.findIndex(line => /^#\s+/.test(line));
+      const title = titleIndex >= 0 ? lines[titleIndex].replace(/^#\s+/, '').trim() : sourcePath.split('/').pop();
       const sections = []; let current = null; let intro = [];
       for (let i = titleIndex >= 0 ? titleIndex + 1 : 0; i < lines.length; i++) {
         const heading = lines[i].match(/^##\s+(.+)$/);
@@ -404,24 +465,42 @@
         else intro.push(lines[i]);
       }
       if (current) sections.push(current);
-      let html = renderMarkdownBody(intro);
-      html += sections.map((section, index) => `<details class="help-section"${index === 0 ? ' open' : ''}><summary>${inlineMarkdown(section.title)}</summary><div class="help-section-body">${renderMarkdownBody(section.lines)}</div></details>`).join('');
-      content.innerHTML = html || '<p class="help-error">The viewer guide is empty.</p>';
+      let html = `<div class="help-document-heading"><h2>${escapeHtml(title)}</h2>${sourcePath !== guidePath ? '<button type="button" class="secondary help-back-to-guide">Back to Viewer Guide</button>' : ''}</div>`;
+      html += renderMarkdownBody(intro, sourcePath);
+      html += sections.map((section, index) => `<details class="help-section"${index === 0 ? ' open' : ''}><summary>${inlineMarkdown(section.title, sourcePath)}</summary><div class="help-section-body">${renderMarkdownBody(section.lines, sourcePath)}</div></details>`).join('');
+      return html || '<p class="help-error">This document is empty.</p>';
     }
-    async function loadGuide() {
-      if (guideLoaded) return;
-      content.innerHTML = '<p>Loading guide…</p>';
+
+    async function loadDocument(path) {
+      content.innerHTML = '<p>Loading documentation…</p>';
       try {
-        const response = await fetch('./VIEWER-GUIDE.md', { cache: 'no-cache' });
-        if (!response.ok) throw new Error(`Guide request failed (${response.status})`);
-        renderGuide(await response.text());
-        guideLoaded = true;
+        let markdown = loadedDocuments.get(path);
+        if (markdown === undefined) {
+          const response = await fetch(path, { cache: 'no-cache' });
+          if (!response.ok) throw new Error(`Documentation request failed (${response.status})`);
+          markdown = await response.text();
+          loadedDocuments.set(path, markdown);
+        }
+        currentDocument = path;
+        content.innerHTML = renderMarkdown(markdown, path);
+        content.scrollTop = 0;
       } catch (error) {
-        console.warn('Could not load VIEWER-GUIDE.md', error);
-        content.innerHTML = '<p class="help-error">The viewer guide could not be loaded. Make sure <code>VIEWER-GUIDE.md</code> is available beside the application files and open OGF through a web server.</p>';
+        console.warn('Could not load OGF documentation:', path, error);
+        content.innerHTML = '<p class="help-error">This documentation file could not be loaded. Check that the Markdown file exists in the project and open OGF through a web server.</p><button type="button" class="secondary help-back-to-guide">Back to Viewer Guide</button>';
       }
     }
-    function openHelp() { modal.classList.add('open'); loadGuide(); closeButton.focus(); }
+
+    content.addEventListener('click', event => {
+      const docLink = event.target.closest('a[data-help-document]');
+      if (docLink) {
+        event.preventDefault();
+        loadDocument(docLink.getAttribute('data-help-document'));
+        return;
+      }
+      if (event.target.closest('.help-back-to-guide')) loadDocument(guidePath);
+    });
+
+    function openHelp() { modal.classList.add('open'); loadDocument(guidePath); closeButton.focus(); }
     function closeHelp() { modal.classList.remove('open'); openButton.focus(); }
     openButton.addEventListener('click', openHelp);
     closeButton.addEventListener('click', closeHelp);
