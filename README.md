@@ -61,7 +61,8 @@ details cards. See
 
 - `index.html` — browser-based OGF viewer.
 - `js/` and `css/` — application source.
-- `samples/` — example OGF files.
+- `samples/` — example OGF files, also used as regression-test fixtures.
+- `scripts/test-all.sh` — runs date-phrasing and sample-fixture regression checks.
 - `defaults/meta.yaml` — reusable starter `@meta@` configuration.
 - `defaults/dictionary.yaml` — reusable starter `@dictionary@` vocabulary and labels.
 - `VERSION.json` — current project and data-contract release manifest.
@@ -70,6 +71,11 @@ details cards. See
 
 Run `node scripts/check-versions.js` before a release to check that the
 manifest, specification, viewer, importer defaults and sample declarations agree.
+Run `scripts/test-all.sh` during development to validate the sample YAML fixtures
+and regression-test date phrasing. The checks require Node.js, Python 3, and the
+PyYAML test dependency. Install the Python dependency once with
+`python3 -m pip install -r requirements-test.txt`. If it is missing, the test
+runner prints this instruction and exits cleanly.
 
 ## Documentation
 

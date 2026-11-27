@@ -664,33 +664,7 @@ function formatScalar(val) {
 }
 
 function explainDate(val) {
-  if (typeof val !== "string") return null;
-  const s = val.trim();
-  const m = state.meta;
-  if (s.includes("..")) {
-    const [start, end] = s.split("..");
-    if (start && end) {
-      const tpl = m.date_range || "Between {start} and {end}";
-      return tpl.replace("{start}", start).replace("{end}", end);
-    }
-    if (!start && end) {
-      const tpl = m.date_before || "On or before {date}";
-      return tpl.replace("{date}", end);
-    }
-    if (start && !end) {
-      const tpl = m.date_after || "On or after {date}";
-      return tpl.replace("{date}", start);
-    }
-  }
-  if (s.endsWith("~")) {
-    const tpl = m.date_approx || "About {date}";
-    return tpl.replace("{date}", s.slice(0, -1));
-  }
-  if (s.endsWith("?")) {
-    const tpl = m.date_uncertain || "Possibly {date}";
-    return tpl.replace("{date}", s.slice(0, -1));
-  }
-  return null;
+  return window.OGFDatePhrasing?.explainDate(val, state.meta) ?? null;
 }
 
 function displayFieldValue(value) {

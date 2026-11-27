@@ -207,6 +207,15 @@ The importer must preserve qualifiers and expressions it cannot interpret.
 
 It must not assume that GEDCOM `CAL`, `EST` and `ABT` have identical meanings to EDTF `?`, `%` and `~`.
 
+The viewer may apply the corresponding `@meta@` display templates without
+changing the stored date value: `ABT` uses `date_approx`, `BEF` uses
+`date_before`, `AFT` uses `date_after`, and `BET ... AND ...` uses
+`date_range`. `CAL` and `EST` have their own `date_calculated` and
+`date_estimated` templates; `FROM ... TO ...`, `FROM ...` and `TO ...` use
+`date_range`, `date_from` and `date_to` respectively. These are presentation
+rules only. A plain date is displayed unchanged, and the original GEDCOM
+expression remains the canonical stored value.
+
 ## 11. Dictionary generation
 
 A new empty OGF project starts with a default `@dictionary@` containing a

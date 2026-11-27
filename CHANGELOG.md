@@ -1,4 +1,11 @@
 ## [1.2.6] - 2026-11-27
+### Fixed
+- Restored metadata-driven date phrasing for GEDCOM qualifiers (`ABT`, `BEF`, `AFT`, `BET ... AND ...`, `CAL`, `EST`, `FROM` and `TO`) while preserving the original stored date expressions.
+- Kept existing EDTF-style approximate, uncertain and range phrasing working through the same shared formatter.
+
+### Added
+- Added reusable sample-fixture checks and date-phrasing regression tests, including assertions against real dates in the GEDCOM-derived English sample and repeated-event sample.
+- Added localized date-phrase templates to the English and Polish sample metadata and starter metadata.
 ### Changed
 - Restored one shared `@meta@.image_field` configuration for all record types.
 - The shared setting accepts one field name or an ordered list of field names and applies consistently to Individuals, Families, Sources, Repositories and other records.

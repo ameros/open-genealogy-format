@@ -10,6 +10,15 @@ format_version: 1
 version: 3
 language: pl
 encoding: UTF-8
+date_approx: "Około {date}"
+date_uncertain: "Prawdopodobnie {date}"
+date_range: "Między {start} a {end}"
+date_before: "Przed {date}"
+date_after: "Po {date}"
+date_calculated: "Obliczono {date}"
+date_estimated: "Szacunkowo {date}"
+date_from: "Od {date}"
+date_to: "Do {date}"
 gender:
   field: plec
   values:

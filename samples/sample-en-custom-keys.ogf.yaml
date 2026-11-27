@@ -10,6 +10,15 @@ format_version: 1
 version: 3
 language: en
 encoding: UTF-8
+date_approx: "About {date}"
+date_uncertain: "Possibly {date}"
+date_range: "Between {start} and {end}"
+date_before: "On or before {date}"
+date_after: "On or after {date}"
+date_calculated: "Calculated {date}"
+date_estimated: "Estimated {date}"
+date_from: "From {date}"
+date_to: "Until {date}"
 gender:
   field: gender
   values:

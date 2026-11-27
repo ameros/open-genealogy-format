@@ -1,0 +1,2 @@
+# Python-only dependencies for the sample fixture test runner.
+PyYAML>=6.0,<7.0
