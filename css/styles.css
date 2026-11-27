@@ -788,3 +788,72 @@ a:hover,
   border-radius:9px; background:var(--auraData); color:var(--text); font:inherit; font-size:13px;
 }
 .save-format-help { margin:2px 0 0; color:var(--muted); font-size:12px; line-height:1.5; }
+
+/* Repeated structured source occurrences (for example, multiple residences)
+   are rendered as independent, ordered groups rather than merged field rows. */
+.nested-occurrence-group {
+  border: 1px solid var(--border, #d7dee8);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 6px 0;
+  background: var(--surface-subtle, rgba(127, 127, 127, 0.045));
+}
+.nested-occurrence-heading {
+  font-weight: 650;
+  margin-bottom: 6px;
+  color: var(--text, inherit);
+}
+.nested-occurrence-row {
+  display: grid;
+  grid-template-columns: minmax(100px, 0.8fr) minmax(0, 2fr);
+  gap: 10px;
+  padding: 3px 0;
+}
+.nested-occurrence-row + .nested-occurrence-row {
+  border-top: 1px solid var(--border, #d7dee8);
+}
+.structured-json-input {
+  width: 100%;
+  min-height: 150px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre;
+}
+@media (max-width: 640px) {
+  .nested-occurrence-row { grid-template-columns: 1fr; gap: 2px; }
+}
+
+/* Structured occurrence editor: edit each repeated item through ordinary fields,
+   never through a raw JSON/object textarea. */
+.structured-editor-root { display:block; width:100%; min-width:0; }
+.structured-editor-node { min-width:0; }
+.structured-object { display:flex; flex-direction:column; gap:8px; }
+.structured-editor-field { display:grid; grid-template-columns:minmax(100px,.8fr) minmax(0,2fr); gap:10px; align-items:center; }
+.structured-editor-field > label { color:var(--muted); font-size:12px; }
+.structured-scalar { width:100%; min-width:0; padding:8px 10px; border:1px solid var(--accentOutline); border-radius:8px; background:var(--auraData); color:var(--text); font:inherit; font-size:13px; }
+.structured-array { display:flex; flex-direction:column; gap:8px; }
+.structured-array-items { display:flex; flex-direction:column; gap:8px; }
+.structured-array-item { display:flex; gap:8px; align-items:flex-start; padding:10px; border:1px solid var(--border, #d7dee8); border-radius:9px; background:var(--surface-subtle, rgba(127,127,127,.045)); }
+.structured-array-item > .structured-editor-node { flex:1; min-width:0; }
+.structured-add-item { align-self:flex-start; }
+.structured-editor-root > .structured-array > .structured-array-items > .structured-array-item > .structured-object { width:100%; }
+@media(max-width:640px) {
+  .structured-editor-field { grid-template-columns:1fr; gap:3px; }
+}
+
+/* Structured metadata editor */
+#metadata-rows{display:flex;flex-direction:column;gap:10px}
+.meta-node{min-width:0;border:1px solid var(--accentOutline);border-radius:9px;padding:9px;background:var(--panel,transparent)}
+.meta-top-node{background:var(--surface,transparent)}
+.meta-node-head{display:flex;align-items:center;gap:8px;min-width:0;margin-bottom:7px}
+.meta-node-key{flex:1;min-width:0;font-weight:600}
+.meta-node-key[readonly]{background:transparent;border-color:transparent;box-shadow:none;color:var(--text,inherit);cursor:default;padding-left:0;padding-right:0}
+.meta-node-key[readonly]:focus{outline:none;border-color:transparent;box-shadow:none}
+.meta-node-kind,.meta-array-item-label{font-size:11px;color:var(--muted);white-space:nowrap}
+.meta-node-value{width:100%;min-width:0}
+.meta-node-children{display:flex;flex-direction:column;gap:7px;margin:8px 0 0 14px;padding-left:12px;border-left:2px solid var(--accentOutline)}
+.meta-node-children>.meta-node{background:transparent}
+.meta-node-children>.meta-add-child{align-self:flex-start;margin-top:2px}
+.meta-node-remove{flex:0 0 auto}
+#metadata-modal .modal-body{max-height:min(72vh,800px);overflow:auto}
+
+.metadata-editor-intro{font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.5}

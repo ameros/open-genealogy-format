@@ -10,14 +10,15 @@ The format has an open field vocabulary: applications must preserve fields they
 do not recognize. Records are connected by stable identifiers, not by copied
 names. Import and display must not silently invent facts or change stored data.
 The dictionary defines useful OGF fields and labels; it does not translate tags
-from GEDCOM or other source formats. Importers preserve source tags as flattened
-field keys, and users may explicitly rename or reorganize those fields.
+from GEDCOM or other source formats. Importers preserve source tags, flatten
+unique paths where appropriate, and keep repeated structured occurrences as
+separate ordered nested groups. Users may explicitly rename or reorganize fields.
 The metadata parser supports block-style and inline YAML collections, including
 inline relationship lists used by the sample tree configurations. The viewer
 starts with an empty project by loading its reusable default metadata
 and dictionary from `defaults/meta.yaml` and `defaults/dictionary.yaml`. These
 files are standalone YAML documents that can be copied and adapted for other
-OGF projects. Example files are available from the Samples menu.
+OGF projects. Example files are available from the Samples menu, including a fictional repeated-events sample that demonstrates how multiple occurrences remain separate.
 
 ## A small example
 
@@ -49,7 +50,7 @@ birth_date: "25 NOV 1976"
 
 `@meta@.format_version` identifies the OGF data-format contract;
 `@meta@.version` identifies the metadata contract. Both are independent:
-`format_version` is `1` and the metadata contract is `2` in this release.
+`format_version` is `1` and the metadata contract is `3` in this release.
 Shared rules such as `gender` and `image_field` belong directly in
 `@meta@`; tree-specific settings belong under `@meta@.tree`. Record portrait
 fields are configured in `@meta@.image_field` and shared by tree nodes and
@@ -81,7 +82,7 @@ description of the format.
 | Document | What it covers |
 |---|---|
 | [Specification](specs/SPECIFICATION.md) | Records, identifiers, metadata, dictionary, dates and presentation rules |
-| [GEDCOM import](specs/GEDCOM-IMPORT.md) | How GEDCOM 5.5.1 structures are flattened and preserved during import |
+| [GEDCOM import](specs/GEDCOM-IMPORT.md) | How GEDCOM 5.5.1 hierarchy and repeated occurrences are preserved during import |
 | [Tree view](specs/TREE-VIEW.md) | Tree relationships and tree-specific behavior |
 | [Name display](specs/NAME-DISPLAY.md) | Viewer settings for choosing and displaying name variants |
 

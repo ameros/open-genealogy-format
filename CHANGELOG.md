@@ -1,3 +1,62 @@
+## [1.2.6] - 2026-11-27
+### Changed
+- Restored one shared `@meta@.image_field` configuration for all record types.
+- The shared setting accepts one field name or an ordered list of field names and applies consistently to Individuals, Families, Sources, Repositories and other records.
+- Updated starter metadata, sample data and specification examples to use the shared configuration.
+- Older per-record-type image-field mappings remain readable for compatibility and are normalized to one shared field list when field keys are renamed.
+
+## [1.2.5] - 2026-11-27
+### Changed
+- Made existing `@meta@` keys read-only in the metadata editor; metadata values remain editable and newly added fields can still be named.
+- Displayed each repeated structured field's dictionary label once for the entire occurrence group instead of repeating it on every occurrence.
+- Removed duplicate labels from individual items inside nested repeated arrays while retaining one parent label.
+
+### Fixed
+- Preserved fixed metadata key names when editing nested values, preventing accidental key renames.
+- Kept repeated occurrence boundaries and nested field labels intact on data cards.
+
+## [1.2.4] - 2026-11-27
+### Changed
+- Rebuilt the `@meta@` editor as a recursive structured form: nested objects expose independently editable fields, and arrays expose independently editable, ordered items.
+- Added and removed nested metadata fields and list items without requiring raw JSON editing.
+- New array items inherit the shape of the existing first item (scalar, object or nested list) to keep repeated metadata structures consistent.
+- Preserved scalar types for existing numeric, boolean and null metadata values when saving.
+
+### Fixed
+- Kept nested metadata objects and arrays as native YAML structures through editor save and serialization.
+- Retained validation for required metadata objects, version numbers and image-field configuration.
+
+## [1.2.3] - 2026-11-27
+### Changed
+- Removed generated occurrence numbers from repeated structured-field headings on record cards; every occurrence uses the same label from `@dictionary@`.
+- Replaced raw JSON editing for structured values with a visual editor that exposes each occurrence and its nested fields independently.
+- Added and removed repeated structured occurrences individually while preserving their order and object boundaries.
+
+### Fixed
+- Kept repeated event fields grouped per occurrence during editing and YAML serialization.
+- Preserved dictionary labels for nested fields while editing structured values; no synthetic numbered dictionary keys are introduced.
+
+## [1.2.2] - 2026-11-27
+- Added reusable dotted dictionary definitions for nested structured fields (for example, `even.date` and `even.plac`). These definitions support labels and descriptions without creating numbered occurrence keys or standalone Add Field options.
+
+### Added
+- Added general rules for repeated source tags: repeated leaf tags remain ordered scalar lists, while repeated structured tags become ordered lists of occurrence objects.
+- Added separate occurrence groups in record cards, preserving associations such as each event's own date, place and notes.
+- Added structured-value JSON editing and YAML round-trip support for nested record data.
+- Added a fictional repeated-events sample demonstrating separate residence and general-event occurrences.
+
+### Fixed
+- Fixed GEDCOM import so repeated structured tags are no longer flattened into parallel arrays that lose occurrence boundaries.
+- Ensured the dictionary contains one entry per unique top-level field plus reusable dotted definitions for nested child paths; it never creates synthetic occurrence keys such as `event_1`, `event_2` or `resi_1`.
+- Updated Replace keys to include nested record keys while preserving metadata configuration keys.
+- Consolidated legacy numbered `chil_2`/`note_cont_2`-style sample fields into ordered scalar lists and removed their synthetic dictionary entries.
+- Corrected YAML quoting for placeholder names and colon-containing text in the GEDCOM sample so the sample is valid YAML.
+
+### Versioning
+- Project and specification version: 1.2.2.
+- OGF format version: 1.
+- Metadata contract version: 3.
+
 ## [1.2.1] - 2026-11-27
 
 ### Fixed

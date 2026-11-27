@@ -142,6 +142,7 @@
       <option value="en-gedcom">English — GEDCOM example</option>
       <option value="pl">Polski — polskie klucze</option>
       <option value="en-custom">English — custom keys</option>
+      <option value="en-repeated">English — repeated events and groups</option>
     </select>
   </label>
   <label class="toolbar-select-wrap" aria-label="Configuration">
@@ -274,7 +275,7 @@
     </div>
     <div class="modal-body">
       <p style="font-size:13px; color:var(--muted)">
-        Define available fields here first. Optional choices use code=label pairs separated by | (for example M=Male | F=Female). The viewer shows a dropdown and friendly labels; records continue to store the original codes. Unlisted values are preserved.
+        Define available fields here first. Use dotted keys such as <code>even.date</code> to label nested fields inside repeated structured values; these definitions do not become standalone record fields. Optional choices use code=label pairs separated by | (for example M=Male | F=Female). Records continue to store original codes.
       </p>
       <div class="dictionary-grid" style="font-weight:600; color:var(--muted); border-bottom:1px solid var(--border); padding-bottom:6px;">
         <span>Key</span><span>Label</span><span>Description</span><span>Choices (code=label)</span><span>Group</span><span>Group name</span><span>Order</span><span></span>
@@ -296,7 +297,7 @@
     <div class="modal-header"><span>Edit Metadata (@meta@)</span><button id="close-metadata-btn" class="icon-button" type="button" title="Close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
     <div class="modal-body">
       <p class="modal-help">Edit viewer-level metadata and display conventions. Values are stored in the <code>@meta@</code> YAML document.</p>
-      <div class="metadata-grid metadata-head"><span>Key</span><span>Value</span><span></span></div>
+      <div class="metadata-editor-intro">Edit each nested field and list item independently. Objects contain editable fields; lists contain individually editable items.</div>
       <div id="metadata-rows"></div>
       <button id="add-metadata-row-btn" type="button" class="secondary"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add metadata field</button>
     </div>

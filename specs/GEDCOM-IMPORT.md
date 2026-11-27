@@ -23,7 +23,7 @@ The importer must not:
 - Silently discard unknown tags.
 - Destructively normalize source values.
 
-The importer may transform GEDCOM structure into OGF's flat representation as described below.
+The importer may flatten unique GEDCOM paths into OGF field keys, while preserving repeated structured occurrences as nested ordered objects.
 
 ## 3. Supported record types
 
@@ -79,16 +79,15 @@ The importer must not:
 
 Every reference must continue to point to the same identifier.
 
-## 5. Flattening GEDCOM hierarchy
+## 5. Preserving GEDCOM hierarchy and repeated occurrences
 
-GEDCOM uses hierarchical levels. OGF stores record fields as flat keys. The
-importer flattens each tag path by lowercasing its tag names and joining nested
-levels with underscores. It does not translate GEDCOM tags into the default
-human-readable OGF dictionary fields.
+GEDCOM uses hierarchical levels. The importer preserves source tag names and
+values without semantic remapping. Unique paths may continue to be flattened
+by lowercasing tag names and joining path components with underscores.
 
-Examples:
+Examples of unique paths:
 
-| GEDCOM path | Imported OGF key |
+| GEDCOM path | OGF key |
 |---|---|
 | `NAME` | `name` |
 | `NAME.GIVN` | `name_givn` |
@@ -97,31 +96,72 @@ Examples:
 | `BIRT.PLAC` | `birt_plac` |
 | `DEAT.DATE` | `deat_date` |
 | `MARR.DATE` | `marr_date` |
-| `DIV` | `div` |
 | `_MARNM` | `_marnm` |
 
-The dictionary is not an import mapping table. It provides a set of useful OGF
-fields (for example, `birth_date`, `birth_place` and `marriage_date`) that users
-may choose to use. If a user wants an imported key to use one of those fields,
-they can explicitly rename it after import. The importer must not make that
-semantic decision on the user's behalf.
+The importer does not translate GEDCOM tags into default human-readable OGF
+fields. Leading underscores in extension tags must be preserved. A structural
+parent with children and no own value must not create an extra empty flattened
+field.
 
-Leading underscores in extension tags must be preserved. Repeated occurrences
-of the same flattened key are stored as an ordered YAML list under that one
-key. The importer must not generate synthetic keys such as `_2` or `_3` for
-repeated occurrences. This keeps the dictionary vocabulary unique while
-preserving every value and its source order.
+### 5.1 Repeated tags: general rules
 
-### 5.1 Tag names
+The importer must preserve repeated source occurrences and their order at
+every hierarchy level:
 
-Tag names are source data. Lowercasing and flattening only make them valid,
-consistent OGF field keys; they do not translate their meaning. The original
-values are preserved, subject only to explicitly documented structural handling
-such as removal of GEDCOM name-delimiter slashes from a top-level personal name.
+1. Repeated leaf tags become an ordered YAML list of scalar values under one
+   field key.
+2. Repeated structured tags become an ordered YAML list of objects under one
+   field key. Each object contains only the child data belonging to that
+   occurrence.
+3. Repeated children are handled recursively. Repeated leaf children become
+   scalar lists; repeated structured children become lists of objects.
+4. If a structured parent also carries a value, preserve it as the `value`
+   member of that occurrence object.
+5. Unique paths may retain the established flattened keys for compatibility.
 
-### 5.2 Structural parents
+For example:
 
-A structural parent that has child tags but no own value must not produce an empty field.
+```gedcom
+1 RESI
+2 DATE 1900
+2 PLAC London
+1 RESI
+2 DATE 1910
+2 PLAC Paris
+```
+
+becomes:
+
+```yaml
+resi:
+  - date: "1900"
+    plac: London
+  - date: "1910"
+    plac: Paris
+```
+
+It must not become parallel arrays under `resi_date` and `resi_plac`, because
+the association between each date and place would be implicit and fragile.
+
+For repeated `EVEN` tags, the occurrence objects retain their own `type`,
+`date`, `plac` and other child tags. The importer must not generate numbered
+synthetic keys such as `event_1`, `event_2`, `resi_1`, or suffix keys `_2`/`_3`
+for repeated occurrences. The `@dictionary@` contains one entry for each unique
+top-level OGF field key; it does not contain entries for individual occurrences
+or nested child keys.
+
+### 5.2 Tag names and values
+
+Tag names are source data. Lowercasing and flattening unique paths only make
+them valid, consistent OGF field keys; they do not translate their meaning.
+Values are preserved, subject only to explicitly documented structural
+handling such as removal of GEDCOM name-delimiter slashes from a top-level
+personal name.
+
+### 5.3 Structural parents
+
+A structural parent that has child tags but no own value must not produce an
+empty field when it occurs once.
 
 Input:
 
@@ -174,9 +214,11 @@ curated set of human-readable OGF fields. This dictionary is a starting
 vocabulary for users; it does not contain GEDCOM tag mappings.
 
 A GEDCOM import starts with an import-specific, otherwise empty `@dictionary@`.
-The importer populates it exclusively from the unique flattened keys actually
-present in the imported records. It does not merge in the starter-project
+The importer populates it exclusively from the unique top-level field keys
+actually present in imported records. It does not merge in the starter-project
 defaults and does not consult those defaults to rename imported fields.
+Nested child keys inside structured occurrences do not become separate
+dictionary entries.
 
 ### 11.1 Included fields
 
@@ -192,17 +234,25 @@ Exclude structural keys:
 - `id`
 - `type`
 
-Include each unique flattened source key once, regardless of how many times
-it occurs in imported records. Repeated occurrences are values of the same
-field and do not create additional dictionary entries.
+Include each unique top-level OGF field key once, regardless of how many times
+it occurs in imported records. Repeated occurrences are represented as lists
+under that key and do not create additional occurrence-specific dictionary
+entries. For structured values, also include one reusable dictionary definition
+for each distinct nested path, using dot notation such as `even.date` or
+`even.plac`. These dotted entries provide labels, descriptions and optional
+value choices for nested child fields; they are dictionary paths, not additional
+record keys and must never be exposed as standalone fields in the Add Field
+selector. A nested path is included once regardless of how many occurrences
+contain it.
 
 ### 11.2 Repeated values
 
-A record may contain the same flattened key more than once. The importer must
-store these occurrences as an ordered YAML list under one field entry. It must
-not create numbered field keys or duplicate dictionary entries. The viewer and
-editor must preserve the list and its order when displaying, editing and saving
-the record.
+A record may contain repeated scalar or structured tags. Repeated scalar
+values are stored as ordered YAML lists. Repeated structured occurrences are
+stored as ordered lists of objects so fields belonging to each occurrence
+remain together. The importer must not create numbered field keys or duplicate
+dictionary entries. The viewer and editor must preserve the structure and
+order when displaying, editing and saving the record.
 
 ### 11.3 Labels and descriptions
 
@@ -216,6 +266,9 @@ they are not merged into an imported project.
 ### 11.4 Shared dictionary
 
 The dictionary is shared by Individuals, Families, Sources and Repositories.
+Nested path entries (for example, `even.date`) describe child fields inside a
+structured parent and are used when rendering those values. They are not
+standalone fields that can be added to a record.
 
 The Add Field interface must use the dictionary as its source of available fields.
 
@@ -252,10 +305,12 @@ These features must not alter the underlying imported values.
 ## 13. Field grouping and layout
 
 During GEDCOM import, each top-level GEDCOM tag and all of its descendants
-belong to one dictionary group. For example, `BIRT.DATE` and `BIRT.PLAC` are
-flattened to `birt_date` and `birt_plac` and placed in the same dictionary
-group. The group identity is based on the top-level source tag, consistently
-across records; it is not inferred from translated meanings.
+belong to one dictionary group. For a unique path, `BIRT.DATE` and `BIRT.PLAC`
+may be flattened to `birt_date` and `birt_plac` and placed in the same group.
+When a structured tag repeats, its single dictionary key (for example, `resi`)
+represents the ordered occurrence groups; its child keys remain nested inside
+each occurrence object. Group identity is based on the top-level source tag,
+consistently across records; it is not inferred from translated meanings.
 
 The importer preserves first-seen field order and writes dictionary blank lines
 between groups. Record fields themselves contain only data and do not carry

@@ -4,14 +4,16 @@ const SUPPORTED_META_CONTRACT_VERSION = 3;
 const SAMPLE_FILES = {
   "en-gedcom": "samples/sample-en-from-gedcom.ogf.yaml",
   pl: "samples/sample-pl.ogf.yaml",
-  "en-custom": "samples/sample-en-custom-keys.ogf.yaml"
+  "en-custom": "samples/sample-en-custom-keys.ogf.yaml",
+  "en-repeated": "samples/sample-en-repeated-events.ogf.yaml"
 };
 
 // The starter project is intentionally empty: it contains configuration and a
 // human-readable dictionary, but no example people, families or sources.
-// GEDCOM import does not use a built-in tag-to-field translation table. Source
-// tag paths are flattened as-is; this dictionary supplies useful OGF fields
-// that users may choose to use or rename imported fields to.
+// GEDCOM import does not use a built-in tag-to-field translation table. Unique
+// source paths may be flattened; repeated structured occurrences remain nested
+// ordered groups. The dictionary supplies OGF fields users may choose to adopt
+// or rename imported fields to.
 
 async function loadDefaultProjectDocs() {
   const files = ["defaults/meta.yaml", "defaults/dictionary.yaml"];
@@ -217,20 +219,21 @@ function resolveImageReference(value, allowUnknownExtension = false) {
   return null;
 }
 
-function getConfiguredImageFieldKeys(recordType) {
+function getConfiguredImageFieldKeys() {
   const configured = state.meta?.image_field;
-  // Contract v3 defines a per-record-type mapping. Continue accepting the
-  // earlier shared string/array form for existing projects.
+  // One shared configuration applies to every record type. Accept the old
+  // per-type mapping as an import compatibility form, flattening its fields
+  // into one shared ordered list rather than selecting by record type.
   const selected = configured && typeof configured === "object" && !Array.isArray(configured)
-    ? configured[recordType]
+    ? Object.values(configured).flatMap(value => Array.isArray(value) ? value : [value])
     : configured;
   const fields = Array.isArray(selected) ? selected : (typeof selected === "string" ? [selected] : []);
-  return fields.filter(field => typeof field === "string" && field.trim()).map(field => field.trim());
+  return [...new Set(fields.filter(field => typeof field === "string" && field.trim()).map(field => field.trim()))];
 }
 
 function getImageCandidates(doc) {
   if (!doc || !doc.map) return [];
-  const configuredFields = getConfiguredImageFieldKeys(doc.type);
+  const configuredFields = getConfiguredImageFieldKeys();
   if (!configuredFields.length) return [];
   const candidates = [];
   for (const field of configuredFields) {
@@ -340,9 +343,10 @@ const idCounters = Object.create(null);
 function unquote(val) {
   if (typeof val !== "string") return val;
   const s = val.trim();
-  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
-    return s.slice(1, -1);
+  if (s.startsWith('"') && s.endsWith('"')) {
+    return s.slice(1, -1).replace(/\\(["\\])/g, "$1");
   }
+  if (s.startsWith("'") && s.endsWith("'")) return s.slice(1, -1).replace(/''/g, "'");
   return s;
 }
 
@@ -457,7 +461,7 @@ function parseNestedYamlValue(lines, startIndex, parentIndent) {
   if (firstIndent <= parentIndent) return [{}, startIndex];
 
   function parseBlock(index, indent) {
-    const isList = lines[index].trim().startsWith("- ");
+    const isList = /^-\s*(.*)$/.test(lines[index].trim());
     const result = isList ? [] : {};
     let i = index;
     while (i < lines.length) {
@@ -470,10 +474,31 @@ function parseNestedYamlValue(lines, startIndex, parentIndent) {
       const trimmed = line.trim();
 
       if (isList) {
-        if (!trimmed.startsWith("- ")) break;
-        const raw = trimmed.slice(2).trim();
-        if (raw) result.push(parseInlineYamlValue(raw));
-        else {
+        const listItem = trimmed.match(/^-\s*(.*)$/);
+        if (!listItem) break;
+        const raw = listItem[1].trim();
+        if (raw) {
+          const colon = raw.indexOf(":");
+          if (colon > 0) {
+            const itemObject = {};
+            const itemKey = raw.slice(0, colon).trim();
+            const itemRawValue = raw.slice(colon + 1).trim();
+            itemObject[itemKey] = itemRawValue ? parseInlineYamlValue(itemRawValue) : {};
+            const child = nextContent(i + 1);
+            if (child < lines.length && (lines[child].match(/^\s*/) || [""])[0].length > indent) {
+              const [continuation, next] = parseBlock(child, (lines[child].match(/^\s*/) || [""])[0].length);
+              if (continuation && typeof continuation === "object" && !Array.isArray(continuation)) {
+                Object.assign(itemObject, continuation);
+              }
+              i = next;
+            } else {
+              i++;
+            }
+            result.push(itemObject);
+            continue;
+          }
+          result.push(parseInlineYamlValue(raw));
+        } else {
           const child = nextContent(i + 1);
           if (child < lines.length && (lines[child].match(/^\s*/) || [""])[0].length > indent) {
             const [value, next] = parseBlock(child, (lines[child].match(/^\s*/) || [""])[0].length);
@@ -515,6 +540,7 @@ function parseNestedYamlValue(lines, startIndex, parentIndent) {
 function appendYamlNestedValue(out, key, value, indent = 0) {
   const pad = " ".repeat(indent);
   if (Array.isArray(value)) {
+    if (value.length === 0) { out.push(pad + key + ": []"); return; }
     out.push(pad + key + ":");
     for (const item of value) {
       if (item && typeof item === "object" && !Array.isArray(item)) {
@@ -527,6 +553,7 @@ function appendYamlNestedValue(out, key, value, indent = 0) {
       }
     }
   } else if (value && typeof value === "object") {
+    if (Object.keys(value).length === 0) { out.push(pad + key + ": {}"); return; }
     out.push(pad + key + ":");
     for (const [childKey, childValue] of Object.entries(value)) {
       appendYamlNestedValue(out, childKey, childValue, indent + 2);
@@ -573,14 +600,16 @@ function parseYamlStream(text) {
           (entry.key === "id" && entry.value === "@meta@") ||
           (entry.key === "type" && entry.value === "Meta")
         );
-        if (rawVal === "" && (isMetaDocument || ["gender", "gender_mapping", "tree", "tree_relationships"].includes(key))) {
-          // Metadata may contain arbitrary nested objects and arrays. Parse
-          // these recursively while keeping ordinary record fields flat.
+        if (rawVal === "") {
+          // Parse nested objects/lists for every document, not only @meta@.
+          // This is required for repeated structured GEDCOM occurrences.
           const [nestedValue, nextIndex] = parseNestedYamlValue(lines, i + 1, (line.match(/^\s*/) || [""])[0].length);
-          entries.push({ key, value: nestedValue, group: groupIndex });
-          i = nextIndex - 1;
-        } else if (rawVal === "") {
-          entries.push({ key, value: [], group: groupIndex });
+          if (nextIndex > i + 1) {
+            entries.push({ key, value: nestedValue, group: groupIndex });
+            i = nextIndex - 1;
+          } else {
+            entries.push({ key, value: [], group: groupIndex });
+          }
         } else {
           entries.push({ key, value: unquote(rawVal), group: groupIndex });
         }
@@ -605,10 +634,7 @@ function serializeYamlStream(docs) {
         out.push("");
       }
       prevGroup = entry.group;
-      if (Array.isArray(entry.value)) {
-        out.push(entry.key + ":");
-        for (const item of entry.value) out.push("  - " + formatScalar(item));
-      } else if (doc.id === "@meta@" && entry.value && typeof entry.value === "object") {
+      if (entry.value && typeof entry.value === "object") {
         appendYamlNestedValue(out, entry.key, entry.value);
       } else {
         out.push(entry.key + ": " + formatScalar(entry.value));
@@ -625,11 +651,14 @@ function formatScalar(val) {
     s.startsWith("@") ||
     s.startsWith("~") ||
     s.startsWith("..") ||
+    /^[?:,\[\]{}&*!|>'"`#%@]/.test(s) ||
+    /^-(?:\s|$)/.test(s) ||
     s.includes(": ") ||
+    s.endsWith(":") ||
     s.includes("#") ||
     s.includes("{")
   ) {
-    return '"' + s.replace(/"/g, '\\"') + '"';
+    return '"' + s.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
   }
   return s;
 }
@@ -665,8 +694,16 @@ function explainDate(val) {
 }
 
 function displayFieldValue(value) {
-  if (Array.isArray(value)) return value.map(v => String(v ?? "").trim()).filter(Boolean).join(", ");
-  return value === undefined || value === null ? "" : String(value).trim();
+  const displayOne = item => {
+    if (item === undefined || item === null) return "";
+    if (Array.isArray(item)) return item.map(displayOne).filter(Boolean).join(", ");
+    if (item && typeof item === "object") {
+      if (Object.prototype.hasOwnProperty.call(item, "value")) return displayOne(item.value);
+      return "";
+    }
+    return String(item).trim();
+  };
+  return displayOne(value);
 }
 
 function resolveDisplayTemplate(doc, template, docMap) {
@@ -716,7 +753,10 @@ function getRecordTitle(doc, docMap) {
       if (display) return display;
     }
     // Backward-compatible fallback for datasets without display metadata.
-    if (m.name !== undefined && m.name !== null) return String(m.name);
+    if (m.name !== undefined && m.name !== null) {
+      const storedName = displayFieldValue(m.name);
+      if (storedName) return storedName;
+    }
     const first = m.name_first || m.imie || m.given_name || "";
     const last = m.name_last || m.nazwisko || m.surname || m.name_maiden || m.nazwisko_rodowe || "";
     const full = (first + " " + last).trim() || m.full_name || m.name_alias || m.pseudonim;
@@ -751,9 +791,27 @@ function getConfiguredRecordSummaryValue(doc, part) {
   for (const eventName of eventNames) {
     const field = recordConfig?.[eventName]?.[part];
     if (typeof field !== "string" || !field) continue;
-    const value = doc.map?.[field];
+    let value = doc.map?.[field];
+    if (value === undefined || value === null) {
+      const separator = field.indexOf("_");
+      if (separator > 0) {
+        const parentKey = field.slice(0, separator);
+        const childKey = field.slice(separator + 1);
+        const parentValue = doc.map?.[parentKey];
+        const occurrences = Array.isArray(parentValue) ? parentValue : [parentValue];
+        for (const occurrence of occurrences) {
+          if (occurrence && typeof occurrence === "object" && !Array.isArray(occurrence) &&
+              occurrence[childKey] !== undefined && occurrence[childKey] !== null) {
+            value = occurrence[childKey];
+            if (value && typeof value === "object" && !Array.isArray(value) &&
+                Object.prototype.hasOwnProperty.call(value, "value")) value = value.value;
+            break;
+          }
+        }
+      }
+    }
     const values = Array.isArray(value) ? value : [value];
-    const found = values.map(item => String(item ?? "").trim()).find(Boolean);
+    const found = values.map(displayFieldValue).find(Boolean);
     if (found) return found;
   }
   return "";
@@ -1108,6 +1166,65 @@ function renderInspectorDetailed() {
 
       const valDiv = document.createElement("div");
       valDiv.className = "field-val";
+      const isStructuredValue = entry.value && typeof entry.value === "object" &&
+        (Array.isArray(entry.value) ? entry.value.some(item => item && typeof item === "object") : true);
+      if (isStructuredValue) {
+        const occurrences = Array.isArray(entry.value) ? entry.value : [entry.value];
+        occurrences.forEach((occurrence, occurrenceIndex) => {
+          const occurrenceGroup = document.createElement("div");
+          occurrenceGroup.className = "nested-occurrence-group";
+          const fields = occurrence && typeof occurrence === "object" && !Array.isArray(occurrence)
+            ? Object.entries(occurrence) : [["value", occurrence]];
+          const appendOccurrenceField = (target, childKey, childValue, parentPath = entry.key) => {
+            const childPath = `${parentPath}.${childKey}`;
+            const childInfo = state.dict[childPath];
+            const childLabelText = childInfo?.label || formatKeyLabel(childKey);
+            const isScalarList = Array.isArray(childValue) && childValue.every(item =>
+              item === null || item === undefined || typeof item !== "object"
+            );
+            if (childValue && typeof childValue === "object" && !isScalarList) {
+              const nested = document.createElement("div");
+              nested.className = "nested-occurrence-group nested-child-group";
+              const nestedHeading = document.createElement("div");
+              nestedHeading.className = "nested-occurrence-heading";
+              nestedHeading.textContent = childLabelText;
+              nested.appendChild(nestedHeading);
+              if (Array.isArray(childValue)) {
+                childValue.forEach((item, index) => {
+                  if (item && typeof item === "object") {
+                    const itemGroup = document.createElement("div");
+                    itemGroup.className = "nested-occurrence-group";
+                    Object.entries(item).forEach(([nestedKey, nestedValue]) => appendOccurrenceField(itemGroup, nestedKey, nestedValue, childPath));
+                    nested.appendChild(itemGroup);
+                  } else appendOccurrenceField(nested, childKey, item);
+                });
+              } else {
+                Object.entries(childValue).forEach(([nestedKey, nestedValue]) => appendOccurrenceField(nested, nestedKey, nestedValue, childPath));
+              }
+              target.appendChild(nested);
+              return;
+            }
+            const childRow = document.createElement("div");
+            childRow.className = "nested-occurrence-row";
+            const childLabel = document.createElement("div");
+            childLabel.className = "field-label";
+            childLabel.textContent = childLabelText;
+            if (childInfo?.desc) childLabel.title = childInfo.desc;
+            const childVal = document.createElement("div");
+            childVal.className = "field-val";
+            const childValues = Array.isArray(childValue) ? childValue : [childValue];
+            for (const childItem of childValues) {
+              const childSpan = document.createElement("span");
+              appendLinkedText(childSpan, dictionaryValueLabel(childPath, childItem), docMap);
+              childVal.appendChild(childSpan);
+            }
+            childRow.append(childLabel, childVal);
+            target.appendChild(childRow);
+          };
+          for (const [childKey, childValue] of fields) appendOccurrenceField(occurrenceGroup, childKey, childValue);
+          valDiv.appendChild(occurrenceGroup);
+        });
+      } else {
       const values = Array.isArray(entry.value) ? entry.value : [entry.value];
 
       for (const v of values) {
@@ -1134,6 +1251,8 @@ function renderInspectorDetailed() {
         }
       }
 
+
+      }
 
       const mapLink = mapLinksByLongKey.get(entry.key.toLowerCase());
       if (mapLink) {
@@ -1295,7 +1414,9 @@ function renderEditorCard(container, doc) {
   `;
 
   const rowsEl = card.querySelector("#edit-rows");
-  const dictionaryOptions = Object.keys(state.dict).sort((a, b) => {
+  // Dotted dictionary paths describe nested children; they are labels and
+  // descriptions for structured values, not standalone top-level card fields.
+  const dictionaryOptions = Object.keys(state.dict).filter(key => !key.includes(".")).sort((a, b) => {
     const ga = Number(state.dict[a].group) || 0, gb = Number(state.dict[b].group) || 0;
     return ga - gb || state.dict[a].label.localeCompare(state.dict[b].label);
   });
@@ -1317,9 +1438,105 @@ function renderEditorCard(container, doc) {
     }
     keySelect.value = key;
 
-    const isMultipleValue = Array.isArray(value);
-    const initialValue = Array.isArray(value) ? value.map(item => String(item ?? "")).join("\n") : String(value ?? "");
+    const hasNestedDictionaryFields = !!key && Object.keys(state.dict).some(dictionaryKey =>
+      dictionaryKey.startsWith(`${key}.`));
+    const isStructuredValue = !!value && typeof value === "object" &&
+      (Array.isArray(value)
+        ? value.some(item => item && typeof item === "object") || hasNestedDictionaryFields
+        : true);
+    const isMultipleValue = Array.isArray(value) && !isStructuredValue;
+    const initialValue = isStructuredValue ? "" :
+      (Array.isArray(value) ? value.map(item => String(item ?? "")).join("\n") : String(value ?? ""));
+    if (isStructuredValue) {
+      row.dataset.structured = "true";
+      keySelect.disabled = true;
+      keySelect.title = "The field key is fixed while editing its structured occurrences.";
+    }
+    function createStructuredNode(nodeValue, nodeKey, parentPath) {
+      const kind = Array.isArray(nodeValue) ? "array" :
+        (nodeValue && typeof nodeValue === "object" ? "object" : "scalar");
+      const node = document.createElement("div");
+      node.className = `structured-editor-node structured-${kind}`;
+      node.dataset.kind = kind;
+      node.dataset.key = nodeKey || "";
+      const fullPath = nodeKey ? (parentPath ? `${parentPath}.${nodeKey}` : nodeKey) : parentPath;
+      if (kind === "scalar") {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.className = "eval structured-scalar";
+        input.value = String(nodeValue ?? "");
+        input.placeholder = formatKeyLabel(nodeKey || "value");
+        node.appendChild(input);
+        return node;
+      }
+      if (kind === "object") {
+        for (const [childKey, childValue] of Object.entries(nodeValue)) {
+          const field = document.createElement("div");
+          field.className = "structured-editor-field";
+          const label = document.createElement("label");
+          const childPath = fullPath ? `${fullPath}.${childKey}` : childKey;
+          label.textContent = state.dict[childPath]?.label || formatKeyLabel(childKey);
+          const child = createStructuredNode(childValue, childKey, fullPath);
+          field.append(label, child);
+          node.appendChild(field);
+        }
+        return node;
+      }
+      const items = document.createElement("div");
+      items.className = "structured-array-items";
+      const template = nodeValue.length ? nodeValue[0] : null;
+      const blankFromTemplate = sample => {
+        if (Array.isArray(sample)) return [];
+        if (sample && typeof sample === "object") {
+          return Object.fromEntries(Object.entries(sample).map(([key, child]) => [key, blankFromTemplate(child)]));
+        }
+        return "";
+      };
+      const addItem = itemValue => {
+        const item = document.createElement("div");
+        item.className = "structured-array-item";
+        const child = createStructuredNode(itemValue, "", fullPath);
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "icon-button delete-entry-btn";
+        remove.title = "Remove occurrence";
+        remove.setAttribute("aria-label", "Remove occurrence");
+        remove.textContent = "×";
+        remove.addEventListener("click", () => item.remove());
+        item.append(child, remove);
+        items.appendChild(item);
+      };
+      nodeValue.forEach(item => addItem(item));
+      const add = document.createElement("button");
+      add.type = "button";
+      add.className = "secondary structured-add-item";
+      add.textContent = "+ Add occurrence";
+      add.addEventListener("click", () => {
+        const blank = template && typeof template === "object" ? blankFromTemplate(template) : "";
+        addItem(blank);
+      });
+      node.append(items, add);
+      return node;
+    }
+    function readStructuredNode(node) {
+      const kind = node.dataset.kind;
+      if (kind === "scalar") return node.querySelector(":scope > .structured-scalar")?.value ?? "";
+      if (kind === "array") return [...node.querySelector(":scope > .structured-array-items").children]
+        .map(item => readStructuredNode(item.querySelector(":scope > .structured-editor-node")));
+      const result = {};
+      for (const field of node.querySelectorAll(":scope > .structured-editor-field")) {
+        const child = field.querySelector(":scope > .structured-editor-node");
+        if (child) result[child.dataset.key] = readStructuredNode(child);
+      }
+      return result;
+    }
     function makeValueControl(fieldKey, currentValue) {
+      if (isStructuredValue) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "eval structured-editor-root";
+        wrapper.appendChild(createStructuredNode(value, fieldKey, ""));
+        return wrapper;
+      }
       const choices = getConfiguredFieldChoices(fieldKey);
       if (choices && !Array.isArray(value)) {
         const select = document.createElement("select");
@@ -1390,6 +1607,7 @@ function renderEditorCard(container, doc) {
     ];
     const seen = new Set();
     let duplicate = null;
+    let structuredEditError = false;
     rowsEl.querySelectorAll(".edit-row").forEach(r => {
       const k = r.querySelector(".ekey").value.trim();
       if (!k) return;
@@ -1403,10 +1621,16 @@ function renderEditorCard(container, doc) {
 
     rowsEl.querySelectorAll(".edit-row").forEach(r => {
       const k = r.querySelector(".ekey").value.trim();
-      const rawValue = r.querySelector(".eval").value;
-      const v = rawValue.trim();
       if (!k) return;
       const group = Number(r.dataset.group) || 1;
+      if (r.dataset.structured === "true") {
+        const structuredRoot = r.querySelector(".structured-editor-root > .structured-editor-node");
+        if (!structuredRoot) return;
+        newEntries.push({ key: k, value: readStructuredNode(structuredRoot), group });
+        return;
+      }
+      const rawValue = r.querySelector(".eval").value;
+      const v = rawValue.trim();
       if (r.dataset.multiple === "true") {
         const items = rawValue.split(/\r?\n/).map(item => item.trim()).filter(Boolean);
         newEntries.push({ key: k, value: items, group });
@@ -1417,6 +1641,7 @@ function renderEditorCard(container, doc) {
         newEntries.push({ key: k, value: v, group });
       }
     });
+    if (structuredEditError) return;
     doc.entries = newEntries;
     state.editMode = false;
     syncDocsToEditor();
@@ -1468,7 +1693,7 @@ function updateTabUI() {
 }
 
 // GEDCOM structural converter
-// Flatten source tag paths without translating their meaning into OGF fields.
+// Preserve source tag paths and repeated occurrence boundaries without semantic remapping.
 function convertGedcomToOgf(gedText) {
   const lines = gedText.split(/\r?\n/);
   const records = [];
@@ -1543,7 +1768,7 @@ function convertGedcomToOgf(gedText) {
         { key: "individual_display_field", value: "name", group: 0 },
         { key: "family_display_field", value: "{$wife.name} & {$husb.name}", group: 0 },
         { key: "gender", value: { field: "sex", values: ["M", "F", "U"], labels: { M: "Male", F: "Female", U: "Unknown" }, male: "M", female: "F" }, group: 0 },
-        { key: "image_field", value: { Individual: "obje_file", Family: "obje_file", Source: "obje_file", Repository: "obje_file" }, group: 0 },
+        { key: "image_field", value: "obje_file", group: 0 },
         { key: "tree", value: {
           individual_type: "Individual",
           family_type: "Family",
@@ -1597,6 +1822,50 @@ function convertGedcomToOgf(gedText) {
         return;
       }
       entries.push({ key, value, group });
+    }
+
+    function buildStructuredOccurrence(node) {
+      const occurrence = {};
+      // Preserve a value carried by a structured parent without inventing a
+      // semantic GEDCOM-to-OGF field name.
+      if (node.val !== "") occurrence.value = node.val;
+      const childGroups = new Map();
+      for (const child of node.children || []) {
+        if (!childGroups.has(child.tag)) childGroups.set(child.tag, []);
+        childGroups.get(child.tag).push(child);
+      }
+      for (const [childTag, occurrences] of childGroups) {
+        const childKey = cleanTag(childTag);
+        if (occurrences.length > 1) {
+          occurrence[childKey] = occurrences.map(child =>
+            child.children && child.children.length ? buildStructuredOccurrence(child) : child.val
+          );
+        } else {
+          const child = occurrences[0];
+          occurrence[childKey] = child.children && child.children.length
+            ? buildStructuredOccurrence(child)
+            : child.val;
+        }
+      }
+      return occurrence;
+    }
+
+    function emitGedcomChildren(children, parentPath) {
+      const childGroups = new Map();
+      for (const child of children || []) {
+        if (!childGroups.has(child.tag)) childGroups.set(child.tag, []);
+        childGroups.get(child.tag).push(child);
+      }
+      for (const [childTag, occurrences] of childGroups) {
+        if (occurrences.length > 1 && occurrences.some(node => node.children && node.children.length)) {
+          const groupedKey = parentPath
+            ? `${parentPath.toLowerCase().replace(/\./g, "_")}_${cleanTag(childTag)}`
+            : cleanTag(childTag);
+          addEntry(groupedKey, occurrences.map(buildStructuredOccurrence));
+        } else {
+          for (const child of occurrences) emitGedcomNode(child, parentPath);
+        }
+      }
     }
 
     function emitGedcomNode(node, parentPath) {
@@ -1655,16 +1924,36 @@ function convertGedcomToOgf(gedText) {
         for (const filePath of objectFiles) addEntry("obje_file", filePath);
       }
 
-      for (const child of node.children) {
-        emitGedcomNode(child, gedcomPath);
-      }
+      emitGedcomChildren(node.children, gedcomPath);
     }
 
+    // Group repeated structured root tags as ordered lists of occurrence
+    // objects. Repeated leaf tags remain ordered scalar lists. The dictionary
+    // receives one key per source tag, never event_1/event_2-style keys.
+    const rootGroups = new Map();
     for (const node of rec.children) {
-      const rootTag = cleanTag(node.tag);
+      if (!rootGroups.has(node.tag)) rootGroups.set(node.tag, []);
+      rootGroups.get(node.tag).push(node);
+    }
+    for (const [rootTagName, occurrences] of rootGroups) {
+      const rootTag = cleanTag(rootTagName);
       if (!gedcomGroupIds.has(rootTag)) gedcomGroupIds.set(rootTag, gedcomGroupIds.size + 1);
       group = gedcomGroupIds.get(rootTag);
-      emitGedcomNode(node, "");
+      if (occurrences.length > 1 && occurrences.some(node => node.children && node.children.length)) {
+        addEntry(rootTag, occurrences.map(buildStructuredOccurrence));
+        if (rootTagName === "OBJE") {
+          for (const objectNode of occurrences) {
+            const pointer = objectNode.val;
+            const linkedFiles = /^@[^@]+@$/.test(String(pointer || ""))
+              ? (rawObjectFilesById.get(pointer) || []) : [];
+            const inlineFiles = [];
+            collectObjectFiles(objectNode, inlineFiles);
+            for (const filePath of [...linkedFiles, ...inlineFiles]) addEntry("obje_file", filePath);
+          }
+        }
+      } else {
+        for (const node of occurrences) emitGedcomNode(node, "");
+      }
     }
 
     const recordDoc = {
@@ -1693,9 +1982,37 @@ function convertGedcomToOgf(gedText) {
       }
     }
   }
+  const nestedDictionaryPaths = new Map();
+  function collectNestedDictionaryPaths(value, parentPath, importedGroup) {
+    if (Array.isArray(value)) {
+      for (const item of value) collectNestedDictionaryPaths(item, parentPath, importedGroup);
+      return;
+    }
+    if (!value || typeof value !== "object") return;
+    for (const [childKey, childValue] of Object.entries(value)) {
+      const path = `${parentPath}.${childKey}`;
+      if (!nestedDictionaryPaths.has(path)) nestedDictionaryPaths.set(path, importedGroup);
+      collectNestedDictionaryPaths(childValue, path, importedGroup);
+    }
+  }
+  for (const recordDoc of emittedRecordDocs) {
+    for (const entry of recordDoc.entries) {
+      if (entry.key === "id" || entry.key === "type") continue;
+      if (entry.value && typeof entry.value === "object") {
+        collectNestedDictionaryPaths(entry.value, entry.key, entry.group);
+      }
+    }
+  }
   for (const [key, importedGroup] of [...importedKeys.entries()].sort((a, b) => a[1] - b[1])) {
     const label = key.replace(/^_+/, "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
     dictionaryEntries.push({ key, value: label, group: importedGroup });
+  }
+  // Nested paths provide one reusable definition per child field, independent
+  // of how many repeated occurrences exist. They are not top-level record keys.
+  for (const [path, importedGroup] of [...nestedDictionaryPaths.entries()].sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]))) {
+    const leaf = path.split(".").pop();
+    const label = leaf.replace(/^_+/, "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    dictionaryEntries.push({ key: path, value: label, group: importedGroup });
   }
   // Value-choice definitions are OGF presentation metadata, not GEDCOM facts.
   // Keep standard sex labels only when imported records actually use GEDCOM SEX.
@@ -1722,10 +2039,22 @@ const replacerRowsEl = document.getElementById("replacer-rows");
 
 document.getElementById("replace-keys-btn").addEventListener("click", () => {
   const counts = {};
+  function countNestedKeys(value) {
+    if (Array.isArray(value)) {
+      value.forEach(countNestedKeys);
+    } else if (value && typeof value === "object") {
+      for (const [nestedKey, nestedValue] of Object.entries(value)) {
+        counts[nestedKey] = (counts[nestedKey] || 0) + 1;
+        countNestedKeys(nestedValue);
+      }
+    }
+  }
   for (const doc of state.docs) {
     for (const e of doc.entries) {
       if (e.key === "id" || e.key === "type") continue;
+      if (doc.id === "@dictionary@" && e.key.includes(".")) continue;
       counts[e.key] = (counts[e.key] || 0) + 1;
+      if (doc.id !== "@meta@" && doc.id !== "@dictionary@") countNestedKeys(e.value);
     }
   }
   replacerRowsEl.innerHTML = "";
@@ -1764,17 +2093,47 @@ document.getElementById("apply-replacer-btn").addEventListener("click", () => {
   if (Object.keys(mapping).length > 0) {
     // Refuse collisions rather than silently merging or overwriting fields.
     for (const doc of state.docs) {
-      const resultingKeys = doc.entries.map(entry => mapping[entry.key] || entry.key);
+      const mapDictionaryPath = key => key.split(".").map(part => mapping[part] || part).join(".");
+      const resultingKeys = doc.entries.map(entry =>
+        doc.id === "@dictionary@" && entry.key.includes(".")
+          ? mapDictionaryPath(entry.key)
+          : (mapping[entry.key] || entry.key)
+      );
       const seen = new Set();
       const duplicate = resultingKeys.find(key => seen.has(key) || !seen.add(key));
-      if (duplicate) {
-        alert(`Replacement would create duplicate key "${duplicate}" in ${doc.id}. No keys were changed.`);
+      let nestedDuplicate = null;
+      const checkNested = value => {
+        if (Array.isArray(value)) { value.forEach(checkNested); return; }
+        if (!value || typeof value !== "object") return;
+        const nestedKeys = Object.keys(value).map(key => mapping[key] || key);
+        const nestedSeen = new Set();
+        nestedDuplicate = nestedKeys.find(key => nestedSeen.has(key) || !nestedSeen.add(key)) || nestedDuplicate;
+        Object.values(value).forEach(checkNested);
+      };
+      if (doc.id !== "@meta@" && doc.id !== "@dictionary@") doc.entries.forEach(entry => checkNested(entry.value));
+      if (duplicate || nestedDuplicate) {
+        const conflict = duplicate || nestedDuplicate;
+        alert(`Replacement would create duplicate key "${conflict}" in ${doc.id}. No keys were changed.`);
         return;
       }
     }
     for (const doc of state.docs) {
       for (const e of doc.entries) {
-        if (mapping[e.key]) e.key = mapping[e.key];
+        if (doc.id === "@dictionary@" && e.key.includes(".")) {
+          e.key = e.key.split(".").map(part => mapping[part] || part).join(".");
+        } else if (mapping[e.key]) e.key = mapping[e.key];
+        if (doc.id !== "@meta@" && doc.id !== "@dictionary@") {
+          const renameNestedKeys = value => {
+            if (Array.isArray(value)) return value.map(renameNestedKeys);
+            if (value && typeof value === "object") {
+              return Object.fromEntries(Object.entries(value).map(([nestedKey, nestedValue]) => [
+                mapping[nestedKey] || nestedKey, renameNestedKeys(nestedValue)
+              ]));
+            }
+            return value;
+          };
+          e.value = renameNestedKeys(e.value);
+        }
       }
       // image_field stores field names as metadata values, not YAML keys.
       // Keep those references aligned with the renamed record/dictionary keys.
@@ -1793,12 +2152,13 @@ document.getElementById("apply-replacer-btn").addEventListener("click", () => {
           } else if (Array.isArray(configured)) {
             imageFieldEntry.value = configured.map(field => typeof field === "string" ? (mapping[field] || field) : field);
           } else if (configured && typeof configured === "object") {
-            imageFieldEntry.value = Object.fromEntries(Object.entries(configured).map(([recordType, fields]) => [
-              recordType,
-              Array.isArray(fields)
-                ? fields.map(field => typeof field === "string" ? (mapping[field] || field) : field)
-                : (typeof fields === "string" ? (mapping[fields] || fields) : fields)
-            ]));
+            // Legacy per-record-type mappings are normalized to one shared
+            // ordered field list. The shared configuration then applies to
+            // every record type.
+            const fields = Object.values(configured).flatMap(value => Array.isArray(value) ? value : [value]);
+            imageFieldEntry.value = [...new Set(fields
+              .filter(field => typeof field === "string")
+              .map(field => mapping[field] || field))];
           }
         }
       }
@@ -1816,7 +2176,7 @@ function addDictionaryEditorRow(key = "", label = "", desc = "", group = 1, choi
   const row = document.createElement("div");
   row.className = "dictionary-row";
   row.innerHTML = `
-    <input class="dict-key" type="text" value="${escapeHtml(key)}" placeholder="custom_field">
+    <input class="dict-key" type="text" value="${escapeHtml(key)}" placeholder="custom_field or event.date">
     <input class="dict-label" type="text" value="${escapeHtml(label)}" placeholder="Field label">
     <input class="dict-desc" type="text" value="${escapeHtml(desc)}" placeholder="Optional description">
     <input class="dict-choices" type="text" value="${escapeHtml(choices)}" placeholder="M=Male | F=Female" title="Optional code=label choices, separated by |">
@@ -1912,7 +2272,7 @@ document.getElementById("save-dictionary-btn").addEventListener("click", () => {
     const groupLabel = row.querySelector(".dict-group-label").value.trim();
     if (groupLabel && !groupLabels.has(group)) groupLabels.set(group, groupLabel);
     if (!key) return;
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key) || key === "id" || key === "type") {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(key) || key === "id" || key === "type") {
       error = `Invalid dictionary key: ${key}`;
       return;
     }
@@ -1961,28 +2321,144 @@ document.getElementById("save-dictionary-btn").addEventListener("click", () => {
   syncDocsToEditor();
 });
 
-// Metadata editor: preserve and edit the complete @meta@ document.
+// Metadata editor: edit nested metadata structures as independent fields/items.
 const metadataModal = document.getElementById("metadata-modal");
 const metadataRowsEl = document.getElementById("metadata-rows");
-function addMetadataEditorRow(key = "", value = "") {
-  const row = document.createElement("div");
-  row.className = "metadata-row";
-  const keyInput = document.createElement("input");
-  keyInput.className = "meta-key"; keyInput.type = "text"; keyInput.value = key; keyInput.placeholder = "metadata_key";
-  const valueInput = document.createElement("input");
-  valueInput.className = "meta-value"; valueInput.type = "text";
-  valueInput.value = Array.isArray(value) ? JSON.stringify(value) : (value && typeof value === "object" ? JSON.stringify(value) : String(value ?? "")); valueInput.placeholder = value && typeof value === "object" ? "JSON array or object" : (["gender", "gender_mapping", "tree", "tree_relationships"].includes(key) ? "JSON object" : "Value");
-  const remove = document.createElement("button");
-  remove.type = "button"; remove.className = "icon-button delete-entry-btn"; remove.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>'; remove.title = "Remove metadata field"; remove.setAttribute("aria-label", "Remove metadata field");
-  remove.addEventListener("click", () => row.remove());
-  row.append(keyInput, valueInput, remove); metadataRowsEl.appendChild(row);
+
+function metadataScalarInput(value) {
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "meta-node-value";
+  input.value = value == null ? "" : String(value);
+  input.dataset.originalType = value === null ? "null" : typeof value;
+  input.placeholder = "Value";
+  return input;
 }
+
+function metadataNode(key, value, options = {}) {
+  const node = document.createElement("div");
+  node.className = "meta-node";
+  node.dataset.kind = Array.isArray(value) ? "array" :
+    (value && typeof value === "object" ? "object" : "scalar");
+  if (options.topLevel) node.classList.add("meta-top-node");
+  if (options.arrayItem) node.classList.add("meta-array-item");
+
+  const head = document.createElement("div");
+  head.className = "meta-node-head";
+  if (!options.arrayItem) {
+    const keyInput = document.createElement("input");
+    keyInput.type = "text";
+    keyInput.className = "meta-node-key";
+    keyInput.value = key ?? "";
+    keyInput.placeholder = "metadata_key";
+    // Existing metadata keys are schema identifiers, not editable values.
+    // A blank key is a newly-added field and can be named once.
+    if (String(key ?? "").trim()) {
+      keyInput.readOnly = true;
+      keyInput.title = "Metadata keys are fixed; edit the value, not the key.";
+      keyInput.setAttribute("aria-label", `Fixed metadata key ${key}`);
+    } else {
+      keyInput.title = "Enter the new metadata key.";
+    }
+    head.appendChild(keyInput);
+  } else {
+    const itemLabel = document.createElement("span");
+    itemLabel.className = "meta-array-item-label";
+    itemLabel.textContent = node.dataset.kind === "object" ? "Object item" :
+      node.dataset.kind === "array" ? "List item" : "Item";
+    head.appendChild(itemLabel);
+  }
+
+  const kindLabel = document.createElement("span");
+  kindLabel.className = "meta-node-kind";
+  kindLabel.textContent = node.dataset.kind === "object" ? "Object" :
+    node.dataset.kind === "array" ? "List" : "Value";
+  head.appendChild(kindLabel);
+
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.className = "icon-button meta-node-remove";
+  remove.title = options.arrayItem ? "Remove item" : "Remove metadata field";
+  remove.setAttribute("aria-label", remove.title);
+  remove.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
+  remove.addEventListener("click", () => node.remove());
+  head.appendChild(remove);
+  node.appendChild(head);
+
+  if (node.dataset.kind === "scalar") {
+    const valueInput = metadataScalarInput(value);
+    node.appendChild(valueInput);
+  } else {
+    const children = document.createElement("div");
+    children.className = "meta-node-children";
+    if (node.dataset.kind === "object") {
+      for (const [childKey, childValue] of Object.entries(value)) {
+        children.appendChild(metadataNode(childKey, childValue));
+      }
+      const add = document.createElement("button");
+      add.type = "button";
+      add.className = "secondary meta-add-child";
+      add.innerHTML = '<i class="fa-solid fa-plus" aria-hidden="true"></i> Add nested field';
+      add.addEventListener("click", () => children.insertBefore(
+        metadataNode("", ""), add
+      ));
+      children.appendChild(add);
+    } else {
+      value.forEach(item => children.appendChild(metadataNode("", item, { arrayItem: true })));
+      const add = document.createElement("button");
+      add.type = "button";
+      add.className = "secondary meta-add-child";
+      add.innerHTML = '<i class="fa-solid fa-plus" aria-hidden="true"></i> Add item';
+      add.addEventListener("click", () => {
+        const firstItem = children.querySelector(":scope > .meta-node");
+        const templateKind = firstItem?.dataset.kind || "scalar";
+        const emptyValue = templateKind === "object" ? {} : templateKind === "array" ? [] : "";
+        children.insertBefore(metadataNode("", emptyValue, { arrayItem: true }), add);
+      });
+      children.appendChild(add);
+    }
+    node.appendChild(children);
+  }
+  return node;
+}
+
+function addMetadataEditorRow(key = "", value = "") {
+  metadataRowsEl.appendChild(metadataNode(key, value, { topLevel: true }));
+}
+
+function metadataNodeValue(node) {
+  const kind = node.dataset.kind;
+  if (kind === "scalar") {
+    const input = node.querySelector(":scope > .meta-node-value");
+    const raw = input ? input.value : "";
+    const originalType = input?.dataset.originalType;
+    if (originalType === "number" && raw.trim() !== "" && Number.isFinite(Number(raw))) return Number(raw);
+    if (originalType === "boolean") {
+      if (raw.toLowerCase() === "true") return true;
+      if (raw.toLowerCase() === "false") return false;
+    }
+    if (originalType === "null" && raw === "") return null;
+    return raw;
+  }
+  const children = node.querySelector(":scope > .meta-node-children");
+  if (kind === "array") {
+    return [...children.querySelectorAll(":scope > .meta-node")].map(metadataNodeValue);
+  }
+  const result = {};
+  for (const child of children.querySelectorAll(":scope > .meta-node")) {
+    const keyInput = child.querySelector(":scope > .meta-node-head > .meta-node-key");
+    const key = keyInput?.value.trim();
+    if (key) result[key] = metadataNodeValue(child);
+  }
+  return result;
+}
+
 function openMetadataEditor() {
   metadataRowsEl.innerHTML = "";
   const metaDoc = state.docs.find(d => d.id === "@meta@" || d.type === "Meta");
   const entries = metaDoc ? metaDoc.entries : [
-    { key: "format_version", value: "1" },
-    { key: "version", value: "1" },
+    { key: "format_version", value: 1 },
+    { key: "version", value: 1 },
     { key: "language", value: "en" },
     { key: "encoding", value: "UTF-8" },
     { key: "individual_display_field", value: "name" },
@@ -1993,7 +2469,20 @@ function openMetadataEditor() {
     { key: "date_before", value: "On or before {date}" },
     { key: "date_after", value: "On or after {date}" }
   ];
-  for (const entry of entries) if (entry.key !== "id" && entry.key !== "type") addMetadataEditorRow(entry.key, entry.value);
+  for (const entry of entries) {
+    if (entry.key === "id" || entry.key === "type") continue;
+    let value = entry.value;
+    // Normalize legacy per-record-type image mappings to the single shared
+    // field/list control when opening metadata for editing.
+    if (entry.key === "image_field" && value && typeof value === "object" && !Array.isArray(value)) {
+      const sharedFields = [...new Set(Object.values(value)
+        .flatMap(fields => Array.isArray(fields) ? fields : [fields])
+        .filter(field => typeof field === "string" && field.trim())
+        .map(field => field.trim()))];
+      value = sharedFields.length === 1 ? sharedFields[0] : sharedFields;
+    }
+    addMetadataEditorRow(entry.key, value);
+  }
   metadataModal.classList.add("open");
 }
 function closeMetadataEditor() { metadataModal.classList.remove("open"); }
@@ -2004,49 +2493,42 @@ document.getElementById("save-metadata-btn").addEventListener("click", () => {
   const entries = [
     { key: "id", value: "@meta@", group: 0 }, { key: "type", value: "Meta", group: 0 }
   ];
-  const keys = new Set(["id", "type"]); let error = "";
-  metadataRowsEl.querySelectorAll(".metadata-row").forEach((row, index) => {
-    const key = row.querySelector(".meta-key").value.trim();
-    const value = row.querySelector(".meta-value").value;
-    if (!key) return;
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key) || key === "id" || key === "type") { error = `Invalid metadata key: ${key}`; return; }
-    if (keys.has(key)) { error = `Duplicate metadata key: ${key}`; return; }
-    keys.add(key);
-    let storedValue = value;
-    const trimmedValue = value.trim();
-    if (trimmedValue.startsWith("{") || trimmedValue.startsWith("[")) {
-      try { storedValue = JSON.parse(trimmedValue); }
-      catch (_) { error = `${key} must contain valid JSON when using an object or array value.`; return; }
+  const keys = new Set(["id", "type"]);
+  let error = "";
+  for (const [index, row] of [...metadataRowsEl.querySelectorAll(":scope > .meta-node")].entries()) {
+    const key = row.querySelector(":scope > .meta-node-head > .meta-node-key")?.value.trim();
+    if (!key) continue;
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key) || key === "id" || key === "type") {
+      error = `Invalid metadata key: ${key}`; break;
     }
+    if (keys.has(key)) { error = `Duplicate metadata key: ${key}`; break; }
+    keys.add(key);
+    const storedValue = metadataNodeValue(row);
     if (["gender", "gender_mapping", "tree", "tree_relationships"].includes(key) &&
         (!storedValue || typeof storedValue !== "object" || Array.isArray(storedValue))) {
-      error = `${key} must be a JSON object.`;
-      return;
+      error = `${key} must be an object.`; break;
+    }
+    if (["format_version", "version"].includes(key) &&
+        (!Number.isInteger(Number(storedValue)) || Number(storedValue) < 1)) {
+      error = `${key} must be a positive integer.`; break;
     }
     if (key === "image_field") {
       const validField = field => typeof field === "string" && field.trim().length > 0;
       const validConfig = typeof storedValue === "string"
         ? validField(storedValue)
-        : Array.isArray(storedValue)
-          ? storedValue.every(validField)
-          : !!storedValue && typeof storedValue === "object" && !Array.isArray(storedValue) &&
-            Object.values(storedValue).every(fields => Array.isArray(fields) ? fields.every(validField) : validField(fields));
-      if (!validConfig) {
-        error = "image_field must be a field name, an array of field names, or an object mapping record types to field names or arrays.";
-        return;
-      }
-    }
-    if (["format_version", "version"].includes(key) && (!Number.isInteger(Number(value)) || Number(value) < 1)) {
-      error = `${key} must be a positive integer.`;
-      return;
+        : Array.isArray(storedValue) && storedValue.length > 0 && storedValue.every(validField);
+      if (!validConfig) { error = "image_field must contain field names."; break; }
     }
     entries.push({ key, value: storedValue, group: index + 1 });
-  });
+  }
   if (error) { alert(error); return; }
-  let metaDoc = state.docs.find(d => d.id === "@meta@" || d.type === "Meta");
-  if (!metaDoc) { metaDoc = { id: "@meta@", type: "Meta", entries: [], map: {} }; state.docs.unshift(metaDoc); }
-  metaDoc.entries = entries; metaDoc.map = Object.fromEntries(entries.map(entry => [entry.key, entry.value]));
-  closeMetadataEditor(); syncDocsToEditor();
+  const metaDoc = state.docs.find(d => d.id === "@meta@" || d.type === "Meta") ||
+    { id: "@meta@", type: "Meta", entries: [], map: {} };
+  if (!state.docs.includes(metaDoc)) state.docs.unshift(metaDoc);
+  metaDoc.entries = entries;
+  metaDoc.map = Object.fromEntries(entries.map(entry => [entry.key, entry.value]));
+  closeMetadataEditor();
+  syncDocsToEditor();
 });
 
 document.getElementById("config-select").addEventListener("change", event => {

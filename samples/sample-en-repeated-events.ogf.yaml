@@ -1,0 +1,54 @@
+---
+# Demonstrates repeated structured source occurrences. All people and events
+# in this sample are fictional and exist only to illustrate the OGF structure.
+id: "@meta@"
+type: Meta
+format_version: 1
+version: 3
+language: en
+encoding: UTF-8
+gender:
+  field: sex
+  values:
+    - M
+    - F
+    - U
+  labels:
+    M: Male
+    F: Female
+    U: Unknown
+  male: M
+  female: F
+individual_display_field: name
+---
+id: "@dictionary@"
+type: Dictionary
+name: Name
+sex: Sex
+resi: Residence
+resi.date: Date
+resi.plac: Place
+even: Event
+even.type: Event type
+even.date: Date
+even.plac: Place
+even.note: Notes
+---
+id: "@I-1@"
+type: Individual
+name: Alex Example
+sex: M
+resi:
+  - date: "1900"
+    plac: London
+  - date: "1910"
+    plac: Paris
+even:
+  - type: Name Change
+    date: "1920"
+    plac: London
+    note: First fictional event occurrence
+  - type: Occupation Change
+    date: "1930"
+    plac: Paris
+    note: Second fictional event occurrence

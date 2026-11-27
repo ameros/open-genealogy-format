@@ -1,11 +1,11 @@
 # Open Genealogy Format — Specification
 
 **Status:** Stable release  
-**Version:** 1.2.1
+**Version:** 1.2.4
 
 ## 1. Purpose
 
-Open Genealogy Format (OGF) is a flat, human-readable, self-describing format for genealogical data.
+Open Genealogy Format (OGF) is a human-readable, self-describing format for genealogical data.
 
 It uses YAML multi-document streams to store records, references, metadata and field descriptions.
 
@@ -28,7 +28,10 @@ An application must not silently change stored data when presenting or interpret
 
 Every record is a top-level YAML document separated by `---`.
 
-Records must not require a fixed hierarchical genealogical structure.
+Records must not require a fixed hierarchical genealogical structure. Most
+fields are scalar values or ordered scalar lists; nested objects and lists are
+also permitted when needed to preserve repeated structured source occurrences
+and the association between their child fields.
 
 ### 2.2 Open vocabulary
 
@@ -217,18 +220,18 @@ Reverse references are presentation-derived and do not require duplicate stored 
 
 A reverse reference must not be mistaken for an independently stored genealogical assertion.
 
-## 6. Field names and flattening
+## 6. Field names and repeated structures
 
-OGF field names are open.
+OGF field names are open. Importers must preserve source tag names and values;
+they must not silently translate source tags into a different OGF vocabulary.
+The field dictionary defines labels and presentation groups, but it is not a
+source-format mapping table. A user may rename imported fields explicitly.
 
-Importers may flatten hierarchical source structures into field keys. They must
-not silently translate source tags into a different OGF vocabulary. The field
-dictionary defines useful OGF fields and labels, but it is not a source-format
-mapping table. A user may rename imported fields explicitly.
+Importers may flatten a unique hierarchical source path into a field key when
+that preserves the source structure without losing occurrence boundaries.
+Examples include:
 
-Examples of source-tag flattening:
-
-| GEDCOM path | OGF key |
+| Source path | OGF key |
 |---|---|
 | `NAME` | `name` |
 | `NAME.GIVN` | `name_givn` |
@@ -238,13 +241,62 @@ Examples of source-tag flattening:
 | `BIRT.PLAC.MAP.LATI` | `birt_plac_map_lati` |
 | `_MARNM` | `_marnm` |
 
-The importer does not translate these source-derived keys into the human-readable
-starter fields such as `birth_date` or `marriage_date`. Those fields are available
-in the dictionary for users to adopt through an explicit rename or editing step.
-Unknown paths remain available and must not be discarded. Leading underscores
-in extension tags must be preserved.
+Unknown paths remain available and leading underscores in extension tags must
+be preserved. The importer must not translate source-derived keys into starter
+fields such as `birth_date` or `marriage_date`.
 
-Repeated occurrences of the same flattened key are stored as an ordered YAML list under that one key. They must not generate numbered synthetic keys such as `_2` or `_3`.
+### 6.1 Repeated source occurrences
+
+Repeated source tags must preserve both their source order and their occurrence
+boundaries. Importers must apply these general rules at every hierarchy level:
+
+- Repeated leaf tags (tags without child tags) become an ordered list of scalar
+  values under one field key.
+- Repeated structured tags (tags with child tags) become an ordered list of
+  objects under one field key. Each object contains the child tag names and
+  values belonging to that particular occurrence.
+- Repeated structured children remain nested under their containing
+  occurrence; repeated leaf children become ordered scalar lists.
+- A structured parent value, when present, is retained as the `value` member
+  of that occurrence object.
+- Unique source paths may retain the existing flattened-key representation
+  for compatibility, provided no repeated occurrence is merged or separated.
+
+For example, two `RESI` occurrences must be represented as:
+
+```yaml
+resi:
+  - date: "1900"
+    plac: London
+  - date: "1910"
+    plac: Paris
+```
+
+They must not be flattened into parallel `resi_date` and `resi_plac` arrays,
+because that loses the explicit association between each date and place.
+
+The same rule applies to general events. For example, repeated `EVEN`
+occurrences retain their own event type, date and place:
+
+```yaml
+even:
+  - type: Name Change
+    date: "1900"
+    plac: London
+  - type: Occupation Change
+    date: "1910"
+    plac: Paris
+```
+
+The dictionary contains one entry for the top-level key `even` and one reusable
+dotted-path definition for each distinct nested child, for example
+`even.type`, `even.date` and `even.plac`. Dotted paths provide labels,
+descriptions and optional value choices for nested fields. They are not
+standalone record keys and must not appear as independent choices in Add Field.
+Importers and viewers must never create synthetic keys such as `event_1`,
+`event_2`, `resi_1` or `_2`/`_3` suffixes to represent repeated occurrences.
+The dictionary describes field vocabulary and nested field paths, not individual
+occurrences.
 
 ## 7. Metadata: `@meta@`
 
@@ -711,26 +763,31 @@ Image references may be stored in any field. A viewer must not assume that a
 field named `obje_file`, or any other field-name pattern, is the image field
 for a record type.
 
-The optional `@meta@.image_field` object maps exact record type names to the
-field or ordered list of fields containing portrait images. The same mapping
-is shared by details cards and tree nodes. A record type may map to one field
-name or an ordered list of field names. For backward compatibility, viewers
-may also accept the legacy shared string or list form, which applies to every
-record type. New projects should use the per-record-type mapping. For example:
+The optional `@meta@.image_field` setting contains one shared field name or
+an ordered list of field names containing portrait images. This single
+configuration applies to every record type, including Individual, Family,
+Source and Repository. The same configuration is shared by details cards and
+tree nodes. For example:
+
+```yaml
+image_field: obje_file
+```
+
+Multiple shared image fields may be configured in priority order:
 
 ```yaml
 image_field:
-  Individual: obje_file
-  Family: family_photo
-  Source:
-    - scan_front
-    - scan_back
+  - obje_file
+  - scan_front
+  - scan_back
 ```
 
 A viewer displays the first usable image from the configured fields in its
-record portrait area. The mapping applies to all record types, including
-Individual, Family and Source. A record type without an entry has no configured
-portrait; the viewer must not guess one from field names.
+record portrait area. The same field configuration applies to every record
+type; the viewer must not guess a different image field from record type or
+field names. For compatibility, a viewer may read older per-record-type
+mappings by combining their configured fields into one shared list, but new
+and edited metadata must use the single shared setting.
 
 The original media reference must remain available in the record. A configured
 portrait must not be redundantly rendered again as a second thumbnail in its

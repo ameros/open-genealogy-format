@@ -50,16 +50,20 @@ tree:
   convention; the renderer uses the configured identifiers and does not infer
   event meaning from field names or dictionary labels.
 - Relationship fields may contain one reference or an ordered YAML list of
-  references. Repeated occurrences are stored under one key, preserving
-  source order.
+  references. Repeated leaf occurrences are stored under one key, preserving
+  source order. Repeated structured source occurrences are represented as
+  ordered nested objects, keeping each occurrence's child fields together.
+  Nested child keys receive one reusable dotted dictionary definition per path
+  (for example, `resi.date`); these definitions label nested values but are not
+  numbered per occurrence or offered as standalone Add Field choices.
 - The `@dictionary@` should enumerate configured relationship field keys with
   human-readable labels. It does not define their relationship behavior.
 - Unresolved references are reported in the tree status; they are not guessed.
 - Without relationship field configuration, the tree does not infer family
   relationships.
-- Portrait fields are configured separately through `@meta@.image_field`;
-  the per-record-type mapping is used by tree nodes and record details cards.
-  A record type may map to one field or an ordered list of fields. See
+- Portrait fields are configured once through the shared
+  `@meta@.image_field` setting; the same field or ordered field list applies
+  to every record type and is used by tree nodes and record details cards. See
   [Images and media](SPECIFICATION.md#12-images-and-media).
 
 ## Shared gender interpretation

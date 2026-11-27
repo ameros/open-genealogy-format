@@ -19,11 +19,7 @@ gender:
     U: Unknown
   male: M
   female: F
-image_field:
-  Individual: obje_file
-  Family: obje_file
-  Source: obje_file
-  Repository: obje_file
+image_field: obje_file
 tree:
   individual_type: Individual
   family_type: Family
@@ -218,7 +214,7 @@ deat_date: NOV 1967
 id: "@I6@"
 type: Individual
 
-name: ?
+name: "?"
 
 sex: M
 ---
@@ -578,7 +574,7 @@ refn: Clinton-19
 id: "@I29@"
 type: Individual
 
-name: ? AYERS
+name: "? AYERS"
 
 sex: M
 
@@ -589,7 +585,7 @@ refn: Clinton-20
 id: "@I30@"
 type: Individual
 
-name: ?
+name: "?"
 
 sex: F
 
@@ -600,7 +596,7 @@ refn: Clinton-21
 id: "@I31@"
 type: Individual
 
-name: ? HAYES
+name: "? HAYES"
 
 sex: M
 
@@ -611,7 +607,7 @@ refn: Clinton-22
 id: "@I32@"
 type: Individual
 
-name: ?
+name: "?"
 
 sex: F
 
@@ -790,7 +786,7 @@ refn: Clinton-34
 
 note: The earliest record of Moses Baum is in Rutherford
 note_cont:
-  - "County, Tennessee in 1827: indictments for \\\\"riot\\\\" were"
+  - "County, Tennessee in 1827: indictments for \"riot\" were"
   - found against Samuel Green, Samuel Wilson, Moses Baum
   - and Thomas Baum who were fined $10 apiece.
 ---
@@ -841,7 +837,7 @@ refn: Clinton-37
 id: "@I47@"
 type: Individual
 
-name: ? LOCKHART
+name: "? LOCKHART"
 
 sex: M
 
@@ -868,7 +864,7 @@ note: Martha was listed as living in Tippah Co., MS in the 1880 U.S. census.
 id: "@I49@"
 type: Individual
 
-name: ? AYERS
+name: "? AYERS"
 
 sex: M
 
@@ -1024,7 +1020,7 @@ refn: Clinton-57
 id: "@I60@"
 type: Individual
 
-name: ? MITCHELL
+name: "? MITCHELL"
 
 sex: M
 
@@ -1872,7 +1868,7 @@ birt_quay: 2
 id: "@I134@"
 type: Individual
 
-name: ? (Girl) REAGAN
+name: "? (Girl) REAGAN"
 
 sex: F
 
@@ -5269,7 +5265,7 @@ refn: Lincoln-1024
 id: "@I398@"
 type: Individual
 
-name: ? Bawdiven
+name: "? Bawdiven"
 
 sex: F
 
@@ -5966,7 +5962,7 @@ refn: Washington-68
 id: "@I444@"
 type: Individual
 
-name: ? Watts
+name: "? Watts"
 
 sex: F
 
@@ -7137,7 +7133,7 @@ deat_quay: 2
 id: "@I545@"
 type: Individual
 
-name: ?
+name: "?"
 
 sex: M
 
@@ -8642,7 +8638,7 @@ refn: Washington-266
 id: "@I667@"
 type: Individual
 
-name: ? Charroll
+name: "? Charroll"
 
 sex: F
 
@@ -9379,7 +9375,7 @@ refn: Bush-236
 id: "@I728@"
 type: Individual
 
-name: ? Green
+name: "? Green"
 
 sex: F
 
@@ -9950,7 +9946,7 @@ refn: Bush-408
 id: "@I774@"
 type: Individual
 
-name: ? Angell
+name: "? Angell"
 
 sex: F
 
@@ -10089,7 +10085,7 @@ refn: Bush-381
 id: "@I786@"
 type: Individual
 
-name: ? Horton
+name: "? Horton"
 
 sex: M
 
@@ -10990,7 +10986,7 @@ refn: Bush-597
 id: "@I850@"
 type: Individual
 
-name: ? Goffe
+name: "? Goffe"
 
 sex: M
 
@@ -11864,7 +11860,7 @@ refn: Bush-252
 id: "@I908@"
 type: Individual
 
-name: ? Sandford
+name: "? Sandford"
 
 sex: F
 
@@ -11882,7 +11878,7 @@ refn: Bush-126
 id: "@I910@"
 type: Individual
 
-name: ? Montjoy
+name: "? Montjoy"
 
 sex: F
 
@@ -11934,7 +11930,7 @@ refn: Bush-117
 id: "@I915@"
 type: Individual
 
-name: ? Wood
+name: "? Wood"
 
 sex: M
 
@@ -13784,7 +13780,7 @@ refn: Bush-1478004593
 id: "@I1119@"
 type: Individual
 
-name: ? Fergus
+name: "? Fergus"
 
 sex: M
 
@@ -13838,7 +13834,7 @@ refn: Bush-184750574
 id: "@I1125@"
 type: Individual
 
-name: ? de Lacey
+name: "? de Lacey"
 
 sex: F
 
@@ -14664,7 +14660,7 @@ refn: Bush-184398
 id: "@I1216@"
 type: Individual
 
-name: ? Abernathy
+name: "? Abernathy"
 
 sex: F
 
@@ -17277,7 +17273,7 @@ sex: M
 id: "@I1508@"
 type: Individual
 
-name: ? Edmonson
+name: "? Edmonson"
 
 sex: M
 ---
@@ -17381,7 +17377,7 @@ deat_plac: Greenwich, Connecticut
 id: "@I1520@"
 type: Individual
 
-name: ? (unnamed daughter)Harrison
+name: "? (unnamed daughter)Harrison"
 
 sex: F
 
@@ -18393,7 +18389,7 @@ obje_file: https://upload.wikimedia.org/wikipedia/commons/d/d5/JFK_inaugural_add
 obje_file_form: ogg
 obje_file_form_type: audio
 
-text: Quote:
+text: "Quote:"
 text_cont: "And so, my fellow Americans: ask not what your country can do for you--ask what you can do for your country."
 
 www: https://en.wikipedia.org/wiki/File:JFK_inaugural_address.ogg
@@ -18425,7 +18421,7 @@ www: https://en.wikipedia.org/wiki/Jacqueline_Kennedy_Onassis
 id: "@I1606@"
 type: Individual
 
-name: ? (Stillborn) Kennedy
+name: "? (Stillborn) Kennedy"
 
 sex: F
 
@@ -20297,7 +20293,7 @@ birt_date: 28 MAY 1966
 id: "@I1776@"
 type: Individual
 
-name: ? (Stillborn) Truman
+name: "? (Stillborn) Truman"
 
 sex: M
 
@@ -23262,7 +23258,7 @@ refn: Hayes-3
 id: "@I2051@"
 type: Individual
 
-name: ? (Son) Hayes
+name: "? (Son) Hayes"
 
 sex: M
 
@@ -24460,7 +24456,7 @@ deat_plac: Monticello,Charlottesville,Albemarle,VA
 id: "@I2147@"
 type: Individual
 
-name: ? (unnamed son)Jefferson
+name: "? (unnamed son)Jefferson"
 
 sex: M
 
@@ -24623,7 +24619,7 @@ deat_date: 1748
 id: "@I2160@"
 type: Individual
 
-name: ? (unnamed Son)Jefferson
+name: "? (unnamed Son)Jefferson"
 
 sex: M
 
@@ -24878,7 +24874,7 @@ deat_date: 1843
 id: "@I2182@"
 type: Individual
 
-name: ? (Son) Madison
+name: "? (Son) Madison"
 
 sex: M
 
@@ -24898,7 +24894,7 @@ deat_date: 1775
 id: "@I2184@"
 type: Individual
 
-name: ? (stillborn Son)Madison
+name: "? (stillborn Son)Madison"
 
 sex: M
 
@@ -24931,14 +24927,14 @@ deat_date: 1823
 id: "@I2187@"
 type: Individual
 
-name: ? Todd
+name: "? Todd"
 
 sex: M
 ---
 id: "@I2188@"
 type: Individual
 
-name: ? Todd
+name: "? Todd"
 
 sex: U
 ---
@@ -25305,7 +25301,7 @@ deat_plac: Paris, France
 id: "@I2218@"
 type: Individual
 
-name: ? (unnamed Son)Van Buren
+name: "? (unnamed Son)Van Buren"
 
 sex: M
 
@@ -25508,7 +25504,7 @@ sex: F
 id: "@I2237@"
 type: Individual
 
-name: ? Lane
+name: "? Lane"
 
 sex: F
 
@@ -25723,7 +25719,7 @@ sex: M
 id: "@I2258@"
 type: Individual
 
-name: ? DeWolfe
+name: "? DeWolfe"
 
 sex: M
 ---

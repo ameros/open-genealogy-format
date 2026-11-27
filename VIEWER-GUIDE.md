@@ -41,3 +41,13 @@ For a clean PDF, select the same paper size and orientation in the browser print
 - [GEDCOM import](specs/GEDCOM-IMPORT.md) — what happens when GEDCOM data is imported.
 - [Tree view](specs/TREE-VIEW.md) — tree configuration and behaviour.
 - [Name display](specs/NAME-DISPLAY.md) — name variants and display settings.
+
+
+## Repeated events and groups
+
+When imported source data contains multiple occurrences of a structured tag,
+the viewer displays each occurrence as its own numbered group. For example,
+each residence keeps its own date and place together. These occurrence numbers
+are display-only; they do not create fields such as `resi_1` or `resi_2` in the
+dictionary. Structured values can be edited as JSON in the record editor so
+their nested structure and order are preserved.

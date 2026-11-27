@@ -83,7 +83,28 @@
     if (!eventConfig || typeof eventConfig !== 'object') return '';
     const key = eventConfig[part];
     if (typeof key !== 'string' || !key) return '';
-    const value = recordMap?.[key];
+    let value = recordMap?.[key];
+    // Compatibility with the new repeated-structured-tag representation:
+    // a former flattened path such as birt_date may now live under
+    // birt: [{ date: ... }, ...]. Prefer the original flat field when present.
+    if (value === undefined || value === null) {
+      const separator = key.indexOf('_');
+      if (separator > 0) {
+        const parentKey = key.slice(0, separator);
+        const childKey = key.slice(separator + 1);
+        const parentValue = recordMap?.[parentKey];
+        const occurrences = Array.isArray(parentValue) ? parentValue : [parentValue];
+        for (const occurrence of occurrences) {
+          if (occurrence && typeof occurrence === 'object' && !Array.isArray(occurrence) &&
+              occurrence[childKey] !== undefined && occurrence[childKey] !== null) {
+            value = occurrence[childKey];
+            if (value && typeof value === 'object' && !Array.isArray(value) &&
+                Object.prototype.hasOwnProperty.call(value, 'value')) value = value.value;
+            break;
+          }
+        }
+      }
+    }
     if (Array.isArray(value)) return value.map(item => String(item ?? '').trim()).find(Boolean) || '';
     return value === undefined || value === null ? '' : String(value).trim();
   }
