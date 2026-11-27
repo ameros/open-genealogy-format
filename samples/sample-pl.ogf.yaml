@@ -7,11 +7,15 @@
 id: "@meta@"
 type: Meta
 format_version: 1
-version: 2
+version: 3
 language: pl
 encoding: UTF-8
-gender_mapping:
+gender:
   field: plec
+  values:
+    - M
+    - F
+    - U
   male: M
   female: F
 tree:
@@ -22,7 +26,7 @@ tree:
     death: { date: zgon_data, place: zgon_miejsce }
   family:
     partners: [maz_id, zona_id]
-    children: [dziecko_id]
+    children: [dziecko_ids]
     marriage: { date: slub_data, place: slub_miejsce }
 image_field: obje_file
 individual_display_field: "{imie} {drugie_imie} {nazwisko}"
@@ -40,27 +44,29 @@ date_after: "Nie wcześniej niż {date}"
 id: "@dictionary@"
 type: Dictionary
 
+urodzenie_data: Data urodzenia
+urodzenie_miejsce: Miejsce urodzenia
+
 imie: Imię
 drugie_imie: Drugie imię
 nazwisko: Nazwisko
-plec: Płeć
-plec_values: "M=Mężczyzna | F=Kobieta | U=Nieznana"
 
-urodzenie_data: Data urodzenia
-urodzenie_miejsce: Miejsce urodzenia
-zgon_data: Data śmierci
-zgon_miejsce: Miejsce śmierci
+plec: Płeć
 zawod: Zawód
 
+zgon_data: Data śmierci
+zgon_miejsce: Miejsce śmierci
+
+tytul: Tytuł
 maz_id: Mąż
 zona_id: Żona
-dziecko_id: Dziecko
+dziecko_ids: Dzieci
 slub_data: Data ślubu
 slub_miejsce: Miejsce ślubu
 
 zrodlo_id: Źródło
 notatka: Notatka
-tytul: Tytuł
+
 autor: Autor
 publikacja: Publikacja
 tekst: Treść
@@ -104,7 +110,7 @@ type: Family
 tytul: Rodzina Kowalskich
 maz_id: "@I3@"
 zona_id: "@I2@"
-dziecko_id: "@I1@"
+dziecko_ids: "@I1@"
 slub_data: 1978-06-24
 slub_miejsce: Gdańsk, Polska
 ---

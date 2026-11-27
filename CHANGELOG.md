@@ -1,3 +1,15 @@
+## [1.2.0] - 2026-11-27
+
+### Added
+- Added unified `@meta@.gender` configuration with an explicit field, allowed values, and male/female classifications. Legacy `gender_mapping` remains readable.
+- Added readable type-prefixed identifiers for newly created records: `I-`, `F-`, `S-` and `R-`, with independent counters and persisted high-water marks.
+- Existing identifiers and imported GEDCOM xrefs remain unchanged.
+
+### Versioning
+- Project and specification version: 1.2.0.
+- OGF format version: 1.
+- Metadata contract version: 3.
+
 ## [1.1.0] - 2026-11-26
 
 ### Added
@@ -73,3 +85,5 @@ First stable release of Open Genealogy Format (OGF).
    tree nodes and record references.
 
 
+
+- Unified gender interpretation under `@meta@.gender` and introduced readable, type-prefixed IDs for newly created records while preserving imported and existing identifiers.

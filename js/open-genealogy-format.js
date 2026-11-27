@@ -1,5 +1,5 @@
 const SUPPORTED_OGF_FORMAT_VERSION = 1;
-const SUPPORTED_META_CONTRACT_VERSION = 2;
+const SUPPORTED_META_CONTRACT_VERSION = 3;
 
 const SAMPLE_FILES = {
   "en-gedcom": "samples/sample-en-from-gedcom.ogf.yaml",
@@ -327,6 +327,11 @@ let state = {
   editMode: false
 };
 
+// Per-session ID high-water marks. Existing records are scanned on demand;
+// counters remain in memory for the current session so deletions do not cause
+// immediate ID reuse. No internal state document is written to project data.
+const idCounters = Object.create(null);
+
 function unquote(val) {
   if (typeof val !== "string") return val;
   const s = val.trim();
@@ -539,7 +544,7 @@ function parseYamlStream(text) {
         const key = line.slice(0, kvIdx).trim();
         const rawVal = line.slice(kvIdx + 1).trim();
         currentKey = key;
-        if (rawVal === "" && ["gender_mapping", "tree", "tree_relationships"].includes(key)) {
+        if (rawVal === "" && ["gender", "gender_mapping", "tree", "tree_relationships"].includes(key)) {
           // These metadata properties are structured objects. Parse their
           // indentation-based YAML recursively while leaving ordinary records
           // on the existing flat-field path.
@@ -575,7 +580,7 @@ function serializeYamlStream(docs) {
       if (Array.isArray(entry.value)) {
         out.push(entry.key + ":");
         for (const item of entry.value) out.push("  - " + formatScalar(item));
-      } else if (["gender_mapping", "tree", "tree_relationships"].includes(entry.key) && entry.value && typeof entry.value === "object") {
+      } else if (["gender", "gender_mapping", "tree", "tree_relationships"].includes(entry.key) && entry.value && typeof entry.value === "object") {
         appendYamlNestedValue(out, entry.key, entry.value);
       } else {
         out.push(entry.key + ": " + formatScalar(entry.value));
@@ -1504,12 +1509,12 @@ function convertGedcomToOgf(gedText) {
         { key: "id", value: "@meta@", group: 0 },
         { key: "type", value: "Meta", group: 0 },
         { key: "format_version", value: "1", group: 0 },
-        { key: "version", value: "2", group: 0 },
+        { key: "version", value: "3", group: 0 },
         { key: "language", value: "en", group: 0 },
         { key: "encoding", value: "UTF-8", group: 0 },
         { key: "individual_display_field", value: "name", group: 0 },
         { key: "family_display_field", value: "{$wife.name} & {$husb.name}", group: 0 },
-        { key: "gender_mapping", value: { field: "sex", male: "M", female: "F" }, group: 0 },
+        { key: "gender", value: { field: "sex", values: ["M", "F", "U"], male: "M", female: "F" }, group: 0 },
         { key: "image_field", value: "obje_file", group: 0 },
         { key: "tree", value: {
           individual_type: "Individual",
@@ -1666,12 +1671,10 @@ function convertGedcomToOgf(gedText) {
   }
   // Value-choice definitions are OGF presentation metadata, not GEDCOM facts.
   // Keep standard sex labels only when imported records actually use GEDCOM SEX.
-  if (importedKeys.has("sex")) {
-    dictionaryEntries.push({ key: "sex_values", value: "M=Male | F=Female | U=Unknown", group: 11 });
-  } else {
+  if (!importedKeys.has("sex")) {
     const metaDoc = outDocs.find(doc => doc.id === "@meta@");
     if (metaDoc) {
-      metaDoc.entries = metaDoc.entries.filter(entry => entry.key !== "gender_mapping");
+      metaDoc.entries = metaDoc.entries.filter(entry => entry.key !== "gender");
       metaDoc.map = Object.fromEntries(metaDoc.entries.map(entry => [entry.key, entry.value]));
     }
   }
@@ -1914,7 +1917,7 @@ function addMetadataEditorRow(key = "", value = "") {
   keyInput.className = "meta-key"; keyInput.type = "text"; keyInput.value = key; keyInput.placeholder = "metadata_key";
   const valueInput = document.createElement("input");
   valueInput.className = "meta-value"; valueInput.type = "text";
-  valueInput.value = value && typeof value === "object" ? JSON.stringify(value) : (Array.isArray(value) ? value.join(", ") : String(value ?? "")); valueInput.placeholder = ["gender_mapping", "tree", "tree_relationships"].includes(key) ? "JSON object" : "Value";
+  valueInput.value = value && typeof value === "object" ? JSON.stringify(value) : (Array.isArray(value) ? value.join(", ") : String(value ?? "")); valueInput.placeholder = ["gender", "gender_mapping", "tree", "tree_relationships"].includes(key) ? "JSON object" : "Value";
   const remove = document.createElement("button");
   remove.type = "button"; remove.className = "icon-button delete-entry-btn"; remove.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>'; remove.title = "Remove metadata field"; remove.setAttribute("aria-label", "Remove metadata field");
   remove.addEventListener("click", () => row.remove());
@@ -1956,7 +1959,7 @@ document.getElementById("save-metadata-btn").addEventListener("click", () => {
     if (keys.has(key)) { error = `Duplicate metadata key: ${key}`; return; }
     keys.add(key);
     let storedValue = value;
-    if (["gender_mapping", "tree", "tree_relationships"].includes(key)) {
+    if (["gender", "gender_mapping", "tree", "tree_relationships"].includes(key)) {
       try { storedValue = JSON.parse(value); }
       catch (_) { error = `${key} must be a valid JSON object when edited here.`; return; }
       if (!storedValue || typeof storedValue !== "object" || Array.isArray(storedValue)) { error = `${key} must be a JSON object.`; return; }
@@ -2096,9 +2099,27 @@ document.querySelectorAll(".tabs button").forEach(btn => {
 document.getElementById("search-input").addEventListener("input", renderDirectory);
 document.getElementById("sort-select").addEventListener("change", renderDirectory);
 
+function nextRecordId(type) {
+  const prefixes = { Individual: "I", Family: "F", Source: "S", Repository: "R" };
+  const prefix = prefixes[type] || "R";
+  const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp("^" + escaped + "-(\\d+)$");
+  let highest = Number(idCounters[type] || 0);
+
+  // Existing IDs are authoritative. Scan the current project so imported OGF
+  // identifiers and records added during this session are always respected.
+  for (const doc of state.docs) {
+    const match = String(doc.id || "").match(pattern);
+    if (match) highest = Math.max(highest, Number(match[1]));
+  }
+
+  const id = `${prefix}-${highest + 1}`;
+  idCounters[type] = highest + 1;
+  return id;
+}
+
 document.getElementById("add-ind-btn").addEventListener("click", () => {
-  const slug = Math.random().toString(36).slice(2, 7);
-  const id = `@ind_${slug}@`;
+  const id = nextRecordId("Individual");
   state.docs.push({
     id,
     type: "Individual",
@@ -2116,8 +2137,7 @@ document.getElementById("add-ind-btn").addEventListener("click", () => {
 });
 
 document.getElementById("add-fam-btn").addEventListener("click", () => {
-  const slug = Math.random().toString(36).slice(2, 7);
-  const id = `@fam_${slug}@`;
+  const id = nextRecordId("Family");
   state.docs.push({
     id,
     type: "Family",
@@ -2137,8 +2157,7 @@ document.getElementById("add-fam-btn").addEventListener("click", () => {
 
 
 document.getElementById("add-source-btn")?.addEventListener("click", () => {
-  const slug = Math.random().toString(36).slice(2, 7);
-  const id = `@src_${slug}@`;
+  const id = nextRecordId("Source");
   state.docs.push({
     id,
     type: "Source",
@@ -2156,8 +2175,7 @@ document.getElementById("add-source-btn")?.addEventListener("click", () => {
 });
 
 document.getElementById("add-repository-btn")?.addEventListener("click", () => {
-  const slug = Math.random().toString(36).slice(2, 7);
-  const id = `@repo_${slug}@`;
+  const id = nextRecordId("Repository");
   state.docs.push({
     id,
     type: "Repository",
@@ -2355,13 +2373,14 @@ document.addEventListener("keydown", event => {
 // Narrow public bridge for the optional OGF tree module. The tree reads the
 // same in-memory records and delegates selection back to the existing card.
 function getGenderClass(record) {
-  const mapping = state.meta.gender_mapping;
+  const mapping = state.meta.gender || state.meta.gender_mapping;
   if (!mapping || typeof mapping !== "object" || !mapping.field) return "unknown";
   const rawValue = record && record.map ? record.map[mapping.field] : undefined;
   if (rawValue === undefined || rawValue === null || Array.isArray(rawValue)) return "unknown";
   const value = String(rawValue);
   if (value === String(mapping.male)) return "male";
   if (value === String(mapping.female)) return "female";
+  if (Array.isArray(mapping.values) && !mapping.values.map(String).includes(value)) return "unknown";
   return "unknown";
 }
 

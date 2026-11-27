@@ -2,13 +2,17 @@
 id: "@meta@"
 type: Meta
 format_version: 1
-version: 2
+version: 3
 language: en
 encoding: UTF-8
 individual_display_field: name
 family_display_field: "{$wife.name} & {$husb.name}"
-gender_mapping:
+gender:
   field: sex
+  values:
+    - M
+    - F
+    - U
   male: M
   female: F
 image_field: obje_file

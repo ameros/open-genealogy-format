@@ -37,7 +37,8 @@ independently maintained and distributed product.
    do not automatically change either data contract.
 
 The current viewer supports OGF format version 1 and metadata contract version
-2. It retains a legacy path when either declaration is absent, and reports an
+3. It reads legacy metadata configurations, including `gender_mapping`, and
+continues to preserve existing record identifiers. It retains a legacy path when either declaration is absent, and reports an
 explicitly unsupported declaration rather than guessing.
 
 ## Project and specification releases

@@ -7,11 +7,15 @@
 id: "@meta@"
 type: Meta
 format_version: 1
-version: 2
+version: 3
 language: en
 encoding: UTF-8
-gender_mapping:
+gender:
   field: sex
+  values:
+    - M
+    - F
+    - U
   male: M
   female: F
 tree:
@@ -40,40 +44,24 @@ date_after: "On or after {date}"
 id: "@dictionary@"
 type: Dictionary
 
-bapm_date: Baptism Date
-bapm_plac: Baptism Place
-bapm_quay: Baptism Quality
+name: Name
+name_givn: Given Name
+name_nick: Name Nick
+name_surn: Surname
+name_type: Name Type
 
 birt_date: Birth Date
 birt_plac: Birth Place
 birt_quay: Birt Quality
 
-buri: Burial
-buri_date: Burial Date
-buri_plac: Burial Place
-buri_plac_map_lati: Burial Place Map Lati
-buri_plac_map_long: Burial Place Map Long
-buri_quay: Burial Quality
+bapm_date: Baptism Date
+bapm_plac: Baptism Place
+bapm_quay: Baptism Quality
 
-chil: Child
-chil_10: Child
-chil_11: Child
-chil_12: Child
-chil_2: Child
-chil_3: Child
-chil_4: Child
-chil_5: Child
-chil_6: Child
-chil_7: Child
-chil_8: Child
-chil_9: Child
-
-deat: Death
-deat_date: Death Date
-deat_plac: Death Place
-deat_quay: Deat Quality
-
+sex: Sex
+titl: Title
 educ: Education
+occu: Occupation
 
 even_age: Event Age
 even_date: Event Date
@@ -82,45 +70,40 @@ even_plac: Event Place
 even_sour: Event Source
 even_type: Event Type
 
-husb: Husband
-wife: Wife
-
-marr: Marriage
-marr_date: Marriage Date
-marr_plac: Marriage Place
-marr_quay: Marriage Quality
-
-name: Name
-name_givn: Given Name
-name_nick: Name Nick
-name_surn: Surname
-name_type: Name Type
-
 note: Note
 note_cont: Note Continuation
-note_cont_2: Note Continuation
-note_cont_3: Note Continuation
-note_cont_4: Note Continuation
-note_cont_5: Note Continuation
-note_cont_6: Note Continuation
+
+text: Text
+text_cont: Text Continuation
+
+deat: Death
+deat_date: Death Date
+deat_plac: Death Place
+deat_quay: Deat Quality
+
+buri: Burial
+buri_date: Burial Date
+buri_plac: Burial Place
+buri_plac_map_lati: Burial Place Map Lati
+buri_plac_map_long: Burial Place Map Long
+buri_quay: Burial Quality
 
 obje_file: File
 obje_file_form: File Form
 obje_file_form_type: File Form Type
 obje_titl: Caption
 
-occu: Occupation
-
 refn: Reference
 
-sex: Sex
-
-text: Text
-text_cont: Text Continuation
-
-titl: Title
-
 www: Www
+
+marr: Marriage
+marr_date: Marriage Date
+marr_plac: Marriage Place
+marr_quay: Marriage Quality
+husb: Husband
+wife: Wife
+chil: Children
 ---
 id: "@I1@"
 type: Individual

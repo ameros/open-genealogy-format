@@ -1,7 +1,7 @@
 # Open Genealogy Format — Specification
 
 **Status:** Stable release  
-**Version:** 1.0.4
+**Version:** 1.2.0
 
 ## 1. Purpose
 
@@ -188,6 +188,19 @@ An importer must preserve source identifiers exactly when importing them.
 
 It must not strip delimiters, renumber records or derive identifiers from names or dates.
 
+New records created by an OGF application should use readable, type-prefixed
+identifiers: `I-1`, `I-2`, ... for Individuals; `F-1`, `F-2`, ... for Families;
+`S-1`, `S-2`, ... for Sources; and `R-1`, `R-2`, ... for Repositories. Counters
+are independent per record type. Applications should initialize counters from the highest matching identifier
+already present. Implementations may keep allocation counters in memory while
+the project is open; counters are application runtime bookkeeping and are not
+part of the OGF project data or user-configurable `@meta@` configuration.
+Existing identifiers, including GEDCOM xrefs and identifiers that do not
+follow this convention, must never be rewritten. When importing data,
+applications must preserve imported identifiers and references exactly and
+advance the relevant counter past any matching OGF-style identifiers.
+
+
 ### 5.2 References
 
 A reference is a field value containing a record identifier.
@@ -306,6 +319,7 @@ metadata document. It versions metadata interpretation, not the OGF record
 format, application, or specification document.
 
 - Version `1` is the first stable metadata contract.
+- Version `3` defines the unified `gender` configuration. Readers should continue to accept metadata contract versions 1 and 2 where supported; legacy `gender_mapping` remains readable.
 - A change that breaks compatibility with existing metadata or changes the
   meaning of an existing property requires a new contract version.
 - Adding an optional property that older applications can safely ignore does
@@ -317,42 +331,42 @@ format, application, or specification document.
   files and first-release examples should always include `version: 1`.
 
 The format version and metadata contract version are independent. An OGF file
-may use format version 1 and metadata contract version 2, provided the
+may use format version 1 and metadata contract version 3, provided the
 application supports both. An application should report the compatibility of
 each contract separately. It must not silently downgrade either version.
 
-### 7.3 Shared gender mapping
+### 7.3 Shared gender configuration
 
-The optional `gender_mapping` object defines how an application interprets a
-field on an Individual record as male or female. It is a shared data
-interpretation rule, not a tree-view setting, and may be reused by any renderer
-or feature that needs this classification (including data cards).
+The optional `gender` object defines how an application interprets a configured
+record field. It is shared metadata and may be used by tree rendering, record
+cards and other features that need gender classification.
 
 ```yaml
-gender_mapping:
+gender:
   field: sex
+  values:
+    - M
+    - F
+    - U
   male: M
   female: F
 ```
 
-- `field` is the exact Individual record field to read.
-- `male` is the exact stored value that represents male.
-- `female` is the exact stored value that represents female.
-- Matching is exact; applications must not guess field names, translate values,
-  or infer gender from names, relationships, or other data.
-- A missing field, missing value, or value matching neither configured value
-  must be treated as unknown/unclassified.
+- `field` is the exact record field to read.
+- `values` lists the values recognized by the project. It may include values
+  beyond male and female, such as unknown or project-specific classifications.
+- `male` and `female` identify the exact values representing those categories;
+  when present, each must also occur in `values`.
+- Matching is exact. Applications must not guess field names, translate values,
+  or infer gender from names, relationships or other data.
+- A missing field, missing value or value not matching `male` or `female` is
+  unclassified. Values outside `values` must be preserved in the record and
+  treated as unclassified.
 - Applications must not modify the original record value.
-- The mapping is optional. Without it, gender classification is unknown.
 
-For example, a dataset using `gender: male/female` may declare:
-
-```yaml
-gender_mapping:
-  field: gender
-  male: male
-  female: female
-```
+For backward compatibility, readers should continue to recognize the legacy
+`gender_mapping` object (`field`, `male`, `female`). New files should use
+`gender`. If both are present, `gender` takes precedence.
 
 ### 7.4 Tree configuration
 

@@ -7,11 +7,16 @@
 id: "@meta@"
 type: Meta
 format_version: 1
-version: 2
+version: 3
 language: en
 encoding: UTF-8
-gender_mapping:
+gender:
   field: gender
+  values:
+    - male
+    - female
+    - nonbinary
+    - unknown
   male: male
   female: female
 tree:
@@ -45,14 +50,25 @@ full_name: Full Name
 given_name: Given Name
 middle_name: Middle Name
 family_name: Family Name
-gender: Gender
-gender_values: "male=Male | female=Female | nonbinary=Non-binary | unknown=Unknown"
 
 birth_date: Birth Date
 birth_place: Birth Place
+
+gender: Gender
+title: Title
+occupation: Occupation
+
+source_id: Source
+note: Note
+author: Author
+publication: Publication
+text: Text
+website: Website
+reference_code: Reference Code
+photo_file: Portrait image
+
 death_date: Death Date
 death_place: Death Place
-occupation: Occupation
 
 husband_id: Husband
 wife_id: Wife
@@ -61,16 +77,6 @@ marriage_date: Marriage Date
 marriage_place: Marriage Place
 div: Divorce
 div_values: "Y=Yes | N=No"
-
-source_id: Source
-note: Note
-title: Title
-author: Author
-publication: Publication
-text: Text
-website: Website
-reference_code: Reference Code
-photo_file: Portrait image
 ---
 id: "@I1@"
 type: Individual
