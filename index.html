@@ -96,6 +96,22 @@
   object-fit:contain;
   border-radius:8px;
 }
+
+.viewer-help-modal { width:min(760px,100%); }
+#viewer-help-content { line-height:1.55; font-size:13px; }
+#viewer-help-content .help-section { border:1px solid var(--accentOutline); border-radius:9px; margin:0 0 9px; overflow:hidden; }
+#viewer-help-content .help-section summary { cursor:pointer; padding:11px 13px; font-weight:600; list-style:none; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+#viewer-help-content .help-section summary::-webkit-details-marker { display:none; }
+#viewer-help-content .help-section summary::after { content:'+'; color:var(--muted); font-size:17px; font-weight:400; }
+#viewer-help-content .help-section[open] summary::after { content:'−'; }
+#viewer-help-content .help-section-body { padding:0 13px 12px; border-top:1px solid var(--accentOutline); }
+#viewer-help-content p { margin:10px 0; }
+#viewer-help-content ul { margin:8px 0 10px; padding-left:22px; }
+#viewer-help-content li { margin:4px 0; }
+#viewer-help-content a { color:var(--action); text-decoration:underline; }
+#viewer-help-content code { padding:1px 4px; border-radius:4px; background:var(--actionHover); }
+#viewer-help-content .help-error { color:var(--muted); }
+
 </style>
 </head>
 <body>
@@ -106,6 +122,7 @@
     <span>Open Genealogy Viewer</span>
     <span class="badge" id="version-badge" hidden aria-label="Project version"></span>
   </a>
+  <button id="viewer-help-btn" class="toolbar-icon" type="button" title="Viewer help" aria-label="Open viewer help"><i class="fa-regular fa-circle-question" aria-hidden="true"></i></button>
   <button id="toggle-yaml-btn" class="toolbar-icon" type="button" title="Show YAML editor" aria-label="Show YAML editor"><i class="fa-solid fa-code" aria-hidden="true"></i></button>
   <button id="tree-view-btn" class="toolbar-icon" type="button" title="Open tree view" aria-label="Open tree view" aria-pressed="false"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i></button>
   <label class="toolbar-select-wrap" aria-label="Load a sample">
@@ -199,6 +216,17 @@
     <div id="card-container"></div>
   </section>
 </main>
+
+<!-- Viewer help is rendered from the project-root Markdown guide. -->
+<div class="modal-backdrop" id="viewer-help-modal" role="dialog" aria-modal="true" aria-labelledby="viewer-help-title">
+  <div class="modal viewer-help-modal">
+    <div class="modal-header">
+      <span id="viewer-help-title">OGF Viewer Guide</span>
+      <button id="close-viewer-help-btn" class="icon-button" type="button" title="Close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <div class="modal-body" id="viewer-help-content" aria-live="polite"><p>Loading guide…</p></div>
+  </div>
+</div>
 
 <div id="tooltip"></div>
 
@@ -328,6 +356,79 @@
 <script src="js/ogf-tree.js"></script>
 
 <script>
+  // Render the Markdown viewer guide as accessible expandable help sections.
+  (function setupViewerHelp() {
+    const modal = document.getElementById("viewer-help-modal");
+    const openButton = document.getElementById("viewer-help-btn");
+    const closeButton = document.getElementById("close-viewer-help-btn");
+    const content = document.getElementById("viewer-help-content");
+    if (!modal || !openButton || !closeButton || !content) return;
+    let guideLoaded = false;
+
+    const escapeHtml = value => String(value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+    function inlineMarkdown(value) {
+      let s = escapeHtml(value);
+      s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+      s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+      s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, href) => {
+        const safe = /^(https?:|mailto:|\.\.?\/|#)/i.test(href) ? href : '#';
+        return `<a href="${escapeHtml(safe)}"${/^https?:/i.test(safe) ? ' target="_blank" rel="noopener noreferrer"' : ''}>${label}</a>`;
+      });
+      return s;
+    }
+    function renderMarkdownBody(lines) {
+      let html = '', paragraph = [], list = [];
+      const flushParagraph = () => { if (paragraph.length) { html += `<p>${inlineMarkdown(paragraph.join(' '))}</p>`; paragraph = []; } };
+      const flushList = () => { if (list.length) { html += '<ul>' + list.map(x => `<li>${inlineMarkdown(x)}</li>`).join('') + '</ul>'; list = []; } };
+      for (const raw of lines) {
+        const line = raw.trim();
+        if (!line) { flushParagraph(); flushList(); continue; }
+        const item = line.match(/^[-*]\s+(.+)$/);
+        if (item) { flushParagraph(); list.push(item[1]); continue; }
+        flushList();
+        if (/^#{1,6}\s/.test(line)) { flushParagraph(); continue; }
+        paragraph.push(line);
+      }
+      flushParagraph(); flushList();
+      return html;
+    }
+    function renderGuide(markdown) {
+      const lines = markdown.replace(/^\uFEFF/, '').split(/\r?\n/);
+      const titleIndex = lines.findIndex(line => /^#\s+/.test(line));
+      const sections = []; let current = null; let intro = [];
+      for (let i = titleIndex >= 0 ? titleIndex + 1 : 0; i < lines.length; i++) {
+        const heading = lines[i].match(/^##\s+(.+)$/);
+        if (heading) { if (current) sections.push(current); current = { title: heading[1].trim(), lines: [] }; }
+        else if (current) current.lines.push(lines[i]);
+        else intro.push(lines[i]);
+      }
+      if (current) sections.push(current);
+      let html = renderMarkdownBody(intro);
+      html += sections.map((section, index) => `<details class="help-section"${index === 0 ? ' open' : ''}><summary>${inlineMarkdown(section.title)}</summary><div class="help-section-body">${renderMarkdownBody(section.lines)}</div></details>`).join('');
+      content.innerHTML = html || '<p class="help-error">The viewer guide is empty.</p>';
+    }
+    async function loadGuide() {
+      if (guideLoaded) return;
+      content.innerHTML = '<p>Loading guide…</p>';
+      try {
+        const response = await fetch('./VIEWER-GUIDE.md', { cache: 'no-cache' });
+        if (!response.ok) throw new Error(`Guide request failed (${response.status})`);
+        renderGuide(await response.text());
+        guideLoaded = true;
+      } catch (error) {
+        console.warn('Could not load VIEWER-GUIDE.md', error);
+        content.innerHTML = '<p class="help-error">The viewer guide could not be loaded. Make sure <code>VIEWER-GUIDE.md</code> is available beside the application files and open OGF through a web server.</p>';
+      }
+    }
+    function openHelp() { modal.classList.add('open'); loadGuide(); closeButton.focus(); }
+    function closeHelp() { modal.classList.remove('open'); openButton.focus(); }
+    openButton.addEventListener('click', openHelp);
+    closeButton.addEventListener('click', closeHelp);
+    modal.addEventListener('click', event => { if (event.target === modal) closeHelp(); });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape' && modal.classList.contains('open')) closeHelp(); });
+  })();
+
   // Keep the displayed release version in sync with VERSION.json.
   (async function loadProjectVersion() {
     const badge = document.getElementById("version-badge");

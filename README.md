@@ -71,6 +71,9 @@ manifest, specification, viewer, importer defaults and sample declarations agree
 
 ## Documentation
 
+
+- [Viewer guide](VIEWER-GUIDE.md) — a short guide to using the OGF viewer.
+
 The [OGF specification](specs/SPECIFICATION.md) is the authoritative
 description of the format.
 
@@ -81,33 +84,7 @@ description of the format.
 | [Tree view](specs/TREE-VIEW.md) | Tree relationships and tree-specific behavior |
 | [Name display](specs/NAME-DISPLAY.md) | Viewer settings for choosing and displaying name variants |
 
-## Licensing
-
-The repository does not use one license for every kind of material.
-
-- The application and source code are covered by the root [LICENSE](LICENSE).
-- The format specification and documentation are covered by
-  [CC BY-NC 4.0](licensing/FORMAT-LICENSE.md).
-- Third-party components keep their own licenses.
-
-See the [licensing guide](licensing/README.md) for the full breakdown,
-[commercial licensing](licensing/COMMERCIAL-LICENSING.md), and
-[third-party notices](licensing/THIRD-PARTY-LICENSES.md).
-
-## Core rule
-
-**Keep the data authoritative. Applications may interpret and display it, but
-must not silently change its stored values or meaning.**
-
----
-
-_>> You wrote it - you read it <<_
-
----
-The tool is listed @ https://www.cyndislist.com
-
-Here you can add a link to the list: http://www.cyndislist.com/create-a-link-to-cyndis-list/
-
+## Using the OGF viewer
 
 ## Saving and exporting
 
@@ -139,3 +116,30 @@ Use **Save / Export → PDF** to open the print layout. Choose a paper size (A4�
 - **Actual size** preserves the tree's native SVG scale (96 CSS pixels per inch). If the tree is larger than the selected sheet, the output is tiled across multiple pages with 10 mm margins. Assemble the sheets after printing.
 
 Choose **Print → Save as PDF** in the browser. For reliable dimensions, use the same paper size and orientation in the print dialog and disable browser headers and footers. SVG export remains available under **Advanced export formats**; it omits photographs and is intended for vector editing or web publishing.
+
+## Licensing
+
+The repository does not use one license for every kind of material.
+
+- The application and source code are covered by the root [LICENSE](LICENSE).
+- The format specification and documentation are covered by
+  [CC BY-NC 4.0](licensing/FORMAT-LICENSE.md).
+- Third-party components keep their own licenses.
+
+See the [licensing guide](licensing/README.md) for the full breakdown,
+[commercial licensing](licensing/COMMERCIAL-LICENSING.md), and
+[third-party notices](licensing/THIRD-PARTY-LICENSES.md).
+
+## Core rule
+
+**Keep the data authoritative. Applications may interpret and display it, but
+must not silently change its stored values or meaning.**
+
+---
+
+_>> You wrote it - you read it <<_
+
+---
+The tool is listed @ https://www.cyndislist.com
+
+Here you can add a link to the list: http://www.cyndislist.com/create-a-link-to-cyndis-list/

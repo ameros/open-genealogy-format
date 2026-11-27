@@ -15,6 +15,11 @@ gender:
     - U
   male: M
   female: F
+id_counters:
+  Individual: 0
+  Family: 0
+  Source: 0
+  Repository: 0
 image_field: obje_file
 tree:
   individual_type: Individual

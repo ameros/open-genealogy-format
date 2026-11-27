@@ -64,12 +64,13 @@ tree:
 ## Shared gender interpretation
 
 Gender classification is configured once through the shared top-level
-`@meta@.gender_mapping` object, not through a tree-specific property. For
+`@meta@.gender` object, not through a tree-specific property. For
 example:
 
 ```yaml
-gender_mapping:
+gender:
   field: sex
+  values: [M, F, U]
   male: M
   female: F
 ```
@@ -94,7 +95,7 @@ The renderer uses the same core mechanism as `gedcom-svg-tree`:
   places when those values exist. Individual and Family node portraits use the
   shared `@meta@.image_field` mapping; no image field is inferred from its name,
   and no empty portrait placeholder is shown when an image is absent;
-- the shared `@meta@.gender_mapping` setting classifies Individual nodes;
+- the shared `@meta@.gender` setting classifies Individual nodes;
   exact configured male/female values select the corresponding blue and rose
   node borders, while missing or unrecognized values use the neutral
   pink-to-blue gradient border;

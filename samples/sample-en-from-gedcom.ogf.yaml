@@ -55,19 +55,19 @@ name_nick: Name Nick
 name_givn: Name Givn
 name_surn: Name Surn
 
+sex: Sex
+sex_values: M=Male | F=Female | U=Unknown
+titl: Titl
+occu: Occu
+
 birt_date: Birt Date
 birt_plac: Birt Plac
 birt_quay: Birt Quay
 
-bapm_date: Bapm Date
-bapm_plac: Bapm Plac
-bapm_quay: Bapm Quay
+refn: Refn
 
-sex: Sex
-sex_values: M=Male | F=Female | U=Unknown
-titl: Titl
-educ: Educ
-occu: Occu
+note: Note
+note_cont: Note Cont
 
 even_type: Even Type
 even_date: Even Date
@@ -75,14 +75,6 @@ even_age: Even Age
 even_plac: Even Plac
 even_note: Even Note
 even_sour: Even Sour
-
-note: Note
-note_cont: Note Cont
-
-text: Text
-text_cont: Text Cont
-
-refn: Refn
 
 obje_file: Obje File
 obje_titl: Obje Titl
@@ -103,12 +95,24 @@ buri: Buri
 buri_plac_map_lati: Buri Plac Map Lati
 buri_plac_map_long: Buri Plac Map Long
 
+bapm_date: Bapm Date
+bapm_plac: Bapm Plac
+bapm_quay: Bapm Quay
+
+educ: Educ
+
+text: Text
+text_cont: Text Cont
+
 husb: Husb
+
 wife: Wife
+
 chil: Chil
-marr: Marr
+
 marr_date: Marr Date
 marr_plac: Marr Plac
+marr: Marr
 marr_quay: Marr Quay
 ---
 id: "@I1@"
