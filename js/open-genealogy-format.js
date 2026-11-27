@@ -858,6 +858,7 @@ function rebuildFromEditor() {
             label: parts.length > 1 ? parts[0].trim() : (raw || formatKeyLabel(e.key)),
             desc: parts.length > 1 ? parts.slice(1).join(" - ").trim() : "",
             group: e.group,
+            order: Object.keys(state.dict).length,
             values: valuesEntry ? parseDictionaryValues(valuesEntry.value) : null
           };
         }
@@ -991,6 +992,32 @@ function renderDirectory() {
   }
 }
 
+// Resolve a record's structured root (for example `wydarzenia`) against
+// the dictionary's flattened child keys (for example `wydarzenia_typ`).
+// The earliest matching child determines the root's dictionary position.
+function getDictionaryInfoForRecordKey(recordKey) {
+  if (state.dict[recordKey]) return state.dict[recordKey];
+  const prefix = `${recordKey}_`;
+  const dottedPrefix = `${recordKey}.`;
+  for (const [dictionaryKey, info] of Object.entries(state.dict)) {
+    if (dictionaryKey.startsWith(prefix) || dictionaryKey.startsWith(dottedPrefix)) return info;
+  }
+  return null;
+}
+
+function getNestedDictionaryInfo(parentPath, childKey) {
+  const dottedKey = `${parentPath}.${childKey}`;
+  if (state.dict[dottedKey]) return state.dict[dottedKey];
+  const flattenedKey = `${parentPath}_${childKey}`;
+  if (state.dict[flattenedKey]) return state.dict[flattenedKey];
+  return null;
+}
+
+function getDictionaryOrderForRecordKey(recordKey) {
+  const info = getDictionaryInfoForRecordKey(recordKey);
+  return info ? { group: Number(info.group) || 1, order: Number(info.order) || 0 } : null;
+}
+
 function renderInspectorDetailed() {
   const container = document.getElementById("card-container");
   const docMap = Object.fromEntries(state.docs.map(d => [d.id, d]));
@@ -1024,12 +1051,24 @@ function renderInspectorDetailed() {
     .map(entry => [entry.key, entry]));
   const groupedEntries = new Map();
   for (const key of Object.keys(state.dict)) {
-    const entry = recordFields.get(key);
-    if (!entry) continue;
+    // Exact scalar fields use their own dictionary entry. Structured roots
+    // also match flattened dictionary children (e.g. `wydarzenia` matches
+    // `wydarzenia_typ`, `wydarzenia_data`, etc.). Consume the root once so
+    // repeated occurrences stay together as one field at that position.
+    let recordKey = recordFields.has(key) ? key : null;
+    if (!recordKey) {
+      const candidate = [...recordFields.keys()].find(candidateKey =>
+        key.startsWith(`${candidateKey}_`) || key.startsWith(`${candidateKey}.`));
+      if (candidate) recordKey = candidate;
+    }
+    if (!recordKey) continue;
+    const entry = recordFields.get(recordKey);
     const groupKey = Number(state.dict[key].group) || 1;
     if (!groupedEntries.has(groupKey)) groupedEntries.set(groupKey, []);
-    groupedEntries.get(groupKey).push(entry);
-    recordFields.delete(key);
+    if (!groupedEntries.get(groupKey).some(existing => existing.key === recordKey)) {
+      groupedEntries.get(groupKey).push(entry);
+    }
+    recordFields.delete(recordKey);
   }
   if (recordFields.size) groupedEntries.set("__ungrouped__", [...recordFields.values()]);
   const groups = [...groupedEntries.entries()].map(([key, entries]) => ({ key, entries }));
@@ -1177,7 +1216,7 @@ function renderInspectorDetailed() {
             ? Object.entries(occurrence) : [["value", occurrence]];
           const appendOccurrenceField = (target, childKey, childValue, parentPath = entry.key) => {
             const childPath = `${parentPath}.${childKey}`;
-            const childInfo = state.dict[childPath];
+            const childInfo = getNestedDictionaryInfo(parentPath, childKey);
             const childLabelText = childInfo?.label || formatKeyLabel(childKey);
             const isScalarList = Array.isArray(childValue) && childValue.every(item =>
               item === null || item === undefined || typeof item !== "object"
@@ -1418,7 +1457,7 @@ function renderEditorCard(container, doc) {
   // descriptions for structured values, not standalone top-level card fields.
   const dictionaryOptions = Object.keys(state.dict).filter(key => !key.includes(".")).sort((a, b) => {
     const ga = Number(state.dict[a].group) || 0, gb = Number(state.dict[b].group) || 0;
-    return ga - gb || state.dict[a].label.localeCompare(state.dict[b].label);
+    return ga - gb || (Number(state.dict[a].order) || 0) - (Number(state.dict[b].order) || 0);
   });
 
   function addEditRow(key = "", value = "", group = 1) {
@@ -1439,7 +1478,7 @@ function renderEditorCard(container, doc) {
     keySelect.value = key;
 
     const hasNestedDictionaryFields = !!key && Object.keys(state.dict).some(dictionaryKey =>
-      dictionaryKey.startsWith(`${key}.`));
+      dictionaryKey.startsWith(`${key}.`) || dictionaryKey.startsWith(`${key}_`));
     const isStructuredValue = !!value && typeof value === "object" &&
       (Array.isArray(value)
         ? value.some(item => item && typeof item === "object") || hasNestedDictionaryFields
@@ -1582,8 +1621,19 @@ function renderEditorCard(container, doc) {
   }
 
   let maxGroup = 0;
-  for (const entry of doc.entries) {
-    if (entry.key === "id" || entry.key === "type") continue;
+  const editableEntries = doc.entries
+    .filter(entry => entry.key !== "id" && entry.key !== "type")
+    .map((entry, sourceOrder) => ({ entry, sourceOrder, dictionaryOrder: getDictionaryOrderForRecordKey(entry.key) }))
+    .sort((a, b) => {
+      if (a.dictionaryOrder && b.dictionaryOrder) {
+        return a.dictionaryOrder.group - b.dictionaryOrder.group ||
+          a.dictionaryOrder.order - b.dictionaryOrder.order || a.sourceOrder - b.sourceOrder;
+      }
+      if (a.dictionaryOrder) return -1;
+      if (b.dictionaryOrder) return 1;
+      return a.sourceOrder - b.sourceOrder;
+    });
+  for (const { entry } of editableEntries) {
     maxGroup = Math.max(maxGroup, Number(entry.group) || 0);
     addEditRow(entry.key, entry.value, entry.group || 1);
   }
