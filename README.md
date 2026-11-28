@@ -2,7 +2,7 @@
 
 OGF is a human-readable, self-describing format for genealogical data. 
 
-_>> You can read it - you can write it <<_
+[ _>> You can read it - you can write it <<_ ](docs/WRITING-OGF-YAML.md)
 
 It uses YAML multi-document files and keeps records, metadata and presentation separate.
 
@@ -10,15 +10,11 @@ The format has an open field vocabulary: applications must preserve fields they
 do not recognize. Records are connected by stable identifiers, not by copied
 names. Import and display must not silently invent facts or change stored data.
 The dictionary defines useful OGF fields and labels; it does not translate tags
-from GEDCOM or other source formats. Importers preserve source tags, flatten
-unique paths where appropriate, and keep repeated structured occurrences as
-separate ordered nested groups. Users may explicitly rename or reorganize fields.
-The metadata parser supports block-style and inline YAML collections, including
-inline relationship lists used by the sample tree configurations. The viewer
-starts with an empty project by loading its reusable default metadata
-and dictionary from `defaults/meta.yaml` and `defaults/dictionary.yaml`. These
-files are standalone YAML documents that can be copied and adapted for other
-OGF projects. Example files are available from the Samples menu, including a fictional repeated-events sample that demonstrates how multiple occurrences remain separate.
+from GEDCOM or other source formats. The viewer starts with an empty project by
+loading reusable defaults from `defaults/meta.yaml` and
+`defaults/dictionary.yaml`. These standalone YAML documents can be copied and
+adapted for other OGF projects. For a practical introduction, see the
+[guide to writing genealogy data by hand](docs/WRITING-OGF-YAML.md).
 
 ## A small example
 
@@ -62,6 +58,8 @@ details cards. See
 - `index.html` — browser-based OGF viewer.
 - `js/` and `css/` — application source.
 - `samples/` — example OGF files, also used as regression-test fixtures.
+- `docs/` — practical guides for creating and editing OGF data.
+- `articles/` — topic-based Markdown articles rendered in the viewer help.
 - `scripts/test-all.sh` — runs date-phrasing and sample-fixture regression checks.
 - `defaults/meta.yaml` — reusable starter `@meta@` configuration.
 - `defaults/dictionary.yaml` — reusable starter `@dictionary@` vocabulary and labels.
@@ -81,6 +79,8 @@ runner prints this instruction and exits cleanly.
 
 
 - [Viewer guide](VIEWER-GUIDE.md) — a short guide to using the OGF viewer.
+- [Writing genealogy data by hand](docs/WRITING-OGF-YAML.md) — a practical YAML tutorial.
+- [Articles and field notes](articles/README.md) — focused explanations with links to complete sample files.
 
 The [OGF specification](specs/SPECIFICATION.md) is the authoritative
 description of the format.

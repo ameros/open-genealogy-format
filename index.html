@@ -145,6 +145,7 @@
       <option value="en-repeated">English — repeated events and groups</option>
     </select>
   </label>
+  <button id="open-sample-yaml-btn" class="toolbar-icon" type="button" title="Open current sample YAML" aria-label="Open current sample YAML" disabled><i class="fa-solid fa-file-code" aria-hidden="true"></i></button>
   <label class="toolbar-select-wrap" aria-label="Configuration">
     <span class="sr-only">Configuration</span>
     <select id="config-select" class="toolbar-select">
@@ -395,6 +396,19 @@
       }
     }
 
+    function resolveSampleYamlUrl(href, fromPath) {
+      try {
+        const base = new URL(fromPath, window.location.href);
+        const target = new URL(href, base);
+        const appRoot = new URL('./', window.location.href).pathname;
+        if (target.origin !== window.location.origin || !target.pathname.startsWith(appRoot + 'samples/')) return null;
+        if (!/\.ogf\.yaml$/i.test(target.pathname)) return null;
+        return target.href;
+      } catch (_) {
+        return null;
+      }
+    }
+
     function inlineMarkdown(value, sourcePath) {
       let s = escapeHtml(value);
       s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
@@ -405,6 +419,8 @@
         if (/^https?:\/\//i.test(href) || /^mailto:/i.test(href)) {
           return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
         }
+        const sampleUrl = resolveSampleYamlUrl(href, sourcePath);
+        if (sampleUrl) return `<a href="${escapeHtml(sampleUrl)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
         const internalPath = resolveDocumentPath(href, sourcePath);
         if (internalPath) return `<a href="#" data-help-document="${escapeHtml(internalPath)}">${label}</a>`;
         if (/^#/.test(href)) return `<a href="${escapeHtml(href)}">${label}</a>`;

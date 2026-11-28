@@ -147,8 +147,11 @@ For repeated `EVEN` tags, the occurrence objects retain their own `type`,
 `date`, `plac` and other child tags. The importer must not generate numbered
 synthetic keys such as `event_1`, `event_2`, `resi_1`, or suffix keys `_2`/`_3`
 for repeated occurrences. The `@dictionary@` contains one entry for each unique
-top-level OGF field key; it does not contain entries for individual occurrences
-or nested child keys.
+top-level OGF field key and may contain reusable dotted-path definitions for
+nested child fields (for example, `even.type`). It never contains entries for
+individual occurrences or synthetic occurrence numbers. See
+[the specification section on repeated structures](SPECIFICATION.md#61-repeated-source-occurrences)
+for the general OGF representation and dictionary rules.
 
 ### 5.2 Tag names and values
 

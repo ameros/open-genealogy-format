@@ -42,12 +42,18 @@ For a clean PDF, select the same paper size and orientation in the browser print
 - [Tree view](specs/TREE-VIEW.md) — tree configuration and behaviour.
 - [Name display](specs/NAME-DISPLAY.md) — name variants and display settings.
 
+## Learn to write OGF YAML
 
-## Repeated events and groups
+OGF files can be created and edited in a text editor. Start with the
+[step-by-step YAML tutorial](docs/WRITING-OGF-YAML.md), then explore the
+[articles and field notes](articles/README.md).
 
-When imported source data contains multiple occurrences of a structured tag,
-the viewer displays each occurrence as its own numbered group. For example,
-each residence keeps its own date and place together. These occurrence numbers
-are display-only; they do not create fields such as `resi_1` or `resi_2` in the
-dictionary. Structured values can be edited as JSON in the record editor so
-their nested structure and order are preserved.
+The sample files are also practical examples of how to write the data:
+
+- [English sample YAML](samples/sample-en.ogf.yaml)
+- [GEDCOM-derived sample YAML](samples/sample-en-from-gedcom.ogf.yaml)
+- [Repeated events sample YAML](samples/sample-en-repeated-events.ogf.yaml)
+
+Repeated structured occurrences remain ordered and keep their own nested
+values together. The dictionary defines their labels and position among other
+card sections. See [repeated structures in the specification](specs/SPECIFICATION.md#61-repeated-source-occurrences).

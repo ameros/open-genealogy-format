@@ -1,3 +1,15 @@
+## [Unreleased]
+
+### Added
+- Added a practical guide to writing genealogy data by hand in YAML, linked from the README motto and viewer help.
+- Added a Markdown articles/field-notes section rendered by the existing viewer help interpreter.
+- Added direct links from help articles and the sample toolbar to the actual YAML sample files.
+- Added regression assertions for documentation navigation and sample-source links.
+
+### Changed
+- Moved repeated structured occurrence guidance out of the short viewer usage guide and clarified its normative home in the specification and GEDCOM import guide.
+- Corrected the GEDCOM import guide to distinguish top-level dictionary entries from reusable dotted-path labels for nested fields.
+
 ## [1.2.6] - 2026-11-27
 ### Fixed
 - Restored metadata-driven date phrasing for GEDCOM qualifiers (`ABT`, `BEF`, `AFT`, `BET ... AND ...`, `CAL`, `EST`, `FROM` and `TO`) while preserving the original stored date expressions.

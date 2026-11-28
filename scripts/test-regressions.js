@@ -51,3 +51,26 @@ for (const rawDate of ["ABT 1825", "ABT 1865", "BEF 16 DEC 1884"]) {
 }
 
 console.log(`Date phrasing regression tests passed (${cases.length} cases + GEDCOM sample checks).`);
+
+// Documentation structure and sample links are part of the user-facing
+// learning experience; keep the Markdown destinations and YAML-source support
+// from silently disappearing.
+const readme = fs.readFileSync(path.join(__dirname, "../README.md"), "utf8");
+const viewerGuide = fs.readFileSync(path.join(__dirname, "../VIEWER-GUIDE.md"), "utf8");
+const yamlTutorial = fs.readFileSync(path.join(__dirname, "../docs/WRITING-OGF-YAML.md"), "utf8");
+const articleIndex = fs.readFileSync(path.join(__dirname, "../articles/README.md"), "utf8");
+const repeatedArticle = fs.readFileSync(path.join(__dirname, "../articles/repeated-structured-events.md"), "utf8");
+const viewerHtml = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+assert.ok(readme.includes("docs/WRITING-OGF-YAML.md"), "README links to the hand-written YAML tutorial");
+assert.ok(viewerGuide.includes("articles/README.md"), "viewer help links to the article index");
+assert.ok(yamlTutorial.includes("samples/sample-en-repeated-events.ogf.yaml"), "YAML tutorial links to the real repeated-events sample");
+assert.ok(articleIndex.includes("repeated-structured-events.md"), "article index links to the repeated structures article");
+assert.ok(repeatedArticle.includes("samples/sample-en-repeated-events.ogf.yaml"), "repeated structures article links to the real sample");
+assert.ok(viewerHtml.includes("resolveSampleYamlUrl"), "viewer help supports safe links to sample YAML files");
+const viewerApp = fs.readFileSync(path.join(__dirname, "../js/open-genealogy-format.js"), "utf8");
+assert.ok(viewerHtml.includes("open-sample-yaml-btn"), "viewer toolbar provides a direct sample YAML source link");
+assert.ok(viewerApp.includes("setCurrentSampleSource(filename)"), "loading a sample enables its YAML source link");
+assert.ok(viewerApp.includes("setCurrentSampleSource(null)"), "starting a new project clears the sample YAML source link");
+assert.ok(viewerHtml.includes("appRoot + 'samples/'"), "viewer help restricts YAML source links to the samples directory");
+assert.ok(!viewerGuide.includes("can be edited as JSON"), "viewer guide does not describe structured fields as raw JSON editing");
+console.log("Documentation and sample-source link regression checks passed (11 assertions).");

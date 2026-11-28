@@ -7,6 +7,17 @@ const SAMPLE_FILES = {
   "en-custom": "samples/sample-en-custom-keys.ogf.yaml",
   "en-repeated": "samples/sample-en-repeated-events.ogf.yaml"
 };
+let currentSampleSourcePath = null;
+const openSampleYamlButton = document.getElementById("open-sample-yaml-btn");
+openSampleYamlButton?.addEventListener("click", () => {
+  if (!currentSampleSourcePath) return;
+  window.open(new URL(currentSampleSourcePath, document.baseURI).href, "_blank", "noopener,noreferrer");
+});
+
+function setCurrentSampleSource(path) {
+  currentSampleSourcePath = path || null;
+  if (openSampleYamlButton) openSampleYamlButton.disabled = !currentSampleSourcePath;
+}
 
 // The starter project is intentionally empty: it contains configuration and a
 // human-readable dictionary, but no example people, families or sources.
@@ -2601,6 +2612,7 @@ async function loadNewProject() {
     status.textContent = "New empty project · defaults loaded from defaults/meta.yaml and defaults/dictionary.yaml";
     status.style.color = "#4ade80";
     document.getElementById("sample-select").value = "";
+    setCurrentSampleSource(null);
   } catch (error) {
     status.textContent = `Could not create a new project: ${error.message}`;
     status.style.color = "#f87171";
@@ -2638,6 +2650,7 @@ async function loadSample(language) {
     if (!docs.length) throw new Error("The file contains no YAML documents");
 
     editor.value = yaml;
+    setCurrentSampleSource(filename);
     state.selectedId = null;
     state.editMode = false;
     state.activeTab = "Individual";
